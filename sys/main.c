@@ -15,11 +15,6 @@ uint32_t* loader_stack;
 extern char kernmem, physbase;
 
 uint64_t uCR3;
-// Ref: http://wiki.osdev.org/Setting_Up_Paging, diff that for 64 bit, 512 entries
-//uint64_t pml_table[TABLE_ENTRIES_MAX] __attribute__((aligned(0x1000)));
-//uint64_t pdp_table[TABLE_ENTRIES_MAX] __attribute__((aligned(0x1000)));
-//uint64_t pd_table[TABLE_ENTRIES_MAX] __attribute__((aligned(0x1000)));
-//uint64_t page_table[TABLE_ENTRIES_MAX] __attribute__((aligned(0x1000)));
 uint64_t *pml_table;
 uint64_t *pdp_table;
 uint64_t *pd_table;
@@ -37,18 +32,18 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     pdp_table = (uint64_t*)allocatePage();
     pd_table = (uint64_t*)allocatePage();
     page_table = (uint64_t*)allocatePage();
-    kprintf("old pmltable: %x\n",pml_table);
+    //kprintf("old pmltable: %x\n",pml_table);
     pageTablesInit(pml_table);
-    kprintf("new pmltable: %x\n",pml_table);
-    mapFromPhyToVirRange((uint64_t) physbase, (uint64_t) physfree, (uint64_t) (KERNBASE + physbase));
+    //kprintf("new pmltable: %x\n",pml_table);
+    //mapFromPhyToVirRange((uint64_t) physbase, (uint64_t) physfree, (uint64_t) (KERNBASE + physbase));
     //cr3Create(&uCR3, (uint64_t) pml_table, 0x00, 0x00);
     uCR3 = (uint64_t)pml_table;
     kprintf("new physfree: %x, cr3: %x\n",physfree,uCR3);
-    //__asm__ __volatile__("movq %0, %%cr3":: "a"(uCR3));
+    //__asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
     /* Setup the stack again. */
-    //__asm__ __volatile__("movq %0, %%rbp" : :"a"(&loader_stack[0]));
-    //__asm__ __volatile__("movq %0, %%rsp" : :"a"(&loader_stack[INITIAL_STACK_SIZE]));
-    kprintf("done with stack init\n");
+    //__asm__ __volatile__("movq %0, %%rbp" : :"r"(&loader_stack[0]));
+    //__asm__ __volatile__("movq %0, %%rsp" : :"r"(&loader_stack[INITIAL_STACK_SIZE]));
+    //kprintf("done with stack init\n");
 
 /*
     // Verification for Physical mem logic
