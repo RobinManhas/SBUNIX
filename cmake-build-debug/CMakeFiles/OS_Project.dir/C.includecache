@@ -1,0 +1,184 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/stdarg.h
+
+../include/stdio.h
+unistd.h
+-
+
+../include/stdlib.h
+sys/defs.h
+-
+
+../include/string.h
+sys/defs.h
+-
+
+../include/sys/ahci.h
+sys/defs.h
+-
+
+../include/sys/defs.h
+
+../include/sys/gdt.h
+
+../include/sys/idt.h
+sys/defs.h
+-
+
+../include/sys/kmalloc.h
+
+../include/sys/kprintf.h
+
+../include/sys/pci.h
+
+../include/sys/pmm.h
+defs.h
+../include/sys/defs.h
+
+../include/sys/tarfs.h
+
+../include/sys/util.h
+
+../include/syscalls.h
+unistd.h
+-
+
+../include/unistd.h
+sys/defs.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/crt/crt1.c
+stdlib.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/libc/stdio.c
+string.h
+-
+syscalls.h
+-
+stdio.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/libc/stdlib.c
+string.h
+-
+stdio.h
+-
+stdlib.h
+-
+syscalls.h
+-
+unistd.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/libc/string.c
+string.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/libc/syscalls.c
+syscalls.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/gdt.c
+sys/defs.h
+-
+sys/gdt.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/idt.c
+sys/defs.h
+-
+sys/idt.h
+-
+sys/kprintf.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/irq.c
+sys/defs.h
+-
+sys/idt.h
+-
+sys/kprintf.h
+-
+sys/util.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/keyboard.c
+sys/util.h
+-
+sys/kprintf.h
+-
+sys/idt.h
+-
+sys/defs.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/kmalloc.c
+sys/kmalloc.h
+-
+sys/pmm.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/kprintf.c
+sys/kprintf.h
+-
+stdarg.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/main.c
+sys/defs.h
+-
+sys/gdt.h
+-
+sys/kprintf.h
+-
+sys/tarfs.h
+-
+sys/ahci.h
+-
+sys/idt.h
+-
+sys/util.h
+-
+sys/pci.h
+-
+sys/pmm.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/pci.c
+sys/kprintf.h
+-
+sys/util.h
+-
+sys/pci.h
+-
+sys/defs.h
+-
+sys/ahci.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/pmm.c
+sys/pmm.h
+-
+sys/kprintf.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/timer.c
+sys/kprintf.h
+-
+sys/idt.h
+-
+
+/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/util.c
+sys/util.h
+-
+sys/defs.h
+-
+

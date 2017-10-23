@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="OS_Project"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="OS_Project">
+				<Option output="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/cmake-build-debug/OS_Project" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys"/>
+					<Add directory="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/9.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 OS_Project"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="OS_Project/fast">
+				<Option output="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/cmake-build-debug/OS_Project" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys"/>
+					<Add directory="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/9.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 OS_Project/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/robinmanhas/Desktop/Stony\ Brook/First\ Sem/OS/OS\ Project/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/crt/crt1.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/dirent.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/signal.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/stdarg.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/stdio.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/stdlib.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/string.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/ahci.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/defs.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/elf64.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/gdt.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/idt.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/kmalloc.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/kprintf.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/pci.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/pmm.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/tarfs.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/util.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/sys/vmm.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/syscalls.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/include/unistd.h">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/libc/stdio.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/libc/stdlib.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/libc/string.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/libc/syscalls.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/gdt.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/idt.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/irq.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/keyboard.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/kmalloc.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/kprintf.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/main.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/pci.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/pmm.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/timer.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/util.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/sys/vmm.c">
+			<Option target="OS_Project"/>
+		</Unit>
+		<Unit filename="/Users/robinmanhas/Desktop/Stony Brook/First Sem/OS/OS Project/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

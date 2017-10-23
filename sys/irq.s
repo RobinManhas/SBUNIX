@@ -1,0 +1,70 @@
+.text
+
+.global _irq0
+.global _irq1
+.global isr0
+
+
+_irq0:
+    cli
+    pushq %rax
+    movq $32,%rax
+    jmp irq_common_stub
+
+_irq1:
+    cli
+    pushq %rax
+    movq $33,%rax
+    jmp irq_common_stub
+
+isr0:
+    cli
+    pushq %rax
+    movq $40,%rax  ///$40 is temp
+    jmp irq_common_stub
+
+
+
+irq_common_stub:
+
+
+
+    pushq %rcx
+    pushq %rdx
+    pushq %rbx
+    pushq %rbp
+    pushq %rsi
+    pushq %rdi
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r11
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+
+
+
+    movq %rax, %rdi   ////
+    callq  _irq_handler
+
+
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %r11
+    popq %r10
+    popq %r9
+    popq %r8
+    popq %rdi
+    popq %rsi
+    popq %rbp
+    popq %rbx
+    popq %rdx
+    popq %rcx
+    popq %rax
+
+    sti
+    iretq
