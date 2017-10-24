@@ -2,7 +2,7 @@
 #define _DEFS_H
 
 #define NULL ((void*)0)
-#define KERNBASE 0xffffffff80000000UL // from linkerscript
+#define KERNBASE 0xffffffff80000000UL // from linkerscript 0xffffffff80000000
 #define TABLE_ENTRIES_MAX 512
 typedef unsigned long  uint64_t;
 typedef          long   int64_t;
