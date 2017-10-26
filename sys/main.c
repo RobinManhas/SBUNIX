@@ -27,19 +27,26 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     "movq %%cr3, %0\n\t"
     :"=r"(cr3):);
     kprintf("cr3 old: %x\n",cr3);
+    void* oldPhysFree = physfree;
+    kprintf("sent physfree from main: %p\n", physfree);
     phyMemInit(modulep,physbase,&physfree);
-    pml_table = (uint64_t*)allocatePage();
-    pdp_table = (uint64_t*)allocatePage();
-    pd_table = (uint64_t*)allocatePage();
-    page_table = (uint64_t*)allocatePage();
-    //kprintf("old pmltable: %x\n",pml_table);
+    kprintf("recv physfree from main: %p\n", oldPhysFree);
+    struct Page* page = allocatePage();
+    pml_table = (uint64_t*)page->uAddress;
+    page = allocatePage();
+    pdp_table = (uint64_t*)page->uAddress;
+    page = allocatePage();
+    pd_table = (uint64_t*)page->uAddress;
+    page = allocatePage();
+    page_table = (uint64_t*)page->uAddress;
+    kprintf("Page address: %x, add stored: %x\n",page, pml_table);
     pageTablesInit(pml_table);
     //kprintf("new pmltable: %x\n",pml_table);
-    //mapFromPhyToVirRange((uint64_t) physbase, (uint64_t) physfree, (uint64_t) (KERNBASE + physbase));
-    //cr3Create(&uCR3, (uint64_t) pml_table, 0x00, 0x00);
-    uCR3 = (uint64_t)pml_table;
+    mapFromPhyToVirRange((uint64_t) physbase, (uint64_t) oldPhysFree, (uint64_t) (KERNBASE + physbase));
+    cr3Create(&uCR3, (uint64_t) pml_table, 0x00, 0x00); // Really required to remove flags ?
+    //uCR3 = (uint64_t)pml_table;
     kprintf("new physfree: %x, cr3: %x\n",physfree,uCR3);
-    //__asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
+    __asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
     /* Setup the stack again. */
     //__asm__ __volatile__("movq %0, %%rbp" : :"r"(&loader_stack[0]));
     //__asm__ __volatile__("movq %0, %%rsp" : :"r"(&loader_stack[INITIAL_STACK_SIZE]));
@@ -67,7 +74,7 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     //init_timer();
     //init_keyboard();
     //__asm__ ("sti");
-    init_pci();
+    //init_pci();
     //updateTimeOnScreen();
 
     while(1);
