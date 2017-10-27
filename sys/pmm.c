@@ -45,14 +45,14 @@ int phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
 
     // RM: as per lecture, allocate this space just above physfree, move physfree after this allocation
     // pPageList = (struct Page*)alloc(totalPageCount* sizeof(struct Page));
-    kprintf("old physfree: %x\n", *physfree);
+    //kprintf("old physfree: %x\n", *physfree);
 
     struct Page *pageUpdateList = (struct Page *) *physfree;
     pFreeList = (struct Page *) *physfree;
     int totalSizeUsed = totalPageCount * sizeof(struct Page);
     uint64_t newPhysFree = (uint64_t) (*physfree) + (totalSizeUsed);
 
-    uint64_t ptr = ((newPhysFree + PAGE_SIZE) & 0xfffffffffffff000); // checked 4096 alignment
+    uint64_t ptr = ((newPhysFree + PAGE_SIZE) & 0xfffffffffffff000); // flush flags
     struct Page *pre = NULL;
     for (; ptr < (smap_g[1].base + smap_g[1].length); ptr += PAGE_SIZE) {
         pageUpdateList->uAddress = ptr;

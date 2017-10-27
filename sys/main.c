@@ -26,11 +26,9 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     __asm__ __volatile__(
     "movq %%cr3, %0\n\t"
     :"=r"(cr3):);
-    kprintf("cr3 old: %x\n",cr3);
-    void* oldPhysFree = physfree;
-    kprintf("sent physfree from main: %p\n", physfree);
+    kprintf("old cr3 %x, old physfree: %x\n",cr3,physfree);
     phyMemInit(modulep,physbase,&physfree);
-    kprintf("recv physfree from main: %p\n", oldPhysFree);
+    //kprintf("recv physfree from main: %p\n", oldPhysFree);
     struct Page* page = allocatePage();
     pml_table = (uint64_t*)page->uAddress;
     page = allocatePage();
@@ -39,14 +37,13 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     pd_table = (uint64_t*)page->uAddress;
     page = allocatePage();
     page_table = (uint64_t*)page->uAddress;
-    kprintf("Page address: %x, add stored: %x\n",page, pml_table);
+    kprintf("PMLT: %x, PDPT: %x, PD: %x, PT: %x\n",pml_table, pdp_table,pd_table, page_table);
     pageTablesInit(pml_table);
-    //kprintf("new pmltable: %x\n",pml_table);
-    mapFromPhyToVirRange((uint64_t) physbase, (uint64_t) oldPhysFree, (uint64_t) (KERNBASE + physbase));
+    mapFromPhyToVirRange((uint64_t) physbase, (uint64_t) physfree, (uint64_t) (KERNBASE + physbase));
     cr3Create(&uCR3, (uint64_t) pml_table, 0x00, 0x00); // Really required to remove flags ?
     //uCR3 = (uint64_t)pml_table;
-    kprintf("new physfree: %x, cr3: %x\n",physfree,uCR3);
     __asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
+    kprintf("Hurray kprintf works after cr3 reset, new physfree: %x, cr3: %x\n",physfree,uCR3);
     /* Setup the stack again. */
     //__asm__ __volatile__("movq %0, %%rbp" : :"r"(&loader_stack[0]));
     //__asm__ __volatile__("movq %0, %%rsp" : :"r"(&loader_stack[INITIAL_STACK_SIZE]));

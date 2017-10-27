@@ -6,8 +6,7 @@
 #define MAX_LINES 24 //3680,3840
 #define TIMER_LINE 25
 #define SPACE_OFFSET 2
-uint64_t videoOutBufAdd = 0xB8000;
-
+uint64_t videoOutBufAdd = 0xb8000;
 char intToCharOut[100]; // RM: string could be 64 bit address space
 int intToCharLen = 0;
 static int charsWritten = 0;
@@ -20,11 +19,11 @@ void checkOverflow(char** outBuf)
         // point the writer to last wriateable line
         int lastLine = LINE_LENGTH*(MAX_LINES-1);
         charsWritten = lastLine;
-        *outBuf = ((char*)0xb8000) + lastLine;
+        *outBuf = ((char*)videoOutBufAdd) + lastLine;
 
         // shift all the lines above
-        char* destPtr = (char*)0xb8000;
-        char* srcPtr = ((char*)0xb8000) + 160;
+        char* destPtr = (char*)videoOutBufAdd;
+        char* srcPtr = ((char*)videoOutBufAdd) + 160;
         int charCount = 0;
         while(charCount < lastLine)
         {
@@ -84,7 +83,7 @@ void hextoChar(unsigned long long n, int base){
 
 void clearScreen(){
     // clear the last line
-    char* destPtr = (char*)0xb8000;
+    char* destPtr = (char*)videoOutBufAdd;
     int lastLine = LINE_LENGTH*(MAX_LINES-1);
     for(int i = 0;i<=lastLine;i++)
     {
@@ -96,7 +95,7 @@ void clearScreen(){
 void updateTimeOnScreen(int time)
 {
     int timerIndex = LINE_LENGTH*TIMER_LINE - keyboardOffset - SPACE_OFFSET;
-    char* screenWriter = ((char*)0xb8000); // initialize to base
+    char* screenWriter = ((char*)videoOutBufAdd); // initialize to base
     char *replaceBufPtr;
     intToCharLen = 0;
     intToChar(time,10);
@@ -127,7 +126,7 @@ void keyboardLocalEcho(char* input)
     {
         keyboardOffset = offset;
         // cls
-        char* eraser = ((char*)0xb8000) + LINE_LENGTH*MAX_LINES;
+        char* eraser = ((char*)videoOutBufAdd) + LINE_LENGTH*MAX_LINES;
         for(int i = (LINE_LENGTH*MAX_LINES);i<=(LINE_LENGTH*TIMER_LINE);i++)
         {
             *eraser = ' ';
@@ -136,7 +135,7 @@ void keyboardLocalEcho(char* input)
     }
 
     int timerIndex = LINE_LENGTH*TIMER_LINE - keyboardOffset;
-    char* screenWriter = ((char*)0xb8000) + timerIndex;
+    char* screenWriter = ((char*)videoOutBufAdd) + timerIndex;
     *screenWriter = *input;
     if(size == 2){
         screenWriter+=2;
@@ -167,7 +166,7 @@ void kprintf(const char *fmt, ...)
         checkOverflow(&outputBufPtr);
     }*/
 
-    for(inputBufPtr = (char*)fmt, outputBufPtr = (char*)0xb8000+charsWritten; *inputBufPtr;)
+    for(inputBufPtr = (char*)fmt, outputBufPtr = (char*)videoOutBufAdd+charsWritten; *inputBufPtr;)
     {
         // First filter
         if(*inputBufPtr == '%')
@@ -306,10 +305,6 @@ void kprintf(const char *fmt, ...)
             //  line+=1;
             //}
         }
-        
     }
-    
-    va_end(arglist);    
-  
-    
+    va_end(arglist);
 }
