@@ -6,7 +6,7 @@
 #include <sys/kprintf.h>
 
 static int totalPageCount;
-static struct smap_t smap_g[2];
+static struct smap_t smapGlobal[2];
 
 void* memset(void* ptr, int val, unsigned int len){
     unsigned char *p = ptr;
@@ -31,12 +31,15 @@ int phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
             {
                 //totalPageCount=smap->length/PAGE_SIZE;
                 //kprintf("Lower mem pages = %d\n",totalPageCount); RM: not doing anything for pages below phsyfree
-            } else {
+            }
+            else
+            {
+                // TODO *IMPORTANT*: Currently we store just the last contiguous block in high mem, need to do for all
                 totalPageCount = ((smap->base + smap->length) - (uint64_t) *physfree) / PAGE_SIZE;
                 kprintf("Higher mem pages = %d\n", totalPageCount);
-                smap_g[1].base = smap->base;
-                smap_g[1].length = smap->length;
-                smap_g[1].type = smap->type;
+                smapGlobal[1].base = smap->base;
+                smapGlobal[1].length = smap->length;
+                smapGlobal[1].type = smap->type;
             }
 
             kprintf("Available Physical Memory [%p-%p]\n", smap->base, smap->base + smap->length);
@@ -44,26 +47,23 @@ int phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
     }
 
     // RM: as per lecture, allocate this space just above physfree, move physfree after this allocation
-    // pPageList = (struct Page*)alloc(totalPageCount* sizeof(struct Page));
-    //kprintf("old physfree: %x\n", *physfree);
-
-    struct Page *pageUpdateList = (struct Page *) *physfree;
-    pFreeList = (struct Page *) *physfree;
-    int totalSizeUsed = totalPageCount * sizeof(struct Page);
+    Page *pageUpdateList = (Page *) *physfree;
+    pFreeList = (Page *) *physfree;
+    int totalSizeUsed = totalPageCount * sizeof(Page);
     uint64_t newPhysFree = (uint64_t) (*physfree) + (totalSizeUsed);
 
     uint64_t ptr = ((newPhysFree + PAGE_SIZE) & 0xfffffffffffff000); // flush flags
-    struct Page *pre = NULL;
-    for (; ptr < (smap_g[1].base + smap_g[1].length); ptr += PAGE_SIZE) {
+    Page *pre = NULL;
+    for (; ptr < (smapGlobal[1].base + smapGlobal[1].length); ptr += PAGE_SIZE) {
         pageUpdateList->uAddress = ptr;
         pageUpdateList->sRefCount = 0;
         pageUpdateList->pNext = NULL;
         if (pre != NULL) {
-            pre->pNext = (struct Page *) ((uint64_t) pageUpdateList);
+            pre->pNext = (Page *) ((uint64_t) pageUpdateList);
         }
         pre = pageUpdateList;
         memset((void*)pageUpdateList->uAddress, 0, PAGE_SIZE);
-        pageUpdateList += sizeof(struct Page);
+        pageUpdateList += sizeof(Page);
     }
 
     (*physfree) = (void*)newPhysFree;
@@ -74,8 +74,8 @@ int phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
 
 
 // allocate a single page
-struct Page* allocatePage(){
-    struct Page* page = NULL;
+Page* allocatePage(){
+    Page* page = NULL;
     page = pFreeList;
     if(pFreeList){
         pFreeList = pFreeList->pNext;
@@ -90,7 +90,7 @@ struct Page* allocatePage(){
     return page;
 }
 
-void deallocatePage(struct Page* page){
+void deallocatePage(Page* page){
     if(page){
         if(0 == (--page->sRefCount)){
             freePage(page);
@@ -98,7 +98,7 @@ void deallocatePage(struct Page* page){
     }
 }
 
-void freePage(struct Page* page){
+void freePage(Page* page){
     memset((void*)page->uAddress,0,PAGE_SIZE);
     page->sRefCount = 0; // ideally not required but setting everything here.
     //page->pPrev = NULL;

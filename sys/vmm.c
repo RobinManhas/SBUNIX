@@ -137,8 +137,8 @@ void staticPageMapper(uint64_t virtualPage, uint64_t phyPage)
         setPresentBit(pdEntryAdd);
 
     }
-    kprintf("new pml:%x, pdp: %x, pd: %x, pt: %x\n",
-            pml_table[pml4Offset],pdp_table[pdpOffset],pd_table[pdOffset],page_table[ptOffset]);
+    kprintf("new pml:%x, pdp: %x, pd: %x, pt: %x, phyAdd: %x\n",
+            pmlEntryAddress,pml_table[pml4Offset],pdp_table[pdpOffset],pd_table[pdOffset],page_table[ptOffset]);
 }
 
 void mapFromPhyToVirRange(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t virPageStart)

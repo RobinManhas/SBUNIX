@@ -29,7 +29,7 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     kprintf("old cr3 %x, old physfree: %x\n",cr3,physfree);
     phyMemInit(modulep,physbase,&physfree);
     //kprintf("recv physfree from main: %p\n", oldPhysFree);
-    struct Page* page = allocatePage();
+    Page* page = allocatePage();
     pml_table = (uint64_t*)page->uAddress;
     page = allocatePage();
     pdp_table = (uint64_t*)page->uAddress;
@@ -51,9 +51,9 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
 
 /*
     // Verification for Physical mem logic
-    struct Page* p1 = allocatePage();
+    Page* p1 = allocatePage();
     kprintf("p1: %x\n",p1->uAddress);
-    struct Page* p2 = allocatePage();
+    Page* p2 = allocatePage();
     kprintf("p2: %x\n",p2->uAddress);
 
     deallocatePage(p1);
