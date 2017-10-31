@@ -57,11 +57,15 @@ uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t vi
     /* map the kernel from physbase to physfree */
     for(;phyPageStart<phyPageEnd; phyPageStart += 0x1000, virPageStart += 0x1000)
     {
+
         uint16_t ptOff = ((virPageStart>>12)&0x1ff);
         uint64_t entry = phyPageStart;
         entry |= (0x007);
         pt[ptOff] = entry;
-        //kprintf("pm:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff]);
+        if(phyPageStart == 0x200000){
+            kprintf("phybase pml:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff]);
+        }
+       // kprintf("pm:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff]);
     }
 
     return pml_table;
@@ -69,6 +73,9 @@ uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t vi
 
 static void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
 {
+    if(paddr == 0xb8000){
+        kprintf("mapping video pointer\n");
+    }
     uint64_t *pdp=NULL,*pd=NULL,*pt=NULL;
     uint64_t value;
     uint16_t pml4Off = ((vaddr>>39)&0x1ff);
@@ -112,29 +119,42 @@ static void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
     value = paddr;
     value |= (0x007);
     pt[ptOff] = value;
-
+//    if(paddr == 0x200000){
+//        kprintf("phybase pml:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff]);
+//    }
     //kprintf("IP pm:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff]);
-
+    return;
 }
 
-void setIdentityPaging(uint64_t max_phy)
+void setIdentityPaging(uint64_t max_phy,void *physfree)
 {
-
-//    uint64_t vaddr = IDENTITY_MAP_V;
-//    uint64_t paddr = IDENTITY_MAP_P;
+    uint64_t pbaseAdd = ((uint64_t)physfree) & 0xfffffffffffff000;
+    uint64_t vaddr = (IDENTITY_MAP_V | pbaseAdd);
+    uint64_t paddr =  pbaseAdd;
     uint64_t max_phys = max_phy;
-    kprintf("Received max: %x\n",max_phys);
-//    for(; paddr <= max_phys; paddr += PAGE_SIZE, vaddr += PAGE_SIZE){
-//        map_virt_phys_addr(vaddr, paddr);
-//    }
+    //kprintf("Received max: %x, padd: %x, vadd: %x\n",max_phys,paddr,vaddr);
+    for(; paddr <= max_phys; paddr += PAGE_SIZE, vaddr += PAGE_SIZE){
+        map_virt_phys_addr(vaddr, paddr);
+    }
 
     /* map the video memory physical address to the virtual address */
     kprintf("page mapping complete, reset vid ptr\n");
     map_virt_phys_addr((uint64_t)0xffffffff800b8000UL, 0xb8000UL);
     videoOutBufAdd = (uint64_t)0xffffffff800b8000UL;
-    /* map the physical address of the  to the same Virtual address*/
-    map_virt_phys_addr((0xFFFFFFFF80000000UL | (uint64_t) pFreeList),((uint64_t)pFreeList));
-    pFreeList = (Page*)(0xFFFFFFFF80000000UL | (uint64_t) pFreeList);
+    kprintf("how tf can still print ? %x\n",videoOutBufAdd);
+    /* RM: debug code for page table entries, **DO NOT DELETE**
+    uint16_t pml4Off = ((0xffffffff80200000UL >> 39)&0x1ff);
+    uint16_t pdpOff = ((0xffffffff80200000UL >> 30)&0x1ff);
+    uint16_t pdOff = ((0xffffffff80200000UL >> 21)&0x1ff);
+    uint16_t ptOff = ((0xffffffff80200000UL >> 12)&0x1ff);
+    uint64_t *pdpval = (uint64_t*)(pml_table[pml4Off] & ADD_SCHEME);
+    uint64_t *pdval = (uint64_t*)(pdpval[pdpOff] & ADD_SCHEME);
+    uint64_t *ptval = (uint64_t*)(pdval[pdOff] & ADD_SCHEME);
+    kprintf("phybase pml:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdpval[pdpOff],pdval[pdOff],ptval[ptOff]);
+    */
+
+   // map_virt_phys_addr((0xFFFFFFFF80000000UL | (uint64_t) pFreeList),((uint64_t)pFreeList));
+   // pFreeList = (Page*)(0xFFFFFFFF80000000UL | (uint64_t) pFreeList);
 
 }
 

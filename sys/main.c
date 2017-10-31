@@ -26,13 +26,13 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     kprintf("old cr3 %x, old physfree: %x\n",cr3,physfree);
     maxPhyRegion = phyMemInit(modulep,physbase,&physfree);
 
-    pageTablesInit((uint64_t) physbase, (uint64_t) physfree,(uint64_t)kernmem);
-    setIdentityPaging(maxPhyRegion);
+    pageTablesInit((uint64_t) physbase, (uint64_t) physfree,(uint64_t)KERN_PHYS_BASE);
+    setIdentityPaging(maxPhyRegion,physfree);
 
     uint64_t uCR3;
     cr3Create(&uCR3, (uint64_t) pml_table, 0x00, 0x00);
     __asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
-    //kprintf("After reset\n");
+    kprintf("After cr3 reset %x\n",uCR3);
 
 
     while(1);

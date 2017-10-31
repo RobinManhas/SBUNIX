@@ -41,6 +41,7 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
                 smapGlobal[1].base = smap->base;
                 smapGlobal[1].length = smap->length;
                 smapGlobal[1].type = smap->type;
+                break;
             }
 
             kprintf("Available Physical Memory [%p-%p]\n", smap->base, smap->base + smap->length);
@@ -54,6 +55,7 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
     uint64_t newPhysFree = (uint64_t) (*physfree) + (totalSizeUsed);
 
     uint64_t ptr = ((newPhysFree + PAGE_SIZE) & 0xfffffffffffff000); // flush flags
+    kprintf("First ptr %x\n", ptr);
     Page *pre = NULL;
     maxPhyRegion = smapGlobal[1].base + smapGlobal[1].length;
     for (; ptr < (maxPhyRegion); ptr += PAGE_SIZE) {

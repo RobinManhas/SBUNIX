@@ -8,6 +8,7 @@
 #include "sys/defs.h"
 
 #define IDENTITY_MAP_V		0xFFFFFFFF00000000UL
+#define KERN_PHYS_BASE 0xffffffff80200000UL
 #define	IDENTITY_MAP_P		0x0UL
 
 #define PTE_P		0x001	// Present
@@ -17,6 +18,6 @@
 
 uint64_t * cr3Create(uint64_t *cr3_reg, uint64_t pml4e_add, int pcd, int pwt);
 uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t virPageStart);
-void setIdentityPaging(uint64_t max_phy);
+void setIdentityPaging(uint64_t max_phy, void *physfree);
 
 #endif //OS_PROJECT_VMM_H
