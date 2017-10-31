@@ -34,6 +34,12 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     __asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
     kprintf("After cr3 reset %x\n",uCR3);
 
+    init_idt();
+    init_irq();
+    init_timer();
+    init_keyboard();
+    __asm__ ("sti");
+    //init_pci();
 
     while(1);
 }
