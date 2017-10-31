@@ -4,6 +4,9 @@
 
 #include <sys/procmgr.h>
 #include <sys/kmalloc.h>
+#include <sys/kprintf.h>
+
+uint32_t ProcessIDMax = 0;
 
 void runner(){ while(1);}
 
@@ -18,6 +21,8 @@ void createKernelProc(task_struct* task, uint64_t funcPtr){
 }
 
 void createInitProcess(){
-    task_struct* task = (task_struct*)kmalloc(sizeof(task_struct));
-    createKernelProc(task, (uint64_t)runner);
+    //kprintf("Reached where we have to\n");
+    //task_struct* task = (task_struct*)kmalloc(sizeof(task_struct));
+    //createKernelProc(task, (uint64_t)runner);
+    return;
 }

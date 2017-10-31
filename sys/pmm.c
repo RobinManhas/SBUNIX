@@ -7,6 +7,7 @@
 
 static int totalPageCount;
 static struct smap_t smapGlobal[2];
+uint64_t maxPhyRegion;
 
 void* memset(void* ptr, int val, unsigned int len){
     unsigned char *p = ptr;
@@ -19,7 +20,7 @@ void* memset(void* ptr, int val, unsigned int len){
     return(p);
 }
 
-int phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
+uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
 
     while (modulep[0] != 0x9001) modulep += modulep[1] + 2;
     for (smap = (struct smap_t *) (modulep + 2);
@@ -54,7 +55,8 @@ int phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
 
     uint64_t ptr = ((newPhysFree + PAGE_SIZE) & 0xfffffffffffff000); // flush flags
     Page *pre = NULL;
-    for (; ptr < (smapGlobal[1].base + smapGlobal[1].length); ptr += PAGE_SIZE) {
+    maxPhyRegion = smapGlobal[1].base + smapGlobal[1].length;
+    for (; ptr < (maxPhyRegion); ptr += PAGE_SIZE) {
         pageUpdateList->uAddress = ptr;
         pageUpdateList->sRefCount = 0;
         pageUpdateList->pNext = NULL;
@@ -67,8 +69,8 @@ int phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
     }
 
     (*physfree) = (void*)newPhysFree;
-    kprintf("new physfree: %x\n", *physfree);
-    return 0;
+    kprintf("new physfree: %x, max: %x\n", *physfree,maxPhyRegion);
+    return maxPhyRegion;
 }
 
 

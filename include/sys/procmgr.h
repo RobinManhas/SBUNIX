@@ -9,8 +9,6 @@
 
 #define KERN_STACK_SIZE 128
 
-uint32_t ProcessIDMax = 0;
-
 enum taskstate{
     TASK_STATE_INITIALIZED,
     TASK_STATE_RUNNING,

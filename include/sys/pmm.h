@@ -18,11 +18,11 @@ struct Page{
     struct Page *pNext;
 };
 typedef struct Page Page;
-Page* pPageList;
+
 Page* pFreeList;
 
 void* memset(void* ptr, int val, unsigned int len);
-int phyMemInit(uint32_t *modulep, void *physbase, void **physfree);
+uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree);
 int pageListInit();
 Page* allocatePage();
 void freePage(Page* page);
