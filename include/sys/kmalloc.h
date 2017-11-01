@@ -5,6 +5,6 @@
 #ifndef OS_KMALLOC_H
 #define OS_KMALLOC_H
 
-void* kmalloc(unsigned int size);
+void* kmalloc(/*unsigned int size*/);
 
 #endif //OS_KMALLOC_H

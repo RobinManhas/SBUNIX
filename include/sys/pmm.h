@@ -20,12 +20,13 @@ struct Page{
 typedef struct Page Page;
 
 Page* pFreeList;
+Page* pDirtyPageList;
 
 void* memset(void* ptr, int val, unsigned int len);
 uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree);
 int pageListInit();
-Page* allocatePage();
-void freePage(Page* page);
-void deallocatePage(Page* page);
+uint64_t allocatePage();
+void deallocatePage(uint64_t page);
+void addToDirtyPageList(Page* page);
 
 #endif //OS_MEMMANAGER_H

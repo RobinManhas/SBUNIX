@@ -3,6 +3,6 @@
 
 void init_gdt();
 void set_tss_rsp(void *rsp);
-
+void init_tss();
 
 #endif

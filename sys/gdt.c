@@ -85,6 +85,22 @@ void init_gdt() {
   _x86_64_asm_ltr(0x28);
 }
 
+void init_tss(){
+    struct sys_segment_descriptor *sd = (struct sys_segment_descriptor*)&gdt[5]; // 6th&7th entry in GDT
+    sd->sd_lolimit = sizeof(struct tss_t) - 1;
+    sd->sd_lobase = ((uint64_t)&tss);
+    sd->sd_type = 9; // TSS
+    sd->sd_dpl = 0;
+    sd->sd_p = 1;
+    sd->sd_hilimit = 0;
+    sd->sd_gran = 0;
+    sd->sd_hibase = ((uint64_t)&tss) >> 24;
+
+    set_tss_rsp(tss.rsp0);
+
+    _x86_64_asm_ltr(0x2b); // RM: 0x2b RPL allows software to override the CPL to select a new protection level
+}
+
 void set_tss_rsp(void *rsp) {
   tss.rsp0 = rsp;
 }

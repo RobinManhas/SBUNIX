@@ -8,6 +8,7 @@
 #include <sys/pci.h>
 #include <sys/pmm.h>
 #include <sys/vmm.h>
+#include <sys/kmalloc.h>
 
 #define INITIAL_STACK_SIZE 4096
 uint8_t initial_stack[INITIAL_STACK_SIZE]__attribute__((aligned(16)));
@@ -19,27 +20,37 @@ extern uint64_t* pml_table;
 void start(uint32_t *modulep, void *physbase, void *physfree)
 {
     clearScreen();
-    unsigned long cr3 = 1;
-    __asm__ __volatile__(
-    "movq %%cr3, %0\n\t"
-    :"=r"(cr3):);
-    kprintf("old cr3 %x, old physfree: %x\n",cr3,physfree);
+    kprintf("old cr3 %x, old physfree: %x\n",getCR3(),physfree);
     maxPhyRegion = phyMemInit(modulep,physbase,&physfree);
 
     pageTablesInit((uint64_t) physbase, (uint64_t) physfree,(uint64_t)KERN_PHYS_BASE);
-    setIdentityPaging(maxPhyRegion,physfree);
+    mapPhysicalRangeToVirtual(maxPhyRegion, physfree);
 
     uint64_t uCR3;
-    cr3Create(&uCR3, (uint64_t) pml_table, 0x00, 0x00);
+    cr3Create(&uCR3, (uint64_t) pml_table-VMAP_BASE, 0x00, 0x00);
     __asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
-    kprintf("After cr3 reset %x\n",uCR3);
+    kprintf("after cr3 reset, cr3: %x, new physfree: %x\n",getCR3(),physfree);
+
+    // Welcome to user land, use any physical address from now on and watch qemu reboot forever.
+    // use returnVirtualAdd() and returnPhyAdd() for ease.
+    init_tss();
+
+
+    // thread  : one execution path containing separate registers + stack
+    // process : virtual address space + registers + stack
+
+    uint64_t add = (uint64_t)kmalloc();
+    kprintf("retured add: %x\n",add);
+    add = (uint64_t)kmalloc();
+    kprintf("retured add: %x\n",add);
+//    //deallocateAddress(add);
 
     init_idt();
     init_irq();
     init_timer();
     init_keyboard();
     __asm__ ("sti");
-    //init_pci();
+//    init_pci();
 
     while(1);
 }

@@ -4,6 +4,11 @@
 
 #include <sys/pmm.h>
 #include <sys/kprintf.h>
+#include <sys/vmm.h>
+
+// Important note regarding addressing
+// Page descriptor list gets mapped above KERNBASE in virtual addressing
+// Normal pages get mapped as VMAP_BASE
 
 static int totalPageCount;
 static struct smap_t smapGlobal[2];
@@ -71,41 +76,91 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
     }
 
     (*physfree) = (void*)newPhysFree;
+    pDirtyPageList = NULL;
+
     kprintf("new physfree: %x, max: %x\n", *physfree,maxPhyRegion);
     return maxPhyRegion;
 }
 
 
 
-// allocate a single page
-Page* allocatePage(){
+/* allocate a single page
+ * Returns an empty PHYSICAL PAGE address
+ *
+ */
+uint64_t allocatePage(){
+    uint64_t ret = 0;
     Page* page = NULL;
     page = pFreeList;
     if(pFreeList){
+        //pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList->pNext,KERNBASE_ADD,1);
         pFreeList = pFreeList->pNext;
-        //pFreeList->pPrev = NULL;
         page->pNext = NULL; // Prev was already null for 1st page of free list
         ++page->sRefCount;
+        ret = page->uAddress;
+
+        // update freelist global var to virtual, if prev ptr was virtual address
+        // update ret address as virtual too
+        if((uint64_t)page > KERNBASE){
+            pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList,KERNBASE_ADD,0);
+        }
+
+        //kprintf("old free: %x, new free: %x\n",page,pFreeList);
+        addToDirtyPageList(page);
     }
     else{
-        kprintf("Out of physical pages..\n");
+        kprintf("Error: Out of physical pages..\n");
     }
 
-    return page;
+    return ret;
 }
 
-void deallocatePage(Page* page){
-    if(page){
-        if(0 == (--page->sRefCount)){
-            freePage(page);
+
+void addToDirtyPageList(Page* page){
+    page->pNext = pDirtyPageList;
+    pDirtyPageList = page;
+    //kprintf("dirty page added: %x\n",pDirtyPageList);
+}
+
+/* RM TODO: needs handlings when switched to virtual address mode
+void deallocatePage(uint64_t add){
+    if(add > VMAP_BASE)
+        add = returnPhyAdd(add,VMAP_BASE_ADD,1);
+    kprintf("add to delete: %x\n",add);
+
+    Page* pageIter = pDirtyPageList;
+    Page* prevPage = NULL;
+    while(pageIter){
+        if(pageIter->uAddress != add){
+            prevPage = pageIter;
+            pageIter = pageIter->pNext;
+            continue;
+        }
+        else{
+            break;
         }
     }
-}
 
-void freePage(Page* page){
-    memset((void*)page->uAddress,0,PAGE_SIZE);
-    page->sRefCount = 0; // ideally not required but setting everything here.
-    //page->pPrev = NULL;
-    page->pNext = pFreeList;
-    pFreeList = page;
+    if(0 == (--pageIter->sRefCount)){
+        //kprintf("removing page from dirty: %x\n",pDirtyPageList);
+        // clean page
+        memset((void*)add,0,PAGE_SIZE);
+
+        // remove from dirty list
+        if(prevPage == NULL){ // at root
+            pDirtyPageList = pageIter->pNext;
+        }
+        else{ // not root
+            prevPage->pNext = pageIter->pNext;
+        }
+
+        pageIter->pNext = NULL;
+
+        // add to free list
+        pageIter->sRefCount = 0; // ideally not required but re-setting everything here.
+        pageIter->pNext = pFreeList;
+        pFreeList = pageIter;
+        kprintf("inserted from dirty to free: %x\n",pFreeList);
+    }
 }
+ */
