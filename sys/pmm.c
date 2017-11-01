@@ -100,12 +100,11 @@ uint64_t allocatePage(){
         ret = page->uAddress;
 
         // update freelist global var to virtual, if prev ptr was virtual address
-        // update ret address as virtual too
         if((uint64_t)page > KERNBASE){
             pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList,KERNBASE_ADD,0);
         }
 
-        //kprintf("old free: %x, new free: %x\n",page,pFreeList);
+        //kprintf("allocate: %x, ofree: %x, nfree: %x\n",ret,page,pFreeList);
         addToDirtyPageList(page);
     }
     else{
@@ -122,18 +121,22 @@ void addToDirtyPageList(Page* page){
     //kprintf("dirty page added: %x\n",pDirtyPageList);
 }
 
-/* RM TODO: needs handlings when switched to virtual address mode
+// RM TODO: needs handlings when switched to virtual address mode
 void deallocatePage(uint64_t add){
+    uint64_t phyAdd = add;
     if(add > VMAP_BASE)
-        add = returnPhyAdd(add,VMAP_BASE_ADD,1);
-    kprintf("add to delete: %x\n",add);
+        phyAdd = returnPhyAdd(add,VMAP_BASE_ADD,1);
 
     Page* pageIter = pDirtyPageList;
     Page* prevPage = NULL;
+    //kprintf("deal add:%x , v:%x, p:%x\n",pageIter->uAddress,add,phyAdd);
     while(pageIter){
-        if(pageIter->uAddress != add){
+        if(pageIter->uAddress != phyAdd){
             prevPage = pageIter;
-            pageIter = pageIter->pNext;
+            if(add > VMAP_BASE)
+                pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_ADD,0);
+            else
+                pageIter = pageIter->pNext;
             continue;
         }
         else{
@@ -142,7 +145,7 @@ void deallocatePage(uint64_t add){
     }
 
     if(0 == (--pageIter->sRefCount)){
-        //kprintf("removing page from dirty: %x\n",pDirtyPageList);
+        //kprintf("removing page from dirty: %x\n",pageIter);
         // clean page
         memset((void*)add,0,PAGE_SIZE);
 
@@ -158,9 +161,14 @@ void deallocatePage(uint64_t add){
 
         // add to free list
         pageIter->sRefCount = 0; // ideally not required but re-setting everything here.
-        pageIter->pNext = pFreeList;
+        if(add > VMAP_BASE){
+            pageIter->pNext = (Page*)returnPhyAdd((uint64_t)pFreeList,KERNBASE_ADD,0);
+        }
+        else{
+            pageIter->pNext = pFreeList;
+        }
+
         pFreeList = pageIter;
-        kprintf("inserted from dirty to free: %x\n",pFreeList);
+        //kprintf("inserted from dirty to free: %x\n",pFreeList);
     }
 }
- */

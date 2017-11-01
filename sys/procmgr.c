@@ -18,11 +18,13 @@ void createKernelProc(task_struct* task, uint64_t funcPtr){
     // TODO: fill task struct for kernel process here
     task->pid = getNextPID();
     task->state = TASK_STATE_INITIALIZED;
+    kprintf("task created, PID: %d\n",task->pid);
 }
 
 void createInitProcess(){
-    //kprintf("Reached where we have to\n");
-    //task_struct* task = (task_struct*)kmalloc(sizeof(task_struct));
-    //createKernelProc(task, (uint64_t)runner);
+    kprintf("Reached where we have to\n");
+    task_struct* task = (task_struct*)kmalloc();
+    createKernelProc(task, (uint64_t)runner);
+
     return;
 }
