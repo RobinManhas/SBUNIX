@@ -7,7 +7,7 @@
 
 #include <sys/defs.h>
 
-#define KERN_STACK_SIZE 128
+#define MAX_STACK_SIZE 128
 
 enum taskstate{
     TASK_STATE_INITIALIZED,
@@ -18,16 +18,27 @@ enum taskstate{
 };
 typedef enum taskstate task_state;
 
+// a combination of vm_struct and vmap_area
+// http://elixir.free-electrons.com/linux/v4.0.6/source/include/linux/vmalloc.h#L31
+struct vm_struct{
+    uint8_t vm_type; //heap, data, code etc..
+    uint64_t vm_start; // start, inclusive
+    uint64_t vm_end;   // end, exclusive
+    struct vm_struct *vm_next;      /* list of VMA's */
+};
+typedef struct vm_struct vm_struct;
 // a node for the tasks linked list
 struct stTaskInfo{
     uint64_t pid;
+    uint64_t rip;
     uint64_t rsp;
+    uint64_t cr3;
     task_state state;
     int exit_status;
-    uint64_t kernel_stack[KERN_STACK_SIZE];
+    uint64_t kernel_stack[MAX_STACK_SIZE];
     struct stTaskInfo* parentTask;
     struct stTaskInfo* nextTask;
-
+    vm_struct* vm_head;
 };
 
 typedef struct stTaskInfo task_struct; // RM: linux naming conv

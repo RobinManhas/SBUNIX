@@ -28,7 +28,7 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     mapPhysicalRangeToVirtual(maxPhyRegion, physfree);
 
     uint64_t uCR3;
-    cr3Create(&uCR3, (uint64_t) pml_table-VMAP_BASE, 0x00, 0x00);
+    cr3Create(&uCR3, (uint64_t) pml_table-KERNBASE, 0x00, 0x00);
     __asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
     kprintf("after cr3 reset, cr3: %x, new physfree: %x\n",getCR3(),physfree);
 
@@ -39,16 +39,7 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     * process : virtual address space + registers + stack
 *********************************************************************************************************/
     init_tss();
-    kprintf("\n");
-    uint64_t v = (uint64_t)kmalloc();
-    kprintf("\n");
-    uint64_t v1 = (uint64_t)kmalloc();
-    kprintf("\n");
-    deallocatePage(v1);
-    kprintf("\n");
-    deallocatePage(v);
-    kprintf("\n");
-    //createInitProcess();
+    createInitProcess();
 
     init_idt();
     init_irq();

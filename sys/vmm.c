@@ -8,7 +8,7 @@
 
 // Important note regarding addressing
 // Page descriptor list gets mapped above KERNBASE in virtual addressing
-// Normal pages get mapped as VMAP_BASE
+// Normal pages get mapped as KERNBASE
 
 uint64_t* pml_table = NULL; // storing only pml table instance globally
 
@@ -60,9 +60,6 @@ uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t vi
 
 void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
 {
-    if(paddr == 0xb8000){
-        kprintf("mapping video pointer\n");
-    }
     uint64_t *pdp=NULL,*pd=NULL,*pt=NULL;
     uint64_t value;
     uint16_t pml4Off = ((vaddr>>39)&0x1ff);
@@ -114,7 +111,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
 void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree)
 {
     uint64_t pbaseAdd = ((uint64_t)physfree) & ADD_SCHEME;
-    uint64_t vaddr = (VMAP_BASE | pbaseAdd);
+    uint64_t vaddr = (KERNBASE | pbaseAdd);
     uint64_t paddr =  pbaseAdd;
     uint64_t max_phys = max_phy;
     for(; paddr <= max_phys; paddr += PAGE_SIZE, vaddr += PAGE_SIZE){
@@ -141,17 +138,17 @@ void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree)
 
 
     // update pml global var
-    pml_table = (uint64_t*)(VMAP_BASE | (uint64_t)pml_table);
+    pml_table = (uint64_t*)(KERNBASE | (uint64_t)pml_table);
 
     // update freelist global var
-    uint64_t listVirAdd = (KERNBASE | ((uint64_t) pFreeList & ADD_SCHEME));
-    map_virt_phys_addr(listVirAdd,((uint64_t)pFreeList & ADD_SCHEME));
-    pFreeList = (Page*)(KERNBASE | (uint64_t) pFreeList);
+    uint64_t virAddTemp = returnVirAdd((uint64_t)pFreeList, KERNBASE_ADD, 1);
+    map_virt_phys_addr(virAddTemp,((uint64_t)pFreeList & ADD_SCHEME));
+    pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList, KERNBASE_ADD, 0);
 
     // update dirty list global var
-    listVirAdd = (KERNBASE | ((uint64_t) pDirtyPageList & ADD_SCHEME));
-    map_virt_phys_addr(listVirAdd,((uint64_t)pDirtyPageList & ADD_SCHEME));
-    pDirtyPageList = (Page*)(KERNBASE | (uint64_t) pDirtyPageList);
+    virAddTemp = returnVirAdd((uint64_t)pDirtyPageList, KERNBASE_ADD, 1);
+    map_virt_phys_addr(virAddTemp,((uint64_t)pDirtyPageList & ADD_SCHEME));
+    pDirtyPageList = (Page*)returnVirAdd((uint64_t)pDirtyPageList, KERNBASE_ADD, 0);
 
 }
 
@@ -174,18 +171,22 @@ uint64_t getCR3(){
 
 uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
 {
-    if(KERNBASE_ADD == addType){
-        if(removeFlags)
+    switch (addType){
+        case KERNBASE_ADD:
+        {
+            if(removeFlags)
+                return ((add-KERNBASE)&ADD_SCHEME);
+            else
+                return ((add-KERNBASE));
+        }
+            /*case VMAP_BASE_ADD:
+            {
+                if(removeFlags)
             return ((add-KERNBASE)&ADD_SCHEME);
         else
             return ((add-KERNBASE));
-    }
-    else if(VMAP_BASE_ADD == addType){
-        if(removeFlags)
-            return ((add-VMAP_BASE)&ADD_SCHEME);
-        else
-            return ((add-VMAP_BASE));
-    }
+            }*/
+    };
 
     kprintf("Error: address type not supported, returning same number\n");
     return add;
@@ -193,18 +194,22 @@ uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
 
 uint64_t returnVirAdd(uint64_t add, short addType, short removeFlags)
 {
-    if(KERNBASE_ADD == addType){
-        if(removeFlags)
-            return (KERNBASE | (add & ADD_SCHEME));
-        else
-            return (add | KERNBASE);
-    }
-    else if(VMAP_BASE_ADD == addType){
-        if(removeFlags)
-            return (VMAP_BASE | (add & ADD_SCHEME));
-        else
-            return (add | VMAP_BASE);
-    }
+    switch (addType){
+        case KERNBASE_ADD:
+        {
+            if(removeFlags)
+                return (KERNBASE | (add & ADD_SCHEME));
+            else
+                return (add | KERNBASE);
+        }
+        /*case VMAP_BASE_ADD:
+        {
+            if(removeFlags)
+                return (KERNBASE | (add & ADD_SCHEME));
+            else
+                return (add | KERNBASE);
+        }*/
+    };
 
     kprintf("Error: address type not supported, returning same number\n");
     return add;

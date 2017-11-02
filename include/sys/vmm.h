@@ -8,8 +8,8 @@
 #include "sys/defs.h"
 
 // KERNBASE acts as base address for all kernel related code only.
-#define VMAP_BASE	   0xFFFFFFFF00000000UL // acts as base address for all the page mappings v <-> p
 #define KERN_PHYS_BASE 0xffffffff80200000UL
+
 #define	IDENTITY_MAP_P		0x0UL
 
 #define PTE_P		0x001	// Present
