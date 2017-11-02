@@ -68,8 +68,9 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
     uint16_t ptOff = ((vaddr>>12)&0x1ff);
 
     uint64_t pml4_entry = pml_table[pml4Off];
-    if(pml4_entry & PTE_P)
+    if(pml4_entry & PTE_P){
         pdp = (uint64_t*)(pml4_entry & ADD_SCHEME);
+    }
     else
     {
         pdp = (uint64_t*)allocatePage();
@@ -77,10 +78,14 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
         value |= (0x007);
         pml_table[pml4Off] = value;
     }
+    if((uint64_t)pml_table > KERNBASE && (uint64_t)pdp < KERNBASE){
+        pdp = (uint64_t*)returnVirAdd((uint64_t)pdp,KERNBASE_ADD,0);
+    }
 
     uint64_t pdpt_entry = pdp[pdpOff];
-    if(pdpt_entry & PTE_P)
+    if(pdpt_entry & PTE_P){
         pd = (uint64_t*)(pdpt_entry & ADD_SCHEME);
+    }
     else
     {
         pd = (uint64_t*)allocatePage();
@@ -88,16 +93,24 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
         value |= (0x007);
         pdp[pdpOff] = value;
     }
+    if((uint64_t)pml_table > KERNBASE && (uint64_t)pd < KERNBASE){
+        pd = (uint64_t*)returnVirAdd((uint64_t)pd,KERNBASE_ADD,0);
+    }
 
     uint64_t pdt_entry = pd[pdOff];
-    if(pdt_entry & PTE_P)
+    if(pdt_entry & PTE_P){
         pt = (uint64_t*)(pdt_entry & ADD_SCHEME);
+    }
     else
     {
         pt = (uint64_t*)allocatePage();
         value = (uint64_t)pt;
         value |= (0x007);
         pd[pdOff] = value;
+    }
+
+    if((uint64_t)pml_table > KERNBASE && (uint64_t)pt < KERNBASE){
+        pt = (uint64_t*)returnVirAdd((uint64_t)pd,KERNBASE_ADD,0);
     }
 
     value = paddr;

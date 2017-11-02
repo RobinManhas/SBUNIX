@@ -101,7 +101,7 @@ uint64_t allocatePage(){
 
         // update freelist global var to virtual, if prev ptr was virtual address
         if((uint64_t)page > KERNBASE){
-            //map_virt_phys_addr(returnVirAdd((uint64_t)pFreeList,KERNBASE_ADD,1),((uint64_t)pFreeList & ADD_SCHEME));
+            map_virt_phys_addr(returnVirAdd((uint64_t)pFreeList,KERNBASE_ADD,1),((uint64_t)pFreeList & ADD_SCHEME));
             pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList,KERNBASE_ADD,0);
         }
 
