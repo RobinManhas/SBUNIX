@@ -10,45 +10,39 @@
 #include <sys/pmm.h>
 #include <sys/procmgr.h>
 
-task_struct *current,*next;
-int f=0;
+task_struct *t1,*t2;
+int f1flag=0;
 void func1()
 {
     while(1)
     {
-        if(f<10)
+        if(f1flag<10)
         {
-            f += 1;
+            f1flag += 1;
             kprintf("I'm thread #1\n");
-            task_struct *temp = current;
-            current = next;
-            next = temp;
-            switch_to();
+            switch_to(t1,t2);
         }
 
     }
 }
-int flag = 0;
+int f2flag = 0;
 void func2()
 {
     while(1)
     {
-        if(flag<10)
+        if(f2flag<10)
         {
-            flag += 1;
+            f2flag += 1;
             kprintf("I'm thread #2\n");
-            task_struct *temp = current;
-            current = next;
-            next = temp;
-            switch_to();
+            switch_to(t2,t1);
         }
 
     }
 }
 
-void switch_to()
+void switch_to(task_struct *current, task_struct *next)
 {
-    void *updatedRSP = next->stack;
+    void *updatedRSP = (void*)next->rsp;
     __asm volatile("movq %%rsp, %0":: "r"(&(current->rsp)));
     __asm volatile("movq %0, %%rsp":: "r"(next->rsp));
     __asm volatile("movq %0, %%rax":: "r"(next->rip));
@@ -59,15 +53,14 @@ void switch_to()
 }
 
 void threadInit(){
-    kprintf("size of task struct: %d, uint64: %x\n", sizeof(task_struct), sizeof(uint64_t));
-    current = (task_struct*)kmalloc();
-    next = (task_struct*)kmalloc();
+    kprintf("In thread Init, size of task struct: %d\n", sizeof(task_struct));
+    t1 = (task_struct*)kmalloc();
+    t2 = (task_struct*)kmalloc();
 
-    current->rsp = (uint64_t)&current->stack[499];
-    next->rsp = (uint64_t)&next->stack[499];
-    kprintf("current stack: %x, add: %x,rsp: %x\n", current->stack, &current->stack,current->rsp);
-//current stack: 0xffffffff802d2018, add: 0xffffffff802d2018,rsp: 0xffffffff802d2fb0
-    current->rip = (uint64_t)&func1;
-    next->rip = (uint64_t)&func2;
-    switch_to();
+    t1->rsp = (uint64_t)&t1->stack[499];
+    t2->rsp = (uint64_t)&t2->stack[499];
+
+    t1->rip = (uint64_t)&func1;
+    t2->rip = (uint64_t)&func2;
+    switch_to(t1,t2);
 }
