@@ -25,12 +25,17 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     maxPhyRegion = phyMemInit(modulep,physbase,&physfree);
 
     pageTablesInit((uint64_t) physbase, (uint64_t) physfree,(uint64_t)KERN_PHYS_BASE);
+
+    // DO NOT DELETE: Enable the below line if we do not want to do mapping of whole pages above physfree in
+    // start itself, instead we just map initial pml4,pdp,pd and pt, rest all pages are dynamically mapped
+    // mapPhysicalRangeToVirtual((uint64_t)(physfree+ (4*PAGE_SIZE)), physfree);
     mapPhysicalRangeToVirtual(maxPhyRegion, physfree);
 
     uint64_t uCR3;
     cr3Create(&uCR3, (uint64_t) pml_table-KERNBASE, 0x00, 0x00);
     __asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
     kprintf("after cr3 reset, cr3: %x, new physfree: %x\n",getCR3(),physfree);
+    kprintf("kernel stack: %x\n",(uint64_t)initial_stack);
 
 /*********************************************************************************************************
     * Welcome to user land, use any physical address from now on and watch qemu reboot forever.
@@ -39,7 +44,8 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     * process : virtual address space + registers + stack
 *********************************************************************************************************/
     init_tss();
-    createInitProcess();
+
+    threadInit();
 
     init_idt();
     init_irq();

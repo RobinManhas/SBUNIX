@@ -46,10 +46,10 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
                 smapGlobal[1].base = smap->base;
                 smapGlobal[1].length = smap->length;
                 smapGlobal[1].type = smap->type;
+                kprintf("Available high Physical Memory [%p-%p]\n", smap->base, smap->base + smap->length);
                 break;
             }
 
-            kprintf("Available Physical Memory [%p-%p]\n", smap->base, smap->base + smap->length);
         }
     }
 
@@ -85,7 +85,7 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
 
 
 /* allocate a single page
- * Returns an empty PHYSICAL PAGE address
+ * Returns an empty PHYSICAL PAGE address, duty of caller to convert to virtual or use as it is.
  *
  */
 uint64_t allocatePage(){
@@ -99,7 +99,7 @@ uint64_t allocatePage(){
         ++page->sRefCount;
         ret = page->uAddress;
 
-        // update freelist global var to virtual, if prev ptr was virtual address
+        // update freelist global var to virtual, if prev free list pointer was a virtual address
         if((uint64_t)page > KERNBASE){
             map_virt_phys_addr(returnVirAdd((uint64_t)pFreeList,KERNBASE_ADD,1),((uint64_t)pFreeList & ADD_SCHEME));
             pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList,KERNBASE_ADD,0);

@@ -78,6 +78,8 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
         value |= (0x007);
         pml_table[pml4Off] = value;
     }
+
+    // these checks convert physical address entries to virtual if the mapping scheme has been changed to virtual mode.
     if((uint64_t)pml_table > KERNBASE && (uint64_t)pdp < KERNBASE){
         pdp = (uint64_t*)returnVirAdd((uint64_t)pdp,KERNBASE_ADD,0);
     }
