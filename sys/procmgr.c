@@ -9,6 +9,7 @@
 #include <sys/vmm.h>
 #include <sys/pmm.h>
 #include <sys/procmgr.h>
+#include <sys/idt.h>
 
 task_struct *t1,*t2;
 int f1flag=0;
@@ -22,7 +23,16 @@ void func1()
             kprintf("I'm thread #1\n");
             switch_to(t1,t2);
         }
-
+        else
+        {
+            kprintf("initing idt in thread 1\n");
+            init_idt();
+            init_irq();
+            init_timer();
+            init_keyboard();
+            __asm__ ("sti");
+            while(1);
+        }
     }
 }
 int f2flag = 0;
@@ -36,7 +46,16 @@ void func2()
             kprintf("I'm thread #2\n");
             switch_to(t2,t1);
         }
-
+        else
+        {
+            kprintf("initing idt in thread 2\n");
+            init_idt();
+            init_irq();
+            init_timer();
+            init_keyboard();
+            __asm__ ("sti");
+            while(1);
+        }
     }
 }
 
