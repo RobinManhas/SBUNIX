@@ -69,7 +69,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
 
     uint64_t pml4_entry = pml_table[pml4Off];
     if(pml4_entry & PTE_P){
-        pdp = (uint64_t*)(pml4_entry & ADD_SCHEME);
+        pdp = (uint64_t*)(pml4_entry & ADDRESS_SCHEME);
     }
     else
     {
@@ -81,12 +81,12 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
 
     // these checks convert physical address entries to virtual if the mapping scheme has been changed to virtual mode.
     if((uint64_t)pml_table > KERNBASE && (uint64_t)pdp < KERNBASE){
-        pdp = (uint64_t*)returnVirAdd((uint64_t)pdp,KERNBASE_ADD,0);
+        pdp = (uint64_t*)returnVirAdd((uint64_t)pdp,KERNBASE_OFFSET,0);
     }
 
     uint64_t pdpt_entry = pdp[pdpOff];
     if(pdpt_entry & PTE_P){
-        pd = (uint64_t*)(pdpt_entry & ADD_SCHEME);
+        pd = (uint64_t*)(pdpt_entry & ADDRESS_SCHEME);
     }
     else
     {
@@ -96,12 +96,12 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
         pdp[pdpOff] = value;
     }
     if((uint64_t)pml_table > KERNBASE && (uint64_t)pd < KERNBASE){
-        pd = (uint64_t*)returnVirAdd((uint64_t)pd,KERNBASE_ADD,0);
+        pd = (uint64_t*)returnVirAdd((uint64_t)pd,KERNBASE_OFFSET,0);
     }
 
     uint64_t pdt_entry = pd[pdOff];
     if(pdt_entry & PTE_P){
-        pt = (uint64_t*)(pdt_entry & ADD_SCHEME);
+        pt = (uint64_t*)(pdt_entry & ADDRESS_SCHEME);
     }
     else
     {
@@ -112,7 +112,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
     }
 
     if((uint64_t)pml_table > KERNBASE && (uint64_t)pt < KERNBASE){
-        pt = (uint64_t*)returnVirAdd((uint64_t)pd,KERNBASE_ADD,0);
+        pt = (uint64_t*)returnVirAdd((uint64_t)pt,KERNBASE_OFFSET,0);
     }
 
     value = paddr;
@@ -125,7 +125,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
 
 void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree)
 {
-    uint64_t pbaseAdd = ((uint64_t)physfree) & ADD_SCHEME;
+    uint64_t pbaseAdd = ((uint64_t)physfree) & ADDRESS_SCHEME;
     uint64_t vaddr = (KERNBASE | pbaseAdd);
     uint64_t paddr =  pbaseAdd;
     uint64_t max_phys = max_phy;
@@ -141,14 +141,14 @@ void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree)
     virtualMemBase = vaddr;
 
 //    // RM: debug code for page table entries, **DO NOT DELETE**
-//    uint64_t viradd = (KERNBASE | ((uint64_t) pFreeList & ADD_SCHEME));
+//    uint64_t viradd = (KERNBASE | ((uint64_t) pFreeList & ADDRESS_SCHEME));
 //    uint16_t pml4Off = ((viradd >> 39)&0x1ff);
 //    uint16_t pdpOff = ((viradd >> 30)&0x1ff);
 //    uint16_t pdOff = ((viradd >> 21)&0x1ff);
 //    uint16_t ptOff = ((viradd >> 12)&0x1ff);
-//    uint64_t *pdpval = (uint64_t*)(pml_table[pml4Off] & ADD_SCHEME);
-//    uint64_t *pdval = (uint64_t*)(pdpval[pdpOff] & ADD_SCHEME);
-//    uint64_t *ptval = (uint64_t*)(pdval[pdOff] & ADD_SCHEME);
+//    uint64_t *pdpval = (uint64_t*)(pml_table[pml4Off] & ADDRESS_SCHEME);
+//    uint64_t *pdval = (uint64_t*)(pdpval[pdpOff] & ADDRESS_SCHEME);
+//    uint64_t *ptval = (uint64_t*)(pdval[pdOff] & ADDRESS_SCHEME);
 //    kprintf("freelist pml:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdpval[pdpOff],pdval[pdOff],ptval[ptOff]);
 
 
@@ -156,14 +156,14 @@ void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree)
     pml_table = (uint64_t*)(KERNBASE | (uint64_t)pml_table);
 
     // update freelist global var
-    uint64_t virAddTemp = returnVirAdd((uint64_t)pFreeList, KERNBASE_ADD, 1);
-    map_virt_phys_addr(virAddTemp,((uint64_t)pFreeList & ADD_SCHEME));
-    pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList, KERNBASE_ADD, 0);
+    uint64_t virAddTemp = returnVirAdd((uint64_t)pFreeList, KERNBASE_OFFSET, 1);
+    map_virt_phys_addr(virAddTemp,((uint64_t)pFreeList & ADDRESS_SCHEME));
+    pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList, KERNBASE_OFFSET, 0);
 
     // update dirty list global var
-    virAddTemp = returnVirAdd((uint64_t)pDirtyPageList, KERNBASE_ADD, 1);
-    map_virt_phys_addr(virAddTemp,((uint64_t)pDirtyPageList & ADD_SCHEME));
-    pDirtyPageList = (Page*)returnVirAdd((uint64_t)pDirtyPageList, KERNBASE_ADD, 0);
+    virAddTemp = returnVirAdd((uint64_t)pDirtyPageList, KERNBASE_OFFSET, 1);
+    map_virt_phys_addr(virAddTemp,((uint64_t)pDirtyPageList & ADDRESS_SCHEME));
+    pDirtyPageList = (Page*)returnVirAdd((uint64_t)pDirtyPageList, KERNBASE_OFFSET, 0);
 
 }
 
@@ -187,17 +187,28 @@ uint64_t getCR3(){
 uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
 {
     switch (addType){
-        case KERNBASE_ADD:
+        case KERNBASE_OFFSET:
         {
-            if(removeFlags)
-                return ((add-KERNBASE)&ADD_SCHEME);
-            else
-                return ((add-KERNBASE));
+            if(add >= KERNBASE)
+            {
+                if(removeFlags)
+                    return ((add-KERNBASE)&ADDRESS_SCHEME);
+                else
+                    return ((add-KERNBASE));
+            }
+            else // not adding kernbase offset
+            {
+                kprintf("Error: Address passed already in physical add range\n");
+                if(removeFlags)
+                    return (add & ADDRESS_SCHEME);
+                else
+                    return add;
+            }
         }
             /*case VMAP_BASE_ADD:
             {
                 if(removeFlags)
-            return ((add-KERNBASE)&ADD_SCHEME);
+            return ((add-KERNBASE)&ADDRESS_SCHEME);
         else
             return ((add-KERNBASE));
             }*/
@@ -210,22 +221,36 @@ uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
 uint64_t returnVirAdd(uint64_t add, short addType, short removeFlags)
 {
     switch (addType){
-        case KERNBASE_ADD:
+        case KERNBASE_OFFSET:
         {
-            if(removeFlags)
-                return (KERNBASE | (add & ADD_SCHEME));
-            else
-                return (add | KERNBASE);
+            if(add < KERNBASE)
+            {
+                if(removeFlags)
+                    return (KERNBASE | (add & ADDRESS_SCHEME));
+                else
+                    return (add | KERNBASE);
+            }
+            else // not adding kernbase offset
+            {
+                kprintf("Error: Address passed already in virtual add range\n");
+                if(removeFlags)
+                    return (add & ADDRESS_SCHEME);
+                else
+                    return add;
+            }
         }
         /*case VMAP_BASE_ADD:
         {
             if(removeFlags)
-                return (KERNBASE | (add & ADD_SCHEME));
+                return (KERNBASE | (add & ADDRESS_SCHEME));
             else
                 return (add | KERNBASE);
         }*/
     };
 
     kprintf("Error: address type not supported, returning same number\n");
-    return add;
+    if(removeFlags)
+        return (add & ADDRESS_SCHEME);
+    else
+        return add;
 }

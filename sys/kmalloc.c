@@ -13,6 +13,6 @@ void* kmalloc(/*unsigned int size*/){ // TODO: extend implementation to support 
         return NULL;
     }*/
 
-    uint64_t ret = returnVirAdd(allocatePage(),KERNBASE_ADD,1);
+    uint64_t ret = returnVirAdd(allocatePage(),KERNBASE_OFFSET,1);
     return (void*)ret;
 }

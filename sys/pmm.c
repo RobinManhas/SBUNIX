@@ -93,7 +93,7 @@ uint64_t allocatePage(){
     Page* page = NULL;
     page = pFreeList;
     if(pFreeList){
-        //pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList->pNext,KERNBASE_ADD,1);
+        //pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList->pNext,KERNBASE_OFFSET,1);
         pFreeList = pFreeList->pNext;
         page->pNext = NULL; // Prev was already null for 1st page of free list
         ++page->sRefCount;
@@ -101,8 +101,8 @@ uint64_t allocatePage(){
 
         // update freelist global var to virtual, if prev free list pointer was a virtual address
         if((uint64_t)page > KERNBASE){
-            map_virt_phys_addr(returnVirAdd((uint64_t)pFreeList,KERNBASE_ADD,1),((uint64_t)pFreeList & ADD_SCHEME));
-            pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList,KERNBASE_ADD,0);
+            map_virt_phys_addr(returnVirAdd((uint64_t)pFreeList,KERNBASE_OFFSET,1),((uint64_t)pFreeList & ADDRESS_SCHEME));
+            pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList,KERNBASE_OFFSET,0);
         }
 
         //kprintf("allocate: %x, ofree: %x, nfree: %x\n",ret,page,pFreeList);
@@ -125,7 +125,7 @@ void addToDirtyPageList(Page* page){
 void deallocatePage(uint64_t add){
     uint64_t phyAdd = add;
     if(add > KERNBASE)
-        phyAdd = returnPhyAdd(add,KERNBASE_ADD,1);
+        phyAdd = returnPhyAdd(add,KERNBASE_OFFSET,1);
 
     Page* pageIter = pDirtyPageList;
     Page* prevPage = NULL;
@@ -134,7 +134,7 @@ void deallocatePage(uint64_t add){
         if(pageIter->uAddress != phyAdd){
             prevPage = pageIter;
             if(add > KERNBASE)
-                pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_ADD,0);
+                pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
             else
                 pageIter = pageIter->pNext;
             continue;
@@ -162,7 +162,7 @@ void deallocatePage(uint64_t add){
         // add to free list
         pageIter->sRefCount = 0; // ideally not required but re-setting everything here.
         if(add > KERNBASE){
-            pageIter->pNext = (Page*)returnPhyAdd((uint64_t)pFreeList,KERNBASE_ADD,0);
+            pageIter->pNext = (Page*)returnPhyAdd((uint64_t)pFreeList,KERNBASE_OFFSET,0);
         }
         else{
             pageIter->pNext = pFreeList;

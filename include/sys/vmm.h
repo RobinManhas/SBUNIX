@@ -15,8 +15,8 @@
 #define PTE_P		0x001	// Present
 #define PTE_W		0x002	// Write
 #define PTE_U		0x004	// User
-#define ADD_SCHEME		0xFFFFFFFFFFFFF000
-#define KERNBASE_ADD 0  // address that was/needs offset by KERNBASE
+#define ADDRESS_SCHEME		0xFFFFFFFFFFFFF000
+#define KERNBASE_OFFSET 0  // address that was/needs offset by KERNBASE
 #define VMAP_BASE_ADD 1 // address that was/needs offset by VMAP_BASE
 
 uint64_t getCR3();
