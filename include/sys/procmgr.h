@@ -16,4 +16,5 @@ typedef struct {
 
 void threadInit();
 void switch_to(task_struct *current, task_struct *next);
+void init_switch_to(task_struct *current, task_struct *next);
 #endif //OS_PROCESSM_H

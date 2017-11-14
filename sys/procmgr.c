@@ -10,14 +10,17 @@
 #include <sys/pmm.h>
 #include <sys/idt.h>
 
-
 task_struct *t0,*t1,*t2;
 
 void func1()
 {
-    kprintf("In thread #1\n");
-    switch_to(t1,t2);
-    kprintf("Returning from switchTo in thread #1\n");
+    kprintf("Thread 1: Entry\n");
+    init_switch_to(t1, t2);
+    kprintf("Thread 1: Returning from switch first time\n");
+    switch_to(t1, t2);
+    kprintf("Thread 1: Returning from switch second time\n");
+    switch_to(t1, t2);
+    kprintf("Thread 1: Returning from switch third time\n");
     init_idt();
     init_irq();
     init_timer();
@@ -29,23 +32,69 @@ void func1()
 
 void func2()
 {
-    kprintf("In thread #2\n");
-    switch_to(t2,t1);
-    kprintf("Returning from switchTo in thread #2\n");
+    kprintf("Thread 2: Entry\n");
+    switch_to(t2, t1);
+    kprintf("Thread 2: Returning from switch first time\n");
+    switch_to(t2, t1);
+    kprintf("Thread 2: Returning from switch second time\n");
+    switch_to(t2, t1);
+    kprintf("Thread 2: Returning from switch third time\n");
     while(1);
+
+}
+
+void init_switch_to(task_struct *current, task_struct *next)
+{
+    __asm__ __volatile__("pushq %rax");
+    __asm__ __volatile__("pushq %rbx");
+    __asm__ __volatile__("pushq %rcx");
+    __asm__ __volatile__("pushq %rdx");
+    __asm__ __volatile__("pushq %rdi");
+    __asm__ __volatile__("pushq %rsi");
+    __asm__ __volatile__("pushq %rbp");
+    __asm__ __volatile__("pushq %r8");
+    __asm__ __volatile__("pushq %r9");
+    __asm__ __volatile__("pushq %r10");
+    __asm__ __volatile__("pushq %r11");
+    __asm__ __volatile__("pushq %r12");
+
+    __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
+    __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
 
 }
 
 void switch_to(task_struct *current, task_struct *next)
 {
+    __asm__ __volatile__("pushq %rax");
+    __asm__ __volatile__("pushq %rbx");
+    __asm__ __volatile__("pushq %rcx");
+    __asm__ __volatile__("pushq %rdx");
+    __asm__ __volatile__("pushq %rdi");
+    __asm__ __volatile__("pushq %rsi");
+    __asm__ __volatile__("pushq %rbp");
+    __asm__ __volatile__("pushq %r8");
+    __asm__ __volatile__("pushq %r9");
+    __asm__ __volatile__("pushq %r10");
+    __asm__ __volatile__("pushq %r11");
+    __asm__ __volatile__("pushq %r12");
+
     __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
-    current->rsp+=8;
     __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
-    set_tss_rsp((void*)next->rsp);
-    __asm__ __volatile__("ret");
+
+    __asm__ __volatile__("popq %r12");
+    __asm__ __volatile__("popq %r11");
+    __asm__ __volatile__("popq %r10");
+    __asm__ __volatile__("popq %r9");
+    __asm__ __volatile__("popq %r8");
+    __asm__ __volatile__("popq %rbp");
+    __asm__ __volatile__("popq %rsi");
+    __asm__ __volatile__("popq %rdi");
+    __asm__ __volatile__("popq %rdx");
+    __asm__ __volatile__("popq %rcx");
+    __asm__ __volatile__("popq %rbx");
+    __asm__ __volatile__("popq %rax");
+
 }
-
-
 
 void threadInit(){
     kprintf("In thread Init, size of task struct: %d\n", sizeof(task_struct));
@@ -62,5 +111,5 @@ void threadInit(){
     t1->rip = (uint64_t)&func1;
     t2->rip = (uint64_t)&func2;
 
-    switch_to(t0,t1);
+    init_switch_to(t0, t1);
 }
