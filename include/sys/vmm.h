@@ -20,11 +20,13 @@
 #define VMAP_BASE_ADD 1 // address that was/needs offset by VMAP_BASE
 
 uint64_t getCR3();
+void setCR3(uint64_t* pmlAdd);
 uint64_t * cr3Create(uint64_t *cr3_reg, uint64_t pml4e_add, int pcd, int pwt);
 uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t virPageStart);
 void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree);
 uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags);
 uint64_t returnVirAdd(uint64_t add, short addType, short removeFlags);
 void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr);
+uint64_t* getKernelPML4();
 
 #endif //OS_PROJECT_VMM_H

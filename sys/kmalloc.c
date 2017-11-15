@@ -13,6 +13,8 @@ void* kmalloc(/*unsigned int size*/){ // TODO: extend implementation to support 
         return NULL;
     }*/
 
-    uint64_t ret = returnVirAdd(allocatePage(),KERNBASE_OFFSET,1);
+    uint64_t phyPage = allocatePage();
+    uint64_t ret = returnVirAdd(phyPage,KERNBASE_OFFSET,1);
+    map_virt_phys_addr(ret,((uint64_t)phyPage & ADDRESS_SCHEME));
     return (void*)ret;
 }

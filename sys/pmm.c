@@ -99,7 +99,8 @@ uint64_t allocatePage(){
         ++page->sRefCount;
         ret = page->uAddress;
 
-        // update freelist global var to virtual, if prev free list pointer was a virtual address
+        /* Note: below code only maps the page descriptor to virtual, actual page isn't mapped here
+         * This is because the page might actually be required to be mapped in kernel or user space*/
         if((uint64_t)page > KERNBASE){
             map_virt_phys_addr(returnVirAdd((uint64_t)pFreeList,KERNBASE_OFFSET,1),((uint64_t)pFreeList & ADDRESS_SCHEME));
             pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList,KERNBASE_OFFSET,0);

@@ -16,6 +16,10 @@ extern uint64_t videoOutBufAdd; // TODO: Update it in kprintf too.
 
 uint64_t virtualMemBase = 0;
 
+uint64_t* getKernelPML4(){
+    return pml_table;
+}
+
 // RM: Init table for kernel
 uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t virPageStart)
 {
@@ -67,6 +71,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
     uint16_t pdOff = ((vaddr>>21)&0x1ff);
     uint16_t ptOff = ((vaddr>>12)&0x1ff);
 
+    //kprintf("vadd: %x, padd: %x, pml: %x, pmloff: %d\n",vaddr,paddr, pml_table,pml4Off);
     uint64_t pml4_entry = pml_table[pml4Off];
     if(pml4_entry & PTE_P){
         pdp = (uint64_t*)(pml4_entry & ADDRESS_SCHEME);
@@ -182,6 +187,12 @@ uint64_t getCR3(){
     "movq %%cr3, %0\n\t"
     :"=r"(cr3):);
     return cr3;
+}
+
+void setCR3(uint64_t* pmlAdd){
+    uint64_t uCR3;
+    cr3Create(&uCR3, (uint64_t) pmlAdd-KERNBASE, 0x00, 0x00);
+    __asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
 }
 
 uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)

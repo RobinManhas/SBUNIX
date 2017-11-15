@@ -31,9 +31,8 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     // mapPhysicalRangeToVirtual((uint64_t)(physfree+ (4*PAGE_SIZE)), physfree);
     mapPhysicalRangeToVirtual(maxPhyRegion, physfree);
 
-    uint64_t uCR3;
-    cr3Create(&uCR3, (uint64_t) pml_table-KERNBASE, 0x00, 0x00);
-    __asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
+    setCR3(pml_table);
+
     kprintf("after cr3 reset, cr3: %x, new physfree: %x\n",getCR3(),physfree);
     kprintf("kernel stack: %x\n",(uint64_t)initial_stack);
 
@@ -43,7 +42,7 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     * thread  : one execution path containing separate registers + stack
     * process : virtual address space + registers + stack
 *********************************************************************************************************/
-    init_tss();
+    //init_tss();
 
     threadInit();
 
