@@ -102,7 +102,7 @@ uint64_t allocatePage(){
         /* Note: below code only maps the page descriptor to virtual, actual page isn't mapped here
          * This is because the page might actually be required to be mapped in kernel or user space*/
         if((uint64_t)page > KERNBASE){
-            map_virt_phys_addr(returnVirAdd((uint64_t)pFreeList,KERNBASE_OFFSET,1),((uint64_t)pFreeList & ADDRESS_SCHEME));
+            map_virt_phys_addr(returnVirAdd((uint64_t)pFreeList,KERNBASE_OFFSET,1),((uint64_t)pFreeList & ADDRESS_SCHEME),(uint64_t)PTE_U_W_P);
             pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList,KERNBASE_OFFSET,0);
         }
 

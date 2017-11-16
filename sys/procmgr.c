@@ -135,7 +135,7 @@ void createUserProcess(){
     userPtr = (uint64_t*)user_task->cr3;
     kernPtr = getKernelPML4();
     userPtr[511] = kernPtr[511];
-    kprintf("uptr = %x - %x, utval: %x, ktval: %x\n",userPtr,user_task->cr3,userPtr[511], kernPtr[511]);
+    kprintf("upt: %x - %x, ua: %x, ka: %x\n",userPtr,user_task->cr3,userPtr[511], kernPtr[511]);
     switch_to_user_mode(user_task);
 }
 

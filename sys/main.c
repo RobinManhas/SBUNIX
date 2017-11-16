@@ -24,13 +24,12 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     clearScreen();
     kprintf("old cr3 %x, old physfree: %x\n",getCR3(),physfree);
     maxPhyRegion = phyMemInit(modulep,physbase,&physfree);
-
-    pageTablesInit((uint64_t) physbase, (uint64_t) physfree,(uint64_t)KERN_PHYS_BASE);
+    pageTablesInit((uint64_t) physbase, (uint64_t) physfree,(uint64_t)KERN_PHYS_BASE,(uint64_t)PTE_U_W_P);
 
     // DO NOT DELETE: Enable the below line if we do not want to do mapping of whole pages above physfree in
     // start itself, instead we just map initial pml4,pdp,pd and pt, rest all pages are dynamically mapped
     // mapPhysicalRangeToVirtual((uint64_t)(physfree+ (4*PAGE_SIZE)), physfree);
-    mapPhysicalRangeToVirtual(maxPhyRegion, physfree);
+    mapPhysicalRangeToVirtual(maxPhyRegion, physfree,(uint64_t)PTE_U_W_P);
 
     setCR3(pml_table);
 

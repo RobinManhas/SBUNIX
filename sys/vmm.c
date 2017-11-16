@@ -20,8 +20,8 @@ uint64_t* getKernelPML4(){
     return pml_table;
 }
 
-// RM: Init table for kernel
-uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t virPageStart)
+// RM: Init table for kernel, must add 0x003 permissions for kernel pages
+uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t virPageStart, uint64_t flags)
 {
     uint64_t *pdp=NULL,*pd=NULL,*pt=NULL;
     uint64_t value;
@@ -35,17 +35,17 @@ uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t vi
 
     pdp = (uint64_t*)allocatePage();
     value = (uint64_t)pdp;
-    value |= (0x007);
+    value |= (flags);
     pml_table[pml4Off] = value;
 
     pd = (uint64_t*)allocatePage();
     value = (uint64_t)pd;
-    value |= (0x007);
+    value |= (flags);
     pdp[pdpOff] = value;
 
     pt = (uint64_t*)allocatePage();
     value = (uint64_t)pt;
-    value |= (0x007);
+    value |= (flags);
     pd[pdOff] = value;
 
     for(;phyPageStart<phyPageEnd; phyPageStart += 0x1000, virPageStart += 0x1000)
@@ -53,7 +53,7 @@ uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t vi
 
         uint16_t ptOff = ((virPageStart>>12)&0x1ff);
         uint64_t entry = phyPageStart;
-        entry |= (0x007);
+        entry |= (flags);
         pt[ptOff] = entry;
 
        // kprintf("pm:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff]);
@@ -62,7 +62,7 @@ uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t vi
     return pml_table;
 }
 
-void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
+void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t flags)
 {
     uint64_t *pdp=NULL,*pd=NULL,*pt=NULL;
     uint64_t value;
@@ -80,7 +80,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
     {
         pdp = (uint64_t*)allocatePage();
         value = (uint64_t)pdp;
-        value |= (0x007);
+        value |= (flags);
         pml_table[pml4Off] = value;
     }
 
@@ -97,7 +97,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
     {
         pd = (uint64_t*)allocatePage();
         value = (uint64_t)pd;
-        value |= (0x007);
+        value |= (flags);
         pdp[pdpOff] = value;
     }
     if((uint64_t)pml_table > KERNBASE && (uint64_t)pd < KERNBASE){
@@ -112,7 +112,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
     {
         pt = (uint64_t*)allocatePage();
         value = (uint64_t)pt;
-        value |= (0x007);
+        value |= (flags);
         pd[pdOff] = value;
     }
 
@@ -121,25 +121,25 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
     }
 
     value = paddr;
-    value |= (0x007);
+    value |= (flags);
     pt[ptOff] = value;
 
     //kprintf("IP pm:%x,pdp:%x,pp:%x,pt:%x,pml:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff],pml_table);
     return;
 }
 
-void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree)
+void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree, uint64_t flags)
 {
     uint64_t pbaseAdd = ((uint64_t)physfree) & ADDRESS_SCHEME;
     uint64_t vaddr = (KERNBASE | pbaseAdd);
     uint64_t paddr =  pbaseAdd;
     uint64_t max_phys = max_phy;
     for(; paddr <= max_phys; paddr += PAGE_SIZE, vaddr += PAGE_SIZE){
-        map_virt_phys_addr(vaddr, paddr);
+        map_virt_phys_addr(vaddr, paddr,flags);
     }
 
     kprintf("page mapping complete, reset vid ptr, free: %x\n",pFreeList);
-    map_virt_phys_addr((uint64_t)0xffffffff800b8000UL, 0xb8000UL);
+    map_virt_phys_addr((uint64_t)0xffffffff800b8000UL, 0xb8000UL,flags);
     videoOutBufAdd = (uint64_t)0xffffffff800b8000UL;
 
     // update vmem top ptr
@@ -162,12 +162,12 @@ void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree)
 
     // update freelist global var
     uint64_t virAddTemp = returnVirAdd((uint64_t)pFreeList, KERNBASE_OFFSET, 1);
-    map_virt_phys_addr(virAddTemp,((uint64_t)pFreeList & ADDRESS_SCHEME));
+    map_virt_phys_addr(virAddTemp,((uint64_t)pFreeList & ADDRESS_SCHEME),flags);
     pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList, KERNBASE_OFFSET, 0);
 
     // update dirty list global var
     virAddTemp = returnVirAdd((uint64_t)pDirtyPageList, KERNBASE_OFFSET, 1);
-    map_virt_phys_addr(virAddTemp,((uint64_t)pDirtyPageList & ADDRESS_SCHEME));
+    map_virt_phys_addr(virAddTemp,((uint64_t)pDirtyPageList & ADDRESS_SCHEME),flags);
     pDirtyPageList = (Page*)returnVirAdd((uint64_t)pDirtyPageList, KERNBASE_OFFSET, 0);
 
 }
