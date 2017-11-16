@@ -124,7 +124,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr)
     value |= (0x007);
     pt[ptOff] = value;
 
-    //kprintf("IP pm:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff]);
+    //kprintf("IP pm:%x,pdp:%x,pp:%x,pt:%x,pml:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff],pml_table);
     return;
 }
 
@@ -191,7 +191,8 @@ uint64_t getCR3(){
 
 void setCR3(uint64_t* pmlAdd){
     uint64_t uCR3;
-    cr3Create(&uCR3, (uint64_t) pmlAdd-KERNBASE, 0x00, 0x00);
+    cr3Create(&uCR3,((uint64_t)pmlAdd & KERNMASK), 0x00, 0x00);
+    //kprintf("pml4: %x, value: %x\n",pmlAdd,uCR3);
     __asm__ __volatile__("movq %0, %%cr3":: "r"(uCR3));
 }
 

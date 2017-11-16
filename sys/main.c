@@ -17,6 +17,7 @@ uint32_t* loader_stack;
 extern char kernmem, physbase;
 uint64_t maxPhyRegion;
 extern uint64_t* pml_table;
+task_struct *user;
 
 void start(uint32_t *modulep, void *physbase, void *physfree)
 {
@@ -45,6 +46,7 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     //init_tss();
 
     threadInit();
+    //createUserProcess();
 
     init_idt();
     init_irq();
