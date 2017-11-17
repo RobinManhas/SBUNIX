@@ -34,3 +34,19 @@ unsigned int inl(unsigned short port){
     __asm__ __volatile__ ("inl %1, %0" : "=a" (rv) : "dN" (port));
     return rv;
 }
+
+uint64_t pow(uint64_t x, int n){
+    if (n == 0)
+        return 1;
+    return x * pow(x, n-1);
+}
+
+uint64_t octalToDecimal(uint64_t octal){
+    uint64_t decimal = 0;
+    uint64_t i=0;
+    while(octal!=0){
+        decimal = decimal + (octal % 10) * pow(8,i++);
+        octal = octal/10;
+    }
+    return decimal;
+}
