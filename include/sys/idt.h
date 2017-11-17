@@ -5,9 +5,9 @@
 
 struct regs
 {
-    unsigned int r15,r14,r13,r12,r11,r10,r9,r8,rdi,rsi,rbp,rbx,rdx,rcx,rax;
-    unsigned int int_no, err_code;
-    unsigned int eip, cs, eflags, useresp, ss;
+    unsigned long r15,r14,r13,r12,r11,r10,r9,r8,rdi,rsi,rbp,rbx,rdx,rcx,rax;
+    unsigned long int_no, err_code;
+    unsigned long eip, cs, eflags, useresp, ss;
 }__attribute__((packed));
 void init_idt();
 void init_irq();
