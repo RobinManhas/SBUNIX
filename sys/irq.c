@@ -8,6 +8,8 @@
 void _irq0();
 void _irq1();
 void isr0();
+void syscall();
+extern void syscall_handler();
 
 void *irqs[16] =
         {
@@ -95,21 +97,25 @@ void init_irq()
     idt_set_gate(29, (long)isr0, 0x08, 0x8E);
     idt_set_gate(30, (long)isr0, 0x08, 0x8E);
     idt_set_gate(31, (long)isr0, 0x08, 0x8E);
+    idt_set_gate(128, (long)syscall, 0x08, 0x8E);
 
     //outb(0x21,0xFD);   // to disable irq lines : 0xFD=11111101 enable only keyboard(0 to enable)
 }
 
 
-void _irq_handler(long irq)
+void _irq_handler(struct regs* reg)
 {
-    long num = irq-32;
+    if(reg->int_no==128){
+        syscall_handler(reg);
+    }else {
+        long num = (reg->int_no) - 32;
 
-    void (*handler)();
+        void (*handler)();
 
-    handler = irqs[num];
-    if (handler)
-    {
-        handler();
+        handler = irqs[num];
+        if (handler) {
+            handler();
+        }
     }
 
 
@@ -119,6 +125,6 @@ void _irq_handler(long irq)
 //    }
 
 
-    outb(0x20, 0x20);
+    outb(0x20, 0x20);//for irq lines
 
 }

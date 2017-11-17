@@ -1,6 +1,7 @@
 #include <sys/kprintf.h>
 #include <stdarg.h>
 #include <sys/defs.h>
+#include <sys/common.h>
 
 #define LINE_LENGTH 160
 #define MAX_LINES 24 //3680,3840
@@ -307,4 +308,33 @@ void kprintf(const char *fmt, ...)
         }
     }
     va_end(arglist);
+}
+
+int writeString(char* s,uint64_t write_len){
+    int length = 0;
+    char *outputBufPtr = (char*)videoOutBufAdd+charsWritten;
+    char *replaceBufPtr;
+    int forward;
+    for(replaceBufPtr = s;*replaceBufPtr;)
+    {
+        switch(*replaceBufPtr){
+            case '\n':
+                forward = charsWritten%LINE_LENGTH;
+                outputBufPtr += (LINE_LENGTH - forward);
+                charsWritten += (LINE_LENGTH - forward);
+                break;
+            default:
+                *outputBufPtr = *replaceBufPtr;
+                charsWritten += 2;
+        }
+        checkOverflow(&outputBufPtr);
+        outputBufPtr +=2;
+        replaceBufPtr +=1;
+        length++;
+        write_len--;
+        if(write_len==0){
+            break;
+        }
+    }
+    return length;
 }

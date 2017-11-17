@@ -4,6 +4,8 @@
 #include <sys/kprintf.h>
 #include <sys/idt.h>
 #include <sys/defs.h>
+#include <string.h>
+#include <sys/common.h>
 
 
 #define ALT 0
@@ -19,6 +21,9 @@
 
 int shiftFlag = 0;
 int ctrlFlag = 0;
+static int readFlag = 0;
+static char inputBuffer[1024];
+static int len=0;
 
 void irq_install_handler(int irq, void (*handler)());
 
@@ -204,8 +209,20 @@ void keyboard_handler() {
         else{
             keyPressed[0] = keyRecv;
             keyPressed[1] = '\0';
+            if(keyRecv=='\n'){
+                readFlag = 0;
+                inputBuffer[len]='\0';
+                len++;
+            }else if(keyRecv=='\b'){
+                --len;
+                inputBuffer[len]=' ';
+            }else{
+                inputBuffer[len]=keyRecv;
+                len++;
+            }
         }
         keyPressed[2] = '\0';
+
         keyboardLocalEcho(keyPressed);
 
     }
@@ -215,4 +232,18 @@ void init_keyboard() {
     kprintf("inside keyboard init \n");
     irq_install_handler(1, &keyboard_handler);
 
+}
+
+int read_stokes(unsigned long output,unsigned long read_length){
+    int count = 0;
+    readFlag = 1;
+    __asm__ ("sti");
+    while(readFlag);
+    strncpy((char *)output,inputBuffer,read_length);
+    if(len<read_length){
+        read_length = len;
+    }
+    count = read_length;
+    len =0;
+    return count;
 }

@@ -3,32 +3,39 @@
 .global _irq0
 .global _irq1
 .global isr0
+.global syscall
 
 
 _irq0:
     cli
-    pushq %rax
-    movq $32,%rax
+    //pushq %rax
+    //movq $32,%rax
+    pushq $32
     jmp irq_common_stub
 
 _irq1:
     cli
-    pushq %rax
-    movq $33,%rax
+    //pushq %rax
+    //movq $33,%rax
+    pushq $33
     jmp irq_common_stub
 
 isr0:
     cli
-    pushq %rax
-    movq $40,%rax  ///$40 is temp
+    //pushq %rax
+    //movq $40,%rax  ///$40 is temp
+    pushq $40
     jmp irq_common_stub
 
-
+syscall:
+    cli
+    pushq $128
+    jmp irq_common_stub
 
 irq_common_stub:
 
 
-
+    pushq %rax
     pushq %rcx
     pushq %rdx
     pushq %rbx
@@ -46,7 +53,7 @@ irq_common_stub:
 
 
 
-    movq %rax, %rdi   ////
+    movq %rsp, %rdi   ////
     callq  _irq_handler
 
 
@@ -65,6 +72,8 @@ irq_common_stub:
     popq %rdx
     popq %rcx
     popq %rax
+
+    addq $16,%rsp
 
     sti
     iretq
