@@ -9,10 +9,13 @@
 #include <sys/vmm.h>
 #include <sys/pmm.h>
 #include <sys/idt.h>
+#include <sys/kstring.h>
 
 task_struct *t0,*t1,*t2,*user_task;
 void userFunc(){
     kprintf("User function entry\n");
+    __asm__ __volatile__("int $0x80");
+    kprintf("User function re-entry\n");
     while(1);
 }
 
@@ -25,9 +28,11 @@ void func1()
 //    kprintf("Thread 1: Returning from switch second time\n");
 //    switch_to(t1, t2);
 //    kprintf("Thread 1: Returning from switch third time\n");
+    init_idt();
+    init_irq();
+    kprintf("Thread 1: init IDT and IRQ success\n");
     createUserProcess();
-//    init_idt();
-//    init_irq();
+
 //    init_timer();
 //    init_keyboard();
 //    __asm__ ("sti");
@@ -124,8 +129,8 @@ void threadInit(){
 }
 
 void createUserProcess(){
-    user_task = (task_struct*)kmalloc();
-    user_task->cr3 = (uint64_t)kmalloc();
+    user_task = (task_struct*)umalloc();
+    user_task->cr3 = (uint64_t)umalloc();
     user_task->rip = (uint64_t)&userFunc;
 
     user_task->rsp = (uint64_t)&user_task->stack[499];
@@ -135,13 +140,20 @@ void createUserProcess(){
     userPtr = (uint64_t*)user_task->cr3;
     kernPtr = getKernelPML4();
     userPtr[511] = kernPtr[511];
-    kprintf("upt: %x - %x, ua: %x, ka: %x\n",userPtr,user_task->cr3,userPtr[511], kernPtr[511]);
-    switch_to_user_mode(user_task);
+    userPtr[511] |= (PTE_U_W_P);
+
+    uint64_t userPage = (uint64_t)umalloc();
+    uint64_t kernPage = (((uint64_t)&userFunc) & ADDRESS_SCHEME);
+    memcpy((void*)userPage,(void*)kernPage,PAGE_SIZE);
+    userPage |= (((uint64_t)&userFunc) & ~ADDRESS_SCHEME); //RM: pop address offset
+    user_task->rip = userPage;
+    kprintf("u: %x ,k: %x, ufn: %x\n",userPage,kernPage,user_task->rip);
+    //switch_to_user_mode(user_task);
 }
 
 void switch_to_user_mode(task_struct *user_task)
 {
-    set_tss_rsp((void*)user_task->rsp);
+    set_tss_rsp((void*)t1->rsp);
     __asm__ volatile("cli");
     setCR3((uint64_t*)user_task->cr3);
     __asm__ volatile("mov $0x23, %%ax"::);

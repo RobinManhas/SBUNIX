@@ -95,6 +95,10 @@ void clearScreen(){
 
 void updateTimeOnScreen(int time)
 {
+    if(time%10 == 0)
+    {
+        __asm__ __volatile__("int $0x80");
+    }
     int timerIndex = LINE_LENGTH*TIMER_LINE - keyboardOffset - SPACE_OFFSET;
     char* screenWriter = ((char*)videoOutBufAdd); // initialize to base
     char *replaceBufPtr;

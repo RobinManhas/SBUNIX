@@ -15,6 +15,14 @@ void* kmalloc(/*unsigned int size*/){ // TODO: extend implementation to support 
 
     uint64_t phyPage = allocatePage();
     uint64_t ret = returnVirAdd(phyPage,KERNBASE_OFFSET,1);
-    map_virt_phys_addr(ret,((uint64_t)phyPage & ADDRESS_SCHEME),(uint64_t)PTE_U_W_P);
+    map_virt_phys_addr(ret,((uint64_t)phyPage & ADDRESS_SCHEME),(uint64_t)PTE_W_P);
+    return (void*)ret;
+}
+
+void* umalloc(){
+
+    uint64_t phyPage = allocatePage();
+    uint64_t ret = returnVirAdd(phyPage,VMAP_BASE_ADD,1);
+    map_virt_phys_addr(ret,((uint64_t)phyPage & ADDRESS_SCHEME),PTE_U_W_P);
     return (void*)ret;
 }

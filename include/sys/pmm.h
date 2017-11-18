@@ -23,6 +23,7 @@ Page* pFreeList;
 Page* pDirtyPageList;
 
 void* memset(void* ptr, int val, unsigned int len);
+//void *memcpy(void *dest, const void *src, uint64_t n);
 uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree);
 int pageListInit();
 uint64_t allocatePage();

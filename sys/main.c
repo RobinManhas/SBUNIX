@@ -24,17 +24,17 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     clearScreen();
     kprintf("old cr3 %x, old physfree: %x\n",getCR3(),physfree);
     maxPhyRegion = phyMemInit(modulep,physbase,&physfree);
-    pageTablesInit((uint64_t) physbase, (uint64_t) physfree,(uint64_t)KERN_PHYS_BASE,(uint64_t)PTE_U_W_P);
+    pageTablesInit((uint64_t) physbase, (uint64_t) physfree,(uint64_t)KERN_PHYS_BASE,(uint64_t)PTE_W_P);
 
-    // DO NOT DELETE: Enable the below line if we do not want to do mapping of whole pages above physfree in
-    // start itself, instead we just map initial pml4,pdp,pd and pt, rest all pages are dynamically mapped
-    // mapPhysicalRangeToVirtual((uint64_t)(physfree+ (4*PAGE_SIZE)), physfree);
-    mapPhysicalRangeToVirtual(maxPhyRegion, physfree,(uint64_t)PTE_U_W_P);
+    // DO NOT DELETE: Enable the below line if we want to do mapping of whole pages above physfree in
+    // start itself. Currently we just map initial pml4,pdp,pd and pt, rest all pages are dynamically mapped
+    // mapPhysicalRangeToVirtual(maxPhyRegion, physfree,(uint64_t)PTE_W_P);
+
+    mapPhysicalRangeToVirtual((uint64_t)(physfree+ (4*PAGE_SIZE)), physfree,(uint64_t)PTE_W_P);
 
     setCR3(pml_table);
 
     kprintf("after cr3 reset, cr3: %x, new physfree: %x\n",getCR3(),physfree);
-    kprintf("kernel stack: %x\n",(uint64_t)initial_stack);
 
 /*********************************************************************************************************
     * Welcome to user land, use any physical address from now on and watch qemu reboot forever.
@@ -47,11 +47,11 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     threadInit();
     //createUserProcess();
 
-    init_idt();
-    init_irq();
-    init_timer();
-    init_keyboard();
-    __asm__ ("sti");
+//    init_idt();
+//    init_irq();
+    //init_timer();
+    //init_keyboard();
+//    __asm__ ("sti");
 //    init_pci();
 
     while(1);

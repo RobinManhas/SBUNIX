@@ -25,6 +25,19 @@ void* memset(void* ptr, int val, unsigned int len){
     return(p);
 }
 
+/*void *memcpy(void *dest, const void *src, uint64_t n)
+{
+    unsigned char *pd = (unsigned char *)dest;
+    const unsigned char *ps = (unsigned char *)src;
+    if ( ps < pd )
+        for (pd += n, ps += n; n--;)
+            *--pd = *--ps;
+    else
+        while(n--)
+            *pd++ = *ps++;
+    return dest;
+}*/
+
 uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
 
     while (modulep[0] != 0x9001) modulep += modulep[1] + 2;
@@ -100,9 +113,9 @@ uint64_t allocatePage(){
         ret = page->uAddress;
 
         /* Note: below code only maps the page descriptor to virtual, actual page isn't mapped here
-         * This is because the page might actually be required to be mapped in kernel or user space*/
+         * This is because the page might actually be required to be mapped in virtual or */
         if((uint64_t)page > KERNBASE){
-            map_virt_phys_addr(returnVirAdd((uint64_t)pFreeList,KERNBASE_OFFSET,1),((uint64_t)pFreeList & ADDRESS_SCHEME),(uint64_t)PTE_U_W_P);
+            map_virt_phys_addr(returnVirAdd((uint64_t)pFreeList,KERNBASE_OFFSET,1),((uint64_t)pFreeList & ADDRESS_SCHEME),PTE_W_P);
             pFreeList = (Page*)returnVirAdd((uint64_t)pFreeList,KERNBASE_OFFSET,0);
         }
 

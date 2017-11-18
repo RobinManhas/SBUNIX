@@ -59,6 +59,8 @@ uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t vi
        // kprintf("pm:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff]);
     }
 
+    //kprintf("pm:%x,pdp:%x,pp:%x,pt:%x\n",pml_table,pdp,pd,pt);
+
     return pml_table;
 }
 
@@ -79,6 +81,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t flags)
     else
     {
         pdp = (uint64_t*)allocatePage();
+        map_virt_phys_addr(returnVirAdd((uint64_t)pdp,KERNBASE_OFFSET,1),((uint64_t)pdp & ADDRESS_SCHEME),(uint64_t)PTE_W_P);
         value = (uint64_t)pdp;
         value |= (flags);
         pml_table[pml4Off] = value;
@@ -96,6 +99,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t flags)
     else
     {
         pd = (uint64_t*)allocatePage();
+        map_virt_phys_addr(returnVirAdd((uint64_t)pd,KERNBASE_OFFSET,1),((uint64_t)pd & ADDRESS_SCHEME),(uint64_t)PTE_W_P);
         value = (uint64_t)pd;
         value |= (flags);
         pdp[pdpOff] = value;
@@ -111,6 +115,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t flags)
     else
     {
         pt = (uint64_t*)allocatePage();
+        map_virt_phys_addr(returnVirAdd((uint64_t)pt,KERNBASE_OFFSET,1),((uint64_t)pt & ADDRESS_SCHEME),(uint64_t)PTE_W_P);
         value = (uint64_t)pt;
         value |= (flags);
         pd[pdOff] = value;
@@ -130,6 +135,7 @@ void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t flags)
 
 void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree, uint64_t flags)
 {
+    //kprintf("max: %x, physfree: %x\n",max_phy,physfree);
     uint64_t pbaseAdd = ((uint64_t)physfree) & ADDRESS_SCHEME;
     uint64_t vaddr = (KERNBASE | pbaseAdd);
     uint64_t paddr =  pbaseAdd;
@@ -217,13 +223,24 @@ uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
                     return add;
             }
         }
-            /*case VMAP_BASE_ADD:
+        case VMAP_BASE_ADD:
+        {
+                if(add >= VIRBASE)
             {
                 if(removeFlags)
-            return ((add-KERNBASE)&ADDRESS_SCHEME);
-        else
-            return ((add-KERNBASE));
-            }*/
+                    return ((add-VIRBASE)&ADDRESS_SCHEME);
+                else
+                    return ((add-VIRBASE));
+            }
+            else // not adding VIRBASE offset
+            {
+                kprintf("Error: Address passed already in physical add range\n");
+                if(removeFlags)
+                    return (add & ADDRESS_SCHEME);
+                else
+                    return add;
+            }
+        }
     };
 
     kprintf("Error: address type not supported, returning same number\n");
@@ -251,13 +268,24 @@ uint64_t returnVirAdd(uint64_t add, short addType, short removeFlags)
                     return add;
             }
         }
-        /*case VMAP_BASE_ADD:
+        case VMAP_BASE_ADD:
         {
-            if(removeFlags)
-                return (KERNBASE | (add & ADDRESS_SCHEME));
-            else
-                return (add | KERNBASE);
-        }*/
+            if(add < VIRBASE)
+            {
+                if(removeFlags)
+                    return (VIRBASE | (add & ADDRESS_SCHEME));
+                else
+                    return (add | VIRBASE);
+            }
+            else // not adding VIRBASE offset
+            {
+                kprintf("Error: Address passed already in virtual add range\n");
+                if(removeFlags)
+                    return (add & ADDRESS_SCHEME);
+                else
+                    return add;
+            }
+        }
     };
 
     kprintf("Error: address type not supported, returning same number\n");
