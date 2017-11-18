@@ -146,9 +146,9 @@ void createUserProcess(){
     uint64_t kernPage = (((uint64_t)&userFunc) & ADDRESS_SCHEME);
     memcpy((void*)userPage,(void*)kernPage,PAGE_SIZE);
     userPage |= (((uint64_t)&userFunc) & ~ADDRESS_SCHEME); //RM: pop address offset
-    user_task->rip = userPage;
+    //user_task->rip = userPage;
     kprintf("u: %x ,k: %x, ufn: %x\n",userPage,kernPage,user_task->rip);
-    //switch_to_user_mode(user_task);
+    switch_to_user_mode(user_task);
 }
 
 void switch_to_user_mode(task_struct *user_task)

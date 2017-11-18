@@ -115,7 +115,8 @@ void init_irq()
 void _irq_handler(struct regs* reg)
 {
     if(reg->int_no==128){
-        syscall_handler(reg);
+        kprintf("syscall interrupt received\n");
+        //syscall_handler(reg);
     }else {
         long num = (reg->int_no) - 32;
 
