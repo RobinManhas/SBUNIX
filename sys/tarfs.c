@@ -27,7 +27,7 @@ file_table* new_file_table(char* name, char type,uint64_t size, uint64_t first ,
     return newFile;
 }
 
-file_table* getParentFolder(char* name, unsigned int len){
+file_table* get_parent_folder(char* name, unsigned int len){
     kprintf("inside getParentFolder: %s\n",name);
     len--;
     while(name[len] != '/') {
@@ -90,12 +90,12 @@ void init_tarfs(){
         length = strlen(start->name);
         if(start->typeflag[0] == DIRECTORY) {
             kprintf("processing for directory");
-            parent = getParentFolder(start->name,length-1);
+            parent = get_parent_folder(start->name,length-1);
             newFile = new_file_table(start->name, DIRECTORY, size, (uint64_t)pointer, tmp, parent,0);
         }
         else{
             kprintf("processing for file");
-            parent = getParentFolder(start->name,length);
+            parent = get_parent_folder(start->name,length);
             //start will be pointer or pointer+header_size??? , test and check
             newFile = new_file_table(start->name,FILE,size,(uint64_t) pointer, tmp, parent,0);
         }
@@ -210,4 +210,19 @@ int close_file(int fdNo){
         return 1;
     }
     return -1;
+}
+
+void* find_file(char* file_name){
+    file_table* file = NULL;
+    for(int i =0;i<FILES_MAX ; i++) {
+        if (NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
+            break;
+        if ((strcmp(tarfs[i]->name, file_name) == 0) && tarfs[i]->type == FILE) {
+            kprintf("file found\n");
+            file = tarfs[i];
+        }
+    }
+    kprintf("No such file:%s\n",file);
+    return (void*)file->start;
+
 }

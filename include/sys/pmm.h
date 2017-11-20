@@ -30,4 +30,10 @@ uint64_t allocatePage();
 void deallocatePage(uint64_t page);
 void addToDirtyPageList(Page* page);
 
+
+Page* get_page(uint64_t addr);
+
+
+
+
 #endif //OS_MEMMANAGER_H

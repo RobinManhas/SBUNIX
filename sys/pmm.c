@@ -186,3 +186,21 @@ void deallocatePage(uint64_t add){
        // kprintf("inserted from dirty to free: %x\n",pFreeList);
     }
 }
+
+Page* get_page(uint64_t addr){
+    Page* pageIter = pDirtyPageList;
+    while(pageIter){
+        if(pageIter->uAddress != addr){
+            if(addr > KERNBASE)
+                pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
+            else
+                pageIter = pageIter->pNext;
+            continue;
+        }
+        else{
+            return pageIter;
+        }
+    }
+    return pageIter;
+
+}

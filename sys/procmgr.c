@@ -109,9 +109,11 @@ void switch_to(task_struct *current, task_struct *next)
 
 void threadInit(){
     kprintf("In thread Init, size of task struct: %d\n", sizeof(task_struct));
-    t0 = (task_struct*)kmalloc();
-    t1 = (task_struct*)kmalloc();
-    t2 = (task_struct*)kmalloc();
+    t0 = (task_struct*)kmalloc_size(sizeof(task_struct));
+    t1 = (task_struct*)kmalloc_size(sizeof(task_struct));
+    t2 = (task_struct*)kmalloc_size(sizeof(task_struct));
+
+    kprintf("task initialization done\n");
 
     t1->stack[499] = (uint64_t)&func1;
     t2->stack[499] = (uint64_t)&func2;
@@ -129,7 +131,7 @@ void threadInit(){
 }
 
 void createUserProcess(){
-    user_task = (task_struct*)umalloc();
+    user_task = (task_struct*)umalloc_size(sizeof(task_struct));
     user_task->cr3 = (uint64_t)umalloc();
     user_task->rip = (uint64_t)&userFunc;
 
@@ -148,7 +150,7 @@ void createUserProcess(){
     userPage |= (((uint64_t)&userFunc) & ~ADDRESS_SCHEME); //RM: pop address offset
     //user_task->rip = userPage;
     kprintf("u: %x ,k: %x, ufn: %x\n",userPage,kernPage,user_task->rip);
-    switch_to_user_mode(user_task);
+    //switch_to_user_mode(user_task);
 }
 
 void switch_to_user_mode(task_struct *user_task)
@@ -156,6 +158,7 @@ void switch_to_user_mode(task_struct *user_task)
     set_tss_rsp((void*)t1->rsp);
     __asm__ volatile("cli");
     setCR3((uint64_t*)user_task->cr3);
+    //map_virt_phys_addr_cr3((uint64_t )user_task,returnPhyAdd((uint64_t )user_task,VMAP_BASE_ADD,1),PTE_U_W_P,1);
     __asm__ volatile("mov $0x23, %%ax"::);
     __asm__ volatile("mov %%ax, %%ds"::);
     __asm__ volatile("mov %%ax, %%es"::);
@@ -170,3 +173,29 @@ void switch_to_user_mode(task_struct *user_task)
     __asm__ volatile("pushq %0"::"r"(user_task->rip));
     __asm__ volatile("iretq");
 }
+
+task_struct* allocate_task(int is_user_task){
+
+    uint64_t task_struct_size = sizeof(task_struct);
+    task_struct* task=(is_user_task ==1)?(task_struct*)umalloc_size(task_struct_size):(task_struct*)kmalloc_size(
+            task_struct_size);
+
+    mm_struct* mm = (is_user_task ==1)?(mm_struct*)umalloc():(mm_struct*)kmalloc();
+
+
+    task->mm = mm;
+    task->cr3 = get_new_cr3(is_user_task); //to be modified
+
+    task->rip = (uint64_t)&userFunc;
+    task->rsp = (uint64_t)&user_task->stack[499];
+
+    uint64_t *userPtr,*kernPtr;
+    userPtr = (uint64_t*)task->cr3;
+    kernPtr = getKernelPML4();
+    userPtr[511] = kernPtr[511];
+    userPtr[511] |= (PTE_U_W_P);
+    return task;
+
+}
+
+

@@ -54,7 +54,8 @@ struct fd {
     uint64_t current_pointer;
 };
 
-file_table* getParentFolder(char* name, unsigned int len);
+file_table* get_parent_folder(char* name, unsigned int len);
+void* find_file(char* file_name);
 
 
 #endif

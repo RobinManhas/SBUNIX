@@ -3,7 +3,7 @@
 
 #define NULL ((void*)0)
 #define KERNBASE 0xffffffff80000000UL // from linkerscript 0xffffffff80000000
-#define VIRBASE  0xffffff0000000000UL
+#define VIRBASE  0xfffffd0000000000UL
 #define KERNMASK 0x000000000FFFFFFFUL
 
 #define TABLE_ENTRIES_MAX 512
