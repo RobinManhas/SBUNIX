@@ -13,9 +13,7 @@
 
 task_struct *t0,*t1,*t2,*user_task;
 void userFunc(){
-    kprintf("User function entry\n");
     __asm__ __volatile__("int $0x80");
-    kprintf("User function re-entry\n");
     while(1);
 }
 
@@ -106,15 +104,13 @@ void switch_to(task_struct *current, task_struct *next)
 
 }
 
-
 void threadInit(){
     kprintf("In thread Init, size of task struct: %d\n", sizeof(task_struct));
-    t0 = (task_struct*)kmalloc_size(sizeof(task_struct));
-    t1 = (task_struct*)kmalloc_size(sizeof(task_struct));
-    t2 = (task_struct*)kmalloc_size(sizeof(task_struct));
-
-    kprintf("task initialization done\n");
-
+    t0 = (task_struct*)kmalloc();
+    t1 = (task_struct*)kmalloc();
+    t2 = (task_struct*)kmalloc();
+    t1->stack = kmalloc();
+    t2->stack = kmalloc();
     t1->stack[499] = (uint64_t)&func1;
     t2->stack[499] = (uint64_t)&func2;
 
@@ -131,26 +127,51 @@ void threadInit(){
 }
 
 void createUserProcess(){
-    user_task = (task_struct*)umalloc_size(sizeof(task_struct));
-    user_task->cr3 = (uint64_t)umalloc();
+    uint64_t userbase = 0x88880000000UL;
+    user_task = (task_struct*)kmalloc();
+    user_task->cr3 = (uint64_t)kmalloc();
+    user_task->stack = kmalloc();
     user_task->rip = (uint64_t)&userFunc;
-
     user_task->rsp = (uint64_t)&user_task->stack[499];
-    kprintf("rip: %x\n",user_task->rip);
 
     uint64_t *userPtr,*kernPtr;
     userPtr = (uint64_t*)user_task->cr3;
+    userPtr[510] = returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1);
+    userPtr[510] |= (PTE_U_W_P);
+
+    uint64_t userPage = (uint64_t)kmalloc();
+    uint64_t kernPage = (((uint64_t)&userFunc) & ADDRESS_SCHEME);
+    memcpy((void*)userPage,(void*)kernPage ,PAGE_SIZE);
+    //NOTE: kernPage can be replace by the following to map function to start of new physical page
+    // (void*)(kernPage | (((uint64_t)&userFunc) & ~ADDRESS_SCHEME))
+
+    /* RM: change everything in accordance to user process at this point    *
+     * map pml4                                                             */
+    //map_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),PTE_U_W_P);
+    map_user_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),&userPtr);
+    userbase+=0x1000;
+
+    // map stack
+    //map_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),PTE_U_W_P);
+    map_user_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),&userPtr);
+    user_task->stack = (uint64_t*)userbase;
+    userbase+=0x1000;
+
+    // map rsp
+    user_task->rsp = (uint64_t)&user_task->stack[499];
+
+    // map user page rip
+    //map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);
+    map_user_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),&userPtr);
+    user_task->rip = userbase | (((uint64_t)&userFunc) & ~ADDRESS_SCHEME); //RM: pop address offset
+
+    // map kernel
     kernPtr = getKernelPML4();
     userPtr[511] = kernPtr[511];
     userPtr[511] |= (PTE_U_W_P);
 
-    uint64_t userPage = (uint64_t)umalloc();
-    uint64_t kernPage = (((uint64_t)&userFunc) & ADDRESS_SCHEME);
-    memcpy((void*)userPage,(void*)kernPage,PAGE_SIZE);
-    userPage |= (((uint64_t)&userFunc) & ~ADDRESS_SCHEME); //RM: pop address offset
-    //user_task->rip = userPage;
-    kprintf("u: %x ,k: %x, ufn: %x\n",userPage,kernPage,user_task->rip);
-    //switch_to_user_mode(user_task);
+    kprintf("before switch, kernFunc: %x, ring3Func: %x\n",&userFunc,user_task->rip);
+    switch_to_user_mode(user_task);
 }
 
 void switch_to_user_mode(task_struct *user_task)
@@ -158,7 +179,6 @@ void switch_to_user_mode(task_struct *user_task)
     set_tss_rsp((void*)t1->rsp);
     __asm__ volatile("cli");
     setCR3((uint64_t*)user_task->cr3);
-    //map_virt_phys_addr_cr3((uint64_t )user_task,returnPhyAdd((uint64_t )user_task,VMAP_BASE_ADD,1),PTE_U_W_P,1);
     __asm__ volatile("mov $0x23, %%ax"::);
     __asm__ volatile("mov %%ax, %%ds"::);
     __asm__ volatile("mov %%ax, %%es"::);

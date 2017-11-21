@@ -428,3 +428,73 @@ void map_virt_phys_addr_cr3(uint64_t vaddr, uint64_t paddr, uint64_t flags,int i
     //kprintf("IP pm:%x,pdp:%x,pp:%x,pt:%x,pml:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff],pml_table);
     return;
 }
+
+void map_user_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t** pml_ptr)
+{
+    uint64_t *pml=NULL,*pdp=NULL,*pd=NULL,*pt=NULL;
+    uint64_t value;
+    uint16_t pml4Off = ((vaddr>>39)&0x1ff);
+    uint16_t pdpOff = ((vaddr>>30)&0x1ff);
+    uint16_t pdOff = ((vaddr>>21)&0x1ff);
+    uint16_t ptOff = ((vaddr>>12)&0x1ff);
+
+    //kprintf("pmoff: %d, pdpof: %d, pdof: %d, ptof: %d\n",pml4Off,pdpOff, pdOff,ptOff);
+    pml = *pml_ptr;
+    uint64_t pml4_entry = pml[pml4Off];
+    if(pml4_entry & PTE_P){
+        pdp = (uint64_t*)(pml4_entry & ADDRESS_SCHEME);
+    }
+    else
+    {
+        pdp = (uint64_t*)allocatePage();
+        map_virt_phys_addr(returnVirAdd((uint64_t)pdp,KERNBASE_OFFSET,1),((uint64_t)pdp & ADDRESS_SCHEME),(uint64_t)PTE_U_W_P);
+        value = (uint64_t)pdp;
+        value |= (PTE_U_W_P);
+        pml[pml4Off] = value;
+    }
+
+    // these checks convert physical address entries to virtual if the mapping scheme has been changed to virtual mode.
+    if((uint64_t)pml > KERNBASE && (uint64_t)pdp < KERNBASE){
+        pdp = (uint64_t*)returnVirAdd((uint64_t)pdp,KERNBASE_OFFSET,0);
+    }
+
+    uint64_t pdpt_entry = pdp[pdpOff];
+    if(pdpt_entry & PTE_P){
+        pd = (uint64_t*)(pdpt_entry & ADDRESS_SCHEME);
+    }
+    else
+    {
+        pd = (uint64_t*)allocatePage();
+        map_virt_phys_addr(returnVirAdd((uint64_t)pd,KERNBASE_OFFSET,1),((uint64_t)pd & ADDRESS_SCHEME),(uint64_t)PTE_U_W_P);
+        value = (uint64_t)pd;
+        value |= (PTE_U_W_P);
+        pdp[pdpOff] = value;
+    }
+    if((uint64_t)pml > KERNBASE && (uint64_t)pd < KERNBASE){
+        pd = (uint64_t*)returnVirAdd((uint64_t)pd,KERNBASE_OFFSET,0);
+    }
+
+    uint64_t pdt_entry = pd[pdOff];
+    if(pdt_entry & PTE_P){
+        pt = (uint64_t*)(pdt_entry & ADDRESS_SCHEME);
+    }
+    else
+    {
+        pt = (uint64_t*)allocatePage();
+        map_virt_phys_addr(returnVirAdd((uint64_t)pt,KERNBASE_OFFSET,1),((uint64_t)pt & ADDRESS_SCHEME),(uint64_t)PTE_U_W_P);
+        value = (uint64_t)pt;
+        value |= (PTE_U_W_P);
+        pd[pdOff] = value;
+    }
+
+    if((uint64_t)pml > KERNBASE && (uint64_t)pt < KERNBASE){
+        pt = (uint64_t*)returnVirAdd((uint64_t)pt,KERNBASE_OFFSET,0);
+    }
+
+    value = paddr;
+    value |= (PTE_U_W_P);
+    pt[ptOff] = value;
+
+    //kprintf("U pm:%x,pdp:%x,pp:%x,pt:%x,pml:%x\n",pml[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff],pml);
+    return;
+}

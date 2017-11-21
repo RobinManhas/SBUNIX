@@ -21,7 +21,7 @@ typedef struct {
     uint64_t rip;
     uint64_t rsp;
     uint64_t cr3;
-    uint64_t stack[501];
+    uint64_t* stack;
     FD* fd[MAX_FD]; //can we save just id in int?
     mm_struct* mm;
     uint64_t *elf;
