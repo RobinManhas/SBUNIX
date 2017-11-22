@@ -22,12 +22,15 @@ task_struct *current=NULL, *prev=NULL;
 
 task_struct *t0,*t1,*t2,*user_task;
 
+task_struct* getCurrentTask(){
+    return current;
+}
+
 /* init function */
 void runner(){
     while(1) {
         schedule();
     }
-
 }
 
 void userFunc(){
@@ -86,7 +89,7 @@ void addTaskToReady(task_struct *readyTask){
     {
         //RM: add to end of ready list
         task_struct *iter = gReadyList;
-        if(iter == readyTask){
+        if(iter == readyTask){ // checks being added as a process got pushed to list multiple times
             kprintf("Error: ready task already exists, returning\n");
             return;
         }

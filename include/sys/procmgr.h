@@ -31,7 +31,7 @@ typedef struct task_struct{
     mm_struct* mm;
 } task_struct;
 
-task_struct* CURRENT_TASK;
+//task_struct* CURRENT_TASK;
 struct file{
     uint64_t   start;
     uint64_t   pgoff;
@@ -97,7 +97,8 @@ task_struct* allocate_task(int is_user_task);
 void addTaskToReady(task_struct *readyTask);
 void addTaskToBlocked(task_struct *blockedTask);
 void addTaskToZombie(task_struct *zombieTask);
-task_struct* currentTask;
+task_struct* getCurrentTask();
+//task_struct* currentTask;
 
 #endif //OS_PROCESSM_H
 
