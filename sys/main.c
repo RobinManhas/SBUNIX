@@ -44,7 +44,10 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
 *********************************************************************************************************/
     //init_tss();
 
-    threadInit();
+    //threadInit();
+    createKernelInitProcess();
+    createKernelTask();
+    schedule();
     //createUserProcess();
 
 //    init_idt();

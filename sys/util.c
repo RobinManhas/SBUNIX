@@ -50,3 +50,9 @@ uint64_t octalToDecimal(uint64_t octal){
     }
     return decimal;
 }
+
+uint64_t getRSP() {
+    uint64_t ret;
+    __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(ret));
+    return ret;
+}

@@ -9,5 +9,5 @@ void outl(unsigned short port, unsigned int val);
 unsigned int inl(unsigned short port);
 uint64_t pow(uint64_t x, int n);
 uint64_t octalToDecimal(uint64_t octal);
-
+uint64_t getRSP();
 #endif

@@ -122,8 +122,7 @@ void init_irq()
 void _irq_handler(struct regs* reg)
 {
     if(reg->int_no==128){
-        kprintf("syscall interrupt received\n");
-        //syscall_handler(reg);
+        kprintf("syscall interrupt received, %d\n",reg->rax);
     }
     else if(reg->int_no==14){
         handle_page_fault(reg);

@@ -10,22 +10,41 @@
 #include <sys/pmm.h>
 #include <sys/idt.h>
 #include <sys/kstring.h>
+#include <sys/util.h>
+
+uint16_t processID = 0;
+
+task_struct* gReadyList = NULL;
+task_struct* gBlockedList = NULL;
+task_struct* gZombieList = NULL;
+
+task_struct *current=NULL, *prev=NULL;
 
 task_struct *t0,*t1,*t2,*user_task;
+
+/* init function */
+void runner(){
+    while(1) {
+        schedule();
+    }
+
+}
+
 void userFunc(){
-    __asm__ __volatile__("int $0x80");
+    uint64_t ret =0;
+    __asm volatile("int $0x80" : "=a" (ret) : "0" (51));
     while(1);
 }
 
 void func1()
 {
     kprintf("Thread 1: Entry\n");
-//    init_switch_to(t1, t2);
-//    kprintf("Thread 1: Returning from switch first time\n");
-//    switch_to(t1, t2);
-//    kprintf("Thread 1: Returning from switch second time\n");
-//    switch_to(t1, t2);
-//    kprintf("Thread 1: Returning from switch third time\n");
+    schedule();
+    kprintf("Thread 1: Returning from switch first time\n");
+    schedule();
+    kprintf("Thread 1: Returning from switch second time\n");
+    schedule();
+    kprintf("Thread 1: Returning from switch third time\n");
     init_idt();
     init_irq();
     kprintf("Thread 1: init IDT and IRQ success\n");
@@ -41,34 +60,90 @@ void func1()
 void func2()
 {
     kprintf("Thread 2: Entry\n");
-    switch_to(t2, t1);
+    schedule();
     kprintf("Thread 2: Returning from switch first time\n");
-    switch_to(t2, t1);
+    schedule();
     kprintf("Thread 2: Returning from switch second time\n");
-    switch_to(t2, t1);
+    schedule();
     kprintf("Thread 2: Returning from switch third time\n");
+    //schedule();
     while(1);
 
 }
 
-void init_switch_to(task_struct *current, task_struct *next)
-{
-    __asm__ __volatile__("pushq %rax");
-    __asm__ __volatile__("pushq %rbx");
-    __asm__ __volatile__("pushq %rcx");
-    __asm__ __volatile__("pushq %rdx");
-    __asm__ __volatile__("pushq %rdi");
-    __asm__ __volatile__("pushq %rsi");
-    __asm__ __volatile__("pushq %rbp");
-    __asm__ __volatile__("pushq %r8");
-    __asm__ __volatile__("pushq %r9");
-    __asm__ __volatile__("pushq %r10");
-    __asm__ __volatile__("pushq %r11");
-    __asm__ __volatile__("pushq %r12");
+void addTaskToReady(task_struct *readyTask){
+    if(readyTask == NULL){
+        kprintf("Error: invalid task in add to ready, returning\n");
+        return;
+    }
 
-    __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
-    __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
+    readyTask->next = NULL;
+    if(gReadyList == NULL)
+    {
+        gReadyList = readyTask;
+    }
+    else
+    {
+        //RM: add to end of ready list
+        task_struct *iter = gReadyList;
+        if(iter == readyTask){
+            kprintf("Error: ready task already exists, returning\n");
+            return;
+        }
+        while(iter->next != NULL){
+            if(iter == readyTask){
+                kprintf("Error: ready task already exists, returning\n");
+                return;
+            }
+            iter = iter->next;
+        }
 
+        iter->next = readyTask;
+    }
+}
+
+void addTaskToBlocked(task_struct *blockedTask){
+    if(blockedTask == NULL){
+        kprintf("Error: invalid task in add to blocked, returning\n");
+        return;
+    }
+
+    blockedTask->next = NULL;
+    if(gBlockedList == NULL)
+    {
+        gBlockedList = blockedTask;
+    }
+    else
+    {
+        //RM: add to end of blocked list
+        task_struct *iter = gBlockedList;
+        while(iter->next != NULL)
+            iter = iter->next;
+
+        iter->next = blockedTask;
+    }
+}
+
+void addTaskToZombie(task_struct *zombieTask){
+    if(zombieTask == NULL){
+        kprintf("Error: invalid task in add to zombie, returning\n");
+        return;
+    }
+
+    zombieTask->next = NULL;
+    if(gZombieList == NULL)
+    {
+        gZombieList = zombieTask;
+    }
+    else
+    {
+        //RM: add to end of zombie list
+        task_struct *iter = gZombieList;
+        while(iter->next != NULL)
+            iter = iter->next;
+
+        iter->next = zombieTask;
+    }
 }
 
 void switch_to(task_struct *current, task_struct *next)
@@ -89,19 +164,37 @@ void switch_to(task_struct *current, task_struct *next)
     __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
     __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
 
-    __asm__ __volatile__("popq %r12");
-    __asm__ __volatile__("popq %r11");
-    __asm__ __volatile__("popq %r10");
-    __asm__ __volatile__("popq %r9");
-    __asm__ __volatile__("popq %r8");
-    __asm__ __volatile__("popq %rbp");
-    __asm__ __volatile__("popq %rsi");
-    __asm__ __volatile__("popq %rdi");
-    __asm__ __volatile__("popq %rdx");
-    __asm__ __volatile__("popq %rcx");
-    __asm__ __volatile__("popq %rbx");
-    __asm__ __volatile__("popq %rax");
+    if(next->init == 1){
+        next->init = 0;
+    }
+    else{
+        __asm__ __volatile__("popq %r12");
+        __asm__ __volatile__("popq %r11");
+        __asm__ __volatile__("popq %r10");
+        __asm__ __volatile__("popq %r9");
+        __asm__ __volatile__("popq %r8");
+        __asm__ __volatile__("popq %rbp");
+        __asm__ __volatile__("popq %rsi");
+        __asm__ __volatile__("popq %rdi");
+        __asm__ __volatile__("popq %rdx");
+        __asm__ __volatile__("popq %rcx");
+        __asm__ __volatile__("popq %rbx");
+        __asm__ __volatile__("popq %rax");
+    }
+}
 
+void schedule()
+{
+    if(gReadyList != NULL && current != NULL){
+        prev = current;
+        current = gReadyList;
+        gReadyList = gReadyList->next;
+
+        // add prev task switched to end of ready list
+        if(prev != t0)
+            addTaskToReady(prev);
+        switch_to(prev,current);
+    }
 }
 
 void threadInit(){
@@ -109,8 +202,11 @@ void threadInit(){
     t0 = (task_struct*)kmalloc();
     t1 = (task_struct*)kmalloc();
     t2 = (task_struct*)kmalloc();
+    t0->init = 0;
     t1->stack = kmalloc();
+    t1->init = 1;
     t2->stack = kmalloc();
+    t2->init = 1;
     t1->stack[499] = (uint64_t)&func1;
     t2->stack[499] = (uint64_t)&func2;
 
@@ -123,7 +219,48 @@ void threadInit(){
     t1->cr3 = (uint64_t)getKernelPML4();
     t2->cr3 = (uint64_t)getKernelPML4();
 
-    init_switch_to(t0, t1);
+    current = t0;
+    switch_to(t0, t1);
+}
+
+uint16_t getFreePID()
+{
+    return ++processID; // start from 1
+}
+
+void createKernelInitProcess(){
+    t0 = (task_struct*)kmalloc();
+    t0->init = 0;
+    t0->pid = getFreePID();
+    t0->cr3 = (uint64_t)getKernelPML4();
+    t0->rsp = getRSP();
+    t0->rip = (uint64_t) &runner;
+
+    current = t0;
+}
+
+void createKernelTask(){
+    t1 = (task_struct*)kmalloc();
+    t2 = (task_struct*)kmalloc();
+
+    t1->stack = kmalloc();
+    t1->init = 1;
+    t2->stack = kmalloc();
+    t2->init = 1;
+    t1->stack[499] = (uint64_t)&func1;
+    t2->stack[499] = (uint64_t)&func2;
+
+    t1->rsp = (uint64_t)&t1->stack[499];
+    t2->rsp = (uint64_t)&t2->stack[499];
+
+    t1->rip = (uint64_t)&func1;
+    t2->rip = (uint64_t)&func2;
+
+    t1->cr3 = (uint64_t)getKernelPML4();
+    t2->cr3 = (uint64_t)getKernelPML4();
+    addTaskToReady(t1);
+    addTaskToReady(t2);
+
 }
 
 void createUserProcess(){
@@ -216,5 +353,3 @@ task_struct* allocate_task(int is_user_task){
     return task;
 
 }
-
-
