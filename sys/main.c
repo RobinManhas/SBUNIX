@@ -10,6 +10,7 @@
 #include <sys/vmm.h>
 #include <sys/kmalloc.h>
 #include <sys/procmgr.h>
+#include <sys/common.h>
 
 #define INITIAL_STACK_SIZE 4096
 uint8_t initial_stack[INITIAL_STACK_SIZE]__attribute__((aligned(16)));
@@ -45,6 +46,12 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     //init_tss();
 
     //threadInit();
+    //    init_idt();
+//    init_irq();
+    //init_timer();
+    //init_keyboard();
+//    __asm__ ("sti");
+    syscalls_init();
     createKernelInitProcess();
     createKernelTask();
     schedule();

@@ -45,18 +45,26 @@ struct file_table{
 
 file_table* tarfs[FILES_MAX];
 
+struct fileOps {
+    uint64_t (*read_file) (int fdNo, uint64_t buf,int size);
+    uint64_t (*write_file) (char* s,uint64_t write_len);
+    int (*close_file) (int fdNo);
+};
+
 typedef struct fd FD;
 struct fd {
     //task_struct* current_process;
+    struct fileOps *fileOps;
     uint64_t perm;
     uint64_t inode_no;
     file_table* filenode;
     uint64_t current_pointer;
+
 };
 
 file_table* get_parent_folder(char* name, unsigned int len);
 void* find_file(char* file_name);
-void init_tarfs();
-
+FD* create_terminal_IN();
+FD* create_terminal_OUT();
 
 #endif

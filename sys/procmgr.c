@@ -13,7 +13,7 @@
 #include <sys/util.h>
 
 uint16_t processID = 0;
-
+extern uint64_t kernel_rsp;
 task_struct* gReadyList = NULL;
 task_struct* gBlockedList = NULL;
 task_struct* gZombieList = NULL;
@@ -35,7 +35,14 @@ void runner(){
 
 void userFunc(){
     uint64_t ret =0;
-    __asm volatile("int $0x80" : "=a" (ret) : "0" (51));
+    uint64_t syscall = 22;
+    uint64_t arg3 = 1;
+    __asm__ ("movq %1,%%rax;syscall" : "=r" (ret) : "0" (syscall):"memory");
+    int c = 100;
+    syscall = 1;
+    uint64_t arg2=(uint64_t )&c;
+    uint64_t arg1 = 1;
+    __asm__("movq %1,%%rax;movq %2,%%rdi; movq %3,%%rsi; movq %4,%%rdx;syscall" : "=r" (ret):"0"(syscall), "g"(arg1), "g"(arg2) ,"g"(arg3) :"memory" );
     while(1);
 }
 
@@ -273,6 +280,10 @@ void createUserProcess(){
     user_task->stack = kmalloc();
     user_task->rip = (uint64_t)&userFunc;
     user_task->rsp = (uint64_t)&user_task->stack[499];
+    user_task->fd[0]=create_terminal_IN();
+    FD* filedec = create_terminal_OUT();
+    user_task->fd[1]=filedec;
+    user_task->fd[2]=filedec;
 
     uint64_t *userPtr,*kernPtr;
     userPtr = (uint64_t*)user_task->cr3;
@@ -317,6 +328,7 @@ void createUserProcess(){
 void switch_to_user_mode(task_struct *user_task)
 {
     set_tss_rsp((void*)t1->rsp);
+    kernel_rsp = t1->rsp;
     __asm__ volatile("cli");
     setCR3((uint64_t*)user_task->cr3);
     __asm__ volatile("mov $0x23, %%ax"::);

@@ -5,7 +5,7 @@
 
 struct regs
 {
-    unsigned long r15,r14,r13,r12,r11,r10,r9,r8,rdi,rsi,rbp,rbx,rdx,rcx,rax;
+    unsigned long r15,r14,r13,r12,r10,r9,r8,rbp,rdi,rsi,rdx,rbx,rax,rcx,r11;
     unsigned long int_no, err_code;
     unsigned long eip, cs, eflags, useresp, ss;
 }__attribute__((packed));

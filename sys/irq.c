@@ -150,7 +150,7 @@ void _irq_handler(struct regs* reg)
 }
 
 void handle_page_fault(struct regs* reg){
-
+    task_struct* CURRENT_TASK = getCurrentTask();
     kprintf("inside page fault\n");
     uint64_t faulty_addr;
     __asm__ __volatile__ ("movq %%cr2, %0;" : "=r"(faulty_addr));

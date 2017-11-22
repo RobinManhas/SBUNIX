@@ -197,6 +197,10 @@ void keyboard_handler() {
             keyPressed[0] = '^';
             keyPressed[1] = keyRecv;
 
+            if(keyRecv=='C'){
+                //need to kill foregrnd process;
+                // and schedule another process;
+            }
             /*overwrite for ctrl i, j, m
             if(keyRecv == '\t')
                 keyPressed[1] = 'i';

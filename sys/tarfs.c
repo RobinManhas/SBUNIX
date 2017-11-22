@@ -29,6 +29,14 @@ file_table* new_file_table(char* name, char type,uint64_t size, uint64_t first ,
 
     return newFile;
 }
+uint64_t read_file(int fdNo, uint64_t buf,int size);
+uint64_t write_file(char* s,uint64_t write_len);
+int close_file(int fdNo);
+struct fileOps tarfsOps = {
+    .read_file= read_file,
+    .write_file = write_file,
+    .close_file = close_file
+};
 
 file_table* get_parent_folder(char* name, unsigned int len){
     //kprintf("inside getParentFolder: %s\n",name);
@@ -169,6 +177,7 @@ int closedir(DIR *dirp){
 
 int open_file(char* file, int flag){ // returns filedescriptor id
     FD* filedesc;
+    task_struct* currentTask = getCurrentTask();
     for(int i =0;i<FILES_MAX ; i++) {
         if (NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
             break;
@@ -184,6 +193,7 @@ int open_file(char* file, int flag){ // returns filedescriptor id
                     break;
                 }
             }
+            filedesc->fileOps=&tarfsOps;
             currentTask->fd[count]=filedesc;
             return count;
         }
@@ -193,7 +203,8 @@ int open_file(char* file, int flag){ // returns filedescriptor id
 
 }
 
-int read_file(int fdNo, uint64_t buf,int size){
+uint64_t read_file(int fdNo, uint64_t buf,int size){
+    task_struct* currentTask = getCurrentTask();
     FD* filedesc = currentTask->fd[fdNo];
     if(filedesc != NULL && filedesc->perm != O_WRONLY){
         uint64_t read_current = filedesc->current_pointer;
@@ -211,10 +222,16 @@ int read_file(int fdNo, uint64_t buf,int size){
 }
 
 int close_file(int fdNo){
+    task_struct* currentTask = getCurrentTask();
     if(currentTask->fd[fdNo] != NULL){
         currentTask->fd[fdNo] = NULL;
         return 1;
     }
+    return -1;
+}
+
+uint64_t write_file(char* s,uint64_t write_len){
+    // currently not supported for tarfs
     return -1;
 }
 
