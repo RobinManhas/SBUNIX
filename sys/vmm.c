@@ -308,7 +308,7 @@ uint64_t get_new_cr3(int is_user_task){
     uint64_t viPage = returnVirAdd(phyPage,addType,1);
     map_virt_phys_addr(viPage,((uint64_t)phyPage & ADDRESS_SCHEME),flags);
 
-    return phyPage;
+    return viPage;
 
 
 }

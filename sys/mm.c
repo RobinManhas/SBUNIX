@@ -33,6 +33,38 @@ vm_area_struct* find_vma(mm_struct* mm, uint64_t addr){
     return vma;
 }
 
+vm_area_struct* add_vma_at_last(mm_struct* mm, uint64_t len, uint64_t flags, file *file, uint64_t offset, int extend) {
+    uint64_t start_addr = 0;
+    if (mm == NULL) {
+        kprintf("mm not assigned");
+        return NULL;
+    }
+    vm_area_struct *new_vma = allocate_vma(start_addr, start_addr + len, flags, file, offset);
+    vm_area_struct *pointer = mm->vma_list;
+    if (pointer == NULL) {
+        mm->vma_list = new_vma;
+        return new_vma;
+    }
+    while (pointer->vm_next != NULL)
+        pointer = pointer->vm_next;
+
+    //checking if the vma can be extended
+    if (extend == 1 && pointer->vm_flags == flags) {
+        pointer->vm_end = pointer->vm_end + len;
+        return NULL;
+
+    }
+
+    //aligning to PAGESIZE
+    start_addr = (uint64_t) ((((pointer->vm_end - 1) >> 12) + 1) << 12);
+
+
+    pointer->vm_next = new_vma;
+    mm->total_vm++;
+    return new_vma;
+
+}
+
 vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t flags, file *file,uint64_t offset){
     vm_area_struct *vma = NULL;//=get_free_vma_struct
 
@@ -47,14 +79,23 @@ vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t fl
 
 }
 
-int copy_mm(task_struct *child_task) {
+int copy_mm(task_struct* parent_task, task_struct* child_task) {
 
-    memcpy((void *) child_task->mm, (void *) CURRENT_TASK->mm, sizeof(mm_struct));
+    if(parent_task == NULL || child_task == NULL || parent_task->mm == NULL || child_task->mm == NULL){
+        kprintf(" mm not allocated");
+        return 0;
+    }
+    if(parent_task->mm->vma_list == NULL){
+        kprintf("no vma in parent");
+        return 0;
+    }
+
+    memcpy((void *) child_task->mm, (void *) parent_task->mm, sizeof(mm_struct));
 
     child_task->mm->vma_list = NULL;
     vm_area_struct *child_vm_pointer = NULL;
-    vm_area_struct *parent_vm_pointer = CURRENT_TASK->mm->vma_list;
-    uint64_t* parent_cr3 = (uint64_t *)CURRENT_TASK->cr3;
+    vm_area_struct *parent_vm_pointer = parent_task->mm->vma_list;
+    uint64_t* parent_cr3 = (uint64_t *)parent_task->cr3;
     uint64_t* child_cr3 = (uint64_t *)child_task->cr3;
 
     while (parent_vm_pointer) {
@@ -84,7 +125,7 @@ int copy_mm(task_struct *child_task) {
                  //removing write flag
                  *page_phy_add = *page_phy_add & (~PTE_W);
                  //setting cow bits
-                 //page_phy_add = page_phy_add | COW;
+                 *page_phy_add = *page_phy_add | PTE_COW;
 
                  page_flags = *page_phy_add & (~ADDRESS_SCHEME);
                  *page_phy_add = *page_phy_add & ADDRESS_SCHEME;
@@ -96,18 +137,18 @@ int copy_mm(task_struct *child_task) {
         }
         parent_vm_pointer = parent_vm_pointer->vm_next;
     }
-    child_task->mm->total_vm = CURRENT_TASK->mm->total_vm;
+    child_task->mm->total_vm = parent_task->mm->total_vm;
     return 1;
 }
 
 
-int isFree(uint64_t addr, uint64_t len) {
+int isFree(mm_struct* mm, uint64_t addr, uint64_t len) {
     if (addr >= KERNBASE)
         return 0;
 
     vm_area_struct *pointer = NULL;
 
-    for (pointer = CURRENT_TASK->mm->vma_list; pointer != NULL; pointer = pointer->vm_next) {
+    for (pointer = mm->vma_list; pointer != NULL; pointer = pointer->vm_next) {
 
         if (addr < pointer->vm_start && (addr+len) > pointer->vm_start)
             return 0;
@@ -118,26 +159,16 @@ int isFree(uint64_t addr, uint64_t len) {
     return 1;
 }
 
-uint64_t findFreeVmaSlot(uint64_t addr,uint64_t len) {
+uint64_t findFreeVmaSlot(mm_struct* mm, uint64_t addr,uint64_t len) {
     // chcek if free
     //always be at last
     //will modify the approach when implementing munmap
 //    if (addr != 0x0)
-//        if (isFree(addr, len) == 1)
+//        if (isFree(mm,addr, len) == 1)
 //            return addr;
 
 
-    uint64_t start_addr = 0;
-    vm_area_struct *pointer = CURRENT_TASK->mm->vma_list;
-    // allocate new address after end of last vma assigned
-    while (pointer->vm_next != NULL)
-        pointer = pointer->vm_next;
-
-    //aligning to PAGESIZE
-    start_addr = (uint64_t) ((((pointer->vm_end - 1) >> 12) + 1) << 12);
-
-
-    return start_addr;
+    return 0;
 
 }
 
@@ -152,44 +183,59 @@ int extendVma(uint64_t flags,uint64_t len){
 uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags, struct file *file, uint64_t offset){
     uint64_t start_addr ;
 
-    start_addr = findFreeVmaSlot(addr,len);
+    start_addr = findFreeVmaSlot(task->mm, addr,len);
+    //if free slot found in middle;
+    if(start_addr !=0){
+        if(extendVma(flags,len)==1)
+            return start_addr;
 
-    if(extendVma(flags,len)==1)
-        return start_addr;
+        vm_area_struct *new_vm;
 
-    vm_area_struct *new_vm;
+        new_vm = allocate_vma(start_addr, start_addr + len, flags, file,offset);
 
-    new_vm = allocate_vma(start_addr, start_addr + len, flags, file,offset);
-
-    kprintf("\n node start %p, end%p fd %d", new_vm->vm_start, new_vm->vm_end, new_vm->file);
+        kprintf("\n node start %p, end%p fd %d", new_vm->vm_start, new_vm->vm_end, new_vm->file);
 
 
-    vm_area_struct* curr = task->mm->vma_list;
-    if(curr == NULL){
-        curr = new_vm;
-    }
-    else {
-        vm_area_struct *last = NULL;
-        int found = 0;
-        while (curr->vm_next != NULL) {
-            last = curr;
-            curr = curr->vm_next;
+        vm_area_struct* curr = task->mm->vma_list;
+        if(curr == NULL){
+            curr = new_vm;
+        }
+        else {
+            vm_area_struct *last = NULL;
+            int found = 0;
+            while (curr->vm_next != NULL) {
+                last = curr;
+                curr = curr->vm_next;
 
-            if ((last->vm_end < start_addr) && (curr->vm_start > (start_addr + len))) {
-                found = 1;
-                break;
+                if ((last->vm_end < start_addr) && (curr->vm_start > (start_addr + len))) {
+                    found = 1;
+                    break;
+                }
+            }
+
+            if (found == 1) {
+                last->vm_next = new_vm;
+                new_vm->vm_next = curr;
+            } else {
+                curr->vm_next = new_vm;
             }
         }
+        task->mm->total_vm++;
 
-        if (found == 1) {
-            last->vm_next = new_vm;
-            new_vm->vm_next = curr;
-        } else {
-            curr->vm_next = new_vm;
-        }
-    }
-    task->mm->total_vm++;
+        return start_addr;
 
+    }else
+        return add_vma_at_last(task->mm,len, flags,file,offset,1)->vm_start;
+
+
+}
+
+uint64_t allocate_heap(mm_struct* mm) {
+    // at heap at last
+    uint64_t start_addr = add_vma_at_last(mm, 0, PTE_W, NULL, 0, 0)->vm_start;
+
+    mm->start_brk = start_addr;
+    mm->brk = start_addr;
     return start_addr;
 }
 

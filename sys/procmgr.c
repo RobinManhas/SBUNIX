@@ -200,14 +200,13 @@ task_struct* allocate_task(int is_user_task){
     task_struct* task=(is_user_task ==1)?(task_struct*)umalloc_size(task_struct_size):(task_struct*)kmalloc_size(
             task_struct_size);
 
-    mm_struct* mm = (is_user_task ==1)?(mm_struct*)umalloc():(mm_struct*)kmalloc();
+    mm_struct* mm = (is_user_task ==1)?(mm_struct*)umalloc_size(sizeof(mm_struct)):(mm_struct*)kmalloc_size(sizeof(mm_struct));
 
 
     task->mm = mm;
     task->cr3 = get_new_cr3(is_user_task); //to be modified
 
-    task->rip = (uint64_t)&userFunc;
-    task->rsp = (uint64_t)&user_task->stack[499];
+    task->rsp = (uint64_t)&task->stack[499];
 
     uint64_t *userPtr,*kernPtr;
     userPtr = (uint64_t*)task->cr3;

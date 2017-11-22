@@ -44,5 +44,7 @@ vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t fl
 vm_area_struct* find_vma(mm_struct* mm, uint64_t addr);
 void allocate_pages_to_vma(vm_area_struct* vma, int isUser);
 uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags, struct file *file, uint64_t offset);
+int copy_mm(task_struct* parent_task, task_struct* child_task);
+uint64_t allocate_heap(mm_struct* mm);
 
 #endif //OS_PROJECT_VMM_H

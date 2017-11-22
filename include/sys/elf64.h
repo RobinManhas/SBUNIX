@@ -43,4 +43,5 @@ typedef struct {
   Elf64_Xword   p_align;
 } Elf64_Phdr;
 
+int load_elf_binary_by_name(char* binary_name, char *argv[]);
 #endif
