@@ -18,7 +18,9 @@ uint32_t* loader_stack;
 extern char kernmem, physbase;
 uint64_t maxPhyRegion;
 extern uint64_t* pml_table;
-task_struct *user;
+task_struct *kernel_task, *task1, *task2, *user_task;
+extern void func1();
+extern void func2();
 
 void start(uint32_t *modulep, void *physbase, void *physfree)
 {
@@ -43,20 +45,25 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     * thread  : one execution path containing separate registers + stack
     * process : virtual address space + registers + stack
 *********************************************************************************************************/
-    //init_tss();
 
-    //threadInit();
-    //    init_idt();
-//    init_irq();
-    //init_timer();
-    //init_keyboard();
-//    __asm__ ("sti");
     syscalls_init();
-    createKernelInitProcess();
-    createKernelTask();
-    schedule();
-    //createUserProcess();
 
+    kernel_task = getFreeTask();
+    createKernelInitProcess(kernel_task);
+
+    task1 = getFreeTask();
+    createKernelTask(task1,func1);
+
+    task2 = getFreeTask();
+    createKernelTask(task2,func2);
+
+    user_task = getFreeTask();
+    createUserProcess(user_task);
+
+    init_idt();
+    init_irq();
+    kprintf("In main: init IDT and IRQ success, calling schedule\n");
+    schedule();
 //    init_idt();
 //    init_irq();
     //init_timer();

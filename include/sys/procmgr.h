@@ -15,6 +15,19 @@
 typedef struct vm_area_struct vm_area_struct;
 typedef struct mm_struct mm_struct;
 
+typedef enum task_type {
+    TASK_KERNEL = 1,
+    TASK_USER = 2
+}task_type;
+
+typedef enum task_state {
+    TASK_STATE_RUNNING = 1,
+    TASK_STATE_BLOCKED = 2,
+    TASK_STATE_ZOMBIE = 3,
+    TASK_END = 4,
+    TASK_MAX = 5
+}task_state;
+
 //should not increse 4096 bytes
 typedef struct task_struct{
     uint8_t init; // has val 1 when task is just created. Val made 0 when task about to execute (will have valid regs which can be saved during switch)
@@ -22,10 +35,13 @@ typedef struct task_struct{
 
     uint64_t rip;
     uint64_t rsp;
+    uint64_t kernInitRSP;
     uint64_t cr3;
     uint64_t* stack;
     uint64_t *elf;
 
+    task_type type;
+    task_state state;
     struct task_struct *next;
     FD* fd[MAX_FD]; //can we save just id in int?
     mm_struct* mm;
@@ -88,11 +104,12 @@ struct mm_struct {
 uint16_t getFreePID();
 void threadInit();
 void switch_to(task_struct *current, task_struct *next);
-void createUserProcess();
-void createKernelInitProcess();
-void createKernelTask();
-void switch_to_user_mode(task_struct *user_task);
+void createUserProcess(task_struct *user_task);
+void createKernelInitProcess(task_struct *ktask);
+void createKernelTask(task_struct *task, void (*start)(void));
+void switch_to_user_mode(task_struct *oldTask, task_struct *user_task);
 void schedule();
+task_struct* getFreeTask();
 task_struct* allocate_task(int is_user_task);
 void addTaskToReady(task_struct *readyTask);
 void addTaskToBlocked(task_struct *blockedTask);
