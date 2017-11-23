@@ -12,8 +12,9 @@
 #include <sys/kstring.h>
 #include <sys/util.h>
 
-uint16_t processID = 0;
+uint16_t processID = 0; // to keep track of the allocated process ID's to task struct
 extern uint64_t kernel_rsp;
+extern task_struct *kernel_idle_task; // this store the idle task struct. this task is run when no other active task are available.
 task_struct* gReadyList = NULL;
 task_struct* gBlockedList = NULL;
 task_struct* gZombieList = NULL;
@@ -29,6 +30,7 @@ task_struct* getCurrentTask(){
 /* init function */
 void runner(){
     while(1) {
+        kprintf("inside idle\n");
         schedule();
     }
 }
@@ -38,7 +40,7 @@ void userFunc(){
     uint64_t syscall = 1;
     uint64_t arg3 = 1;
     //__asm__ __volatile__ ("movq %1,%%rax;syscall" : "=r" (ret) : "0" (syscall):"memory");
-    int c = 100;
+    int c = 99;
     uint64_t arg2=(uint64_t )&c;
     uint64_t arg1 = 1;
     __asm__ __volatile__("movq %1,%%rax;movq %2,%%rdi; movq %3,%%rsi; movq %4,%%rdx;syscall" : "=r" (ret):"0"(syscall), "g"(arg1), "g"(arg2) ,"g"(arg3) :"memory" );
@@ -195,33 +197,41 @@ void switch_to(task_struct *current, task_struct *next)
 
 void schedule()
 {
-    if(gReadyList != NULL && current != NULL){
+    if(current != NULL /*gReadyList != NULL*/){
         prev = current;
         current = gReadyList;
-        gReadyList = gReadyList->next;
+        if(current == NULL)
+            current = kernel_idle_task; // TODO: currently does not switch properly
+        else
+            gReadyList = gReadyList->next;
 
         // add prev task switched to end of ready list
-        if(prev->pid != 0){ // 0 is the init task, don't add
-            switch(prev->state)
+        switch(prev->state)
+        {
+            case TASK_STATE_RUNNING:
             {
-                case TASK_STATE_RUNNING:
-                {
-                    addTaskToReady(prev);
-                    break;
-                }
-                case TASK_STATE_BLOCKED:
-                {
-                    addTaskToBlocked(prev);
-                    break;
-                }
-                case TASK_STATE_ZOMBIE:
-                {
-                    addTaskToZombie(prev);
-                }
-                default:
-                {
-                    kprintf("unhandled task state in scheduler\n");
-                }
+                addTaskToReady(prev);
+                break;
+            }
+            case TASK_STATE_BLOCKED:
+            {
+                addTaskToBlocked(prev);
+                break;
+            }
+            case TASK_STATE_ZOMBIE:
+            {
+                addTaskToZombie(prev);
+                break;
+            }
+            case TASK_STATE_IDLE:
+            {
+                // don't add idle task to any queue.
+                break;
+            }
+            default:
+            {
+                kprintf("unhandled task state in scheduler\n");
+                break;
             }
         }
 
@@ -230,6 +240,7 @@ void schedule()
         else if(current->type == TASK_USER)
             switch_to_user_mode(prev,current);
     }
+
 }
 
 uint16_t getFreePID()
@@ -246,13 +257,14 @@ task_struct* getFreeTask()
 }
 
 void createKernelInitProcess(task_struct *ktask){
-
-    ktask->init = 0;
+    ktask->stack = kmalloc();
+    ktask->init = 1;
+    ktask->stack[510] = (uint64_t)runner;
+    ktask->rsp = (uint64_t)&ktask->stack[510];
     ktask->cr3 = (uint64_t)getKernelPML4();
-    ktask->rsp = getRSP();
     ktask->rip = (uint64_t) &runner;
     ktask->type = TASK_KERNEL;
-    ktask->state = TASK_STATE_RUNNING;
+    ktask->state = TASK_STATE_IDLE;
     current = ktask;
 
 }
@@ -382,4 +394,10 @@ task_struct* allocate_task(int is_user_task){
     userPtr[511] |= (PTE_U_W_P);
     return task;
 
+}
+
+void killActiveProcess(){
+    current->state = TASK_STATE_ZOMBIE;
+    // TODO: If any parent, reduce parent's child count. If child, find in ready or blocked queue and move to zombie
+    schedule();
 }

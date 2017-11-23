@@ -68,6 +68,10 @@ uint64_t swrite(uint64_t fdn, uint64_t addr,uint64_t len){
     return len_write;
 }
 
+void skill(/* kills the current active process */){
+    killActiveProcess();
+}
+
 //uint64_t sclose(uint64_t fdn){
 //    currentTask->fd[fdn]=NULL;
 //    //need to check inode for fs extra 10 points??
@@ -122,7 +126,7 @@ int syscall_handler(struct regs* reg) {
 //            break;
 //        case SYSCALL_EXECVE:
 //            break;
-//        case SYSCALL_EXIT:
+        case SYSCALL_EXIT:
 //            break;
 //        case SYSCALL_WAIT4:
 //            break;

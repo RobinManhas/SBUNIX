@@ -18,7 +18,7 @@ uint32_t* loader_stack;
 extern char kernmem, physbase;
 uint64_t maxPhyRegion;
 extern uint64_t* pml_table;
-task_struct *kernel_task, *task1, *task2, *user_task;
+task_struct *kernel_idle_task, *task1, *task2, *user_task;
 extern void func1();
 extern void func2();
 
@@ -48,8 +48,8 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
 
     syscalls_init();
 
-    kernel_task = getFreeTask();
-    createKernelInitProcess(kernel_task);
+    kernel_idle_task = getFreeTask();
+    createKernelInitProcess(kernel_idle_task);
 
     task1 = getFreeTask();
     createKernelTask(task1,func1);
@@ -64,6 +64,13 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     init_irq();
     kprintf("In main: init IDT and IRQ success, calling schedule\n");
     schedule();
+
+    // do not exit start thread
+    while(1){
+        schedule();
+        __asm__ __volatile__("hlt;");
+    }
+
 //    init_idt();
 //    init_irq();
     //init_timer();

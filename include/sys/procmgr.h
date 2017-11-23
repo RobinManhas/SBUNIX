@@ -24,7 +24,7 @@ typedef enum task_state {
     TASK_STATE_RUNNING = 1,
     TASK_STATE_BLOCKED = 2,
     TASK_STATE_ZOMBIE = 3,
-    TASK_END = 4,
+    TASK_STATE_IDLE = 4,
     TASK_MAX = 5
 }task_state;
 
@@ -102,6 +102,7 @@ struct mm_struct {
 };
 
 uint16_t getFreePID();
+void killActiveProcess();
 void threadInit();
 void switch_to(task_struct *current, task_struct *next);
 void createUserProcess(task_struct *user_task);
