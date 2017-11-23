@@ -25,6 +25,7 @@ typedef enum task_state {
     TASK_STATE_BLOCKED = 2,
     TASK_STATE_ZOMBIE = 3,
     TASK_STATE_IDLE = 4,
+    TASK_STATE_KILLED = 5,
     TASK_MAX = 5
 }task_state;
 
@@ -43,6 +44,7 @@ typedef struct task_struct{
     task_type type;
     task_state state;
     struct task_struct *next;
+    struct task_struct *nextChild;
     FD* fd[MAX_FD]; //can we save just id in int?
     mm_struct* mm;
     struct task_struct* parent;
@@ -101,7 +103,7 @@ struct mm_struct {
 };
 
 uint16_t getFreePID();
-void killActiveProcess();
+void killTask(task_struct *task);
 void threadInit();
 void switch_to(task_struct *current, task_struct *next);
 void createUserProcess(task_struct *user_task);
@@ -113,6 +115,10 @@ task_struct* getFreeTask();
 void addTaskToReady(task_struct *readyTask);
 void addTaskToBlocked(task_struct *blockedTask);
 void addTaskToZombie(task_struct *zombieTask);
+void removeChildFromParent(task_struct *parent, task_struct*child);
+void destroy_task(task_struct *task);
+void removeTaskFromRunList(task_struct *task);
+void moveTaskToZombie(task_struct *task);
 task_struct* getCurrentTask();
 //task_struct* currentTask;
 

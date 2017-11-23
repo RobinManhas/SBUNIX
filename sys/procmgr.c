@@ -225,8 +225,9 @@ void schedule()
                 break;
             }
             case TASK_STATE_IDLE:
+            case TASK_STATE_KILLED:
             {
-                // don't add idle task to any queue.
+                // don't add idle task or killed task to any queue.
                 break;
             }
             default:
@@ -266,6 +267,9 @@ void createKernelInitProcess(task_struct *ktask){
     ktask->rip = (uint64_t) &runner;
     ktask->type = TASK_KERNEL;
     ktask->state = TASK_STATE_IDLE;
+    ktask->no_of_children = 0;
+    ktask->next = NULL;
+    ktask->nextChild = NULL;
     current = ktask;
 
 }
@@ -278,6 +282,9 @@ void createKernelTask(task_struct *task, void (*func)(void)){
     task->rsp = (uint64_t)&task->stack[510];
     task->rip = (uint64_t)&func1;
     task->cr3 = (uint64_t)getKernelPML4();
+    task->no_of_children = 0;
+    task->next = NULL;
+    task->nextChild = NULL;
     task->type = TASK_KERNEL;
     task->state = TASK_STATE_RUNNING;
     addTaskToReady(task);
@@ -288,6 +295,9 @@ void createUserProcess(task_struct *user_task){
     user_task->type = TASK_USER;
     user_task->state = TASK_STATE_RUNNING;
     user_task->cr3 = (uint64_t)kmalloc();
+    user_task->no_of_children = 0;
+    user_task->next = NULL;
+    user_task->nextChild = NULL;
     user_task->stack = kmalloc();
     user_task->rip = (uint64_t)&userFunc;
     user_task->rsp = (uint64_t)&user_task->stack[499];
@@ -418,7 +428,7 @@ pid_t sys_fork() {
     if(parent->child_list == NULL)
         parent->child_list = child;
     else {
-        child->next = parent->child_list;
+        child->nextChild = parent->child_list;
         parent->child_list = child;
     }
     parent->no_of_children++;
@@ -432,9 +442,124 @@ pid_t sys_fork() {
     return child->pid;
 }
 
-void killActiveProcess(){
-    current->state = TASK_STATE_ZOMBIE;
-    // TODO: If any parent, reduce parent's child count. If child, find in ready or blocked queue and move to zombie
-    schedule();
+// use next child link instead of next
+void removeChildFromParent(task_struct *parent, task_struct*child){
+    task_struct* ptr = parent->child_list;
+    task_struct* prevptr = NULL;
+    while(ptr){
+        if(ptr->pid == child->pid)
+        {
+            if(prevptr == NULL)
+                parent->child_list = ptr->nextChild;
+            else
+                prevptr->nextChild = ptr->nextChild;
+            --parent->no_of_children;
+            return;
+        }
+        prevptr = ptr;
+        ptr = ptr->nextChild;
+    }
+}
+
+// add all children of given parent task to init list
+void addChildrenToInitTask(task_struct *parentTask){
+    if(parentTask == NULL){
+        return;
+    }
+
+    task_struct* taskChildPtr = parentTask->child_list;
+
+    while(taskChildPtr){
+        if(kernel_idle_task->child_list == NULL)
+            kernel_idle_task->child_list = taskChildPtr;
+        else {
+            taskChildPtr->nextChild = kernel_idle_task->child_list;
+            kernel_idle_task->child_list = taskChildPtr;
+        }
+        ++kernel_idle_task->no_of_children;
+        taskChildPtr = taskChildPtr->nextChild;
+    }
+}
+
+void removeTaskFromRunList(task_struct *task){
+
+    if(task == NULL)
+        return;
+
+    // remove from active
+    task_struct *readyListPtr = gReadyList;
+    task_struct* prevptr = NULL;
+    while(readyListPtr){
+        if(readyListPtr->pid == task->pid)
+        {
+            if(prevptr == NULL)
+                gReadyList = readyListPtr->next;
+            else
+                prevptr->next = readyListPtr->next;
+            return;
+        }
+        prevptr = readyListPtr;
+        readyListPtr = readyListPtr->next;
+    }
+
+    // remove from blocked
+    task_struct *blockedListPtr = gBlockedList;
+    prevptr = NULL;
+    while(blockedListPtr){
+        if(blockedListPtr->pid == task->pid)
+        {
+            if(prevptr == NULL)
+                gBlockedList = blockedListPtr->next;
+            else
+                prevptr->next = blockedListPtr->next;
+            return;
+        }
+        prevptr = blockedListPtr;
+        blockedListPtr = blockedListPtr->next;
+    }
+}
+
+// this function is used to remove a task from ready queue and blocked queue, and add it to zombie queue
+void moveTaskToZombie(task_struct *task){
+    if(task == NULL)
+        return;
+
+    removeTaskFromRunList(task);
+    // add to zombie
+    task->state = TASK_STATE_ZOMBIE;
+    addTaskToZombie(task);
+}
+
+void destroy_task(task_struct *task){
+    // TODO: no code to clear mm struct yet
+
+    // if children, add them to init task
+    if(task->child_list){
+        addChildrenToInitTask(task);
+    }
+
+    // remove task from parent
+    if(task->parent){
+        removeChildFromParent(task->parent,task);
+    }
+}
+
+void killTask(task_struct *task){
+
+    if(task == NULL || task->state == TASK_STATE_ZOMBIE)
+        return;
+
+    // user process can't kill kernel task
+    if(task->type == TASK_KERNEL && current->type != TASK_KERNEL) {
+        return;
+    }
+
+    destroy_task(task);
+    // make current active as zombie, add to zombie taken care in schedule
+    if(task == current){
+        task->state = TASK_STATE_KILLED;
+        schedule();
+    }
+
 }
 
