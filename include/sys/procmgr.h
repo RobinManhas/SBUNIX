@@ -32,29 +32,27 @@ typedef enum task_state {
 typedef struct task_struct{
     uint8_t init; // has val 1 when task is just created. Val made 0 when task about to execute (will have valid regs which can be saved during switch)
     uint16_t pid;
+    uint16_t ppid; // parent's pid
 
     uint64_t rip;
     uint64_t rsp;
     uint64_t kernInitRSP;
     uint64_t cr3;
     uint64_t* stack;
-    uint64_t *elf;
 
     task_type type;
     task_state state;
     struct task_struct *next;
     FD* fd[MAX_FD]; //can we save just id in int?
     mm_struct* mm;
+    struct task_struct* parent;
+    struct task_struct* child_list;
+    uint8_t no_of_children;
 } task_struct;
 
 //task_struct* CURRENT_TASK;
-struct file{
-    uint64_t   start;
-    uint64_t   pgoff;
-    uint64_t   size;
-    uint64_t   bss_size;
-};
-typedef struct file file;
+
+
 
 enum vma_flag {
     NONE,  //no permission
@@ -72,8 +70,8 @@ struct vm_area_struct{
     uint64_t vm_end;
     vm_area_struct* vm_next;
     uint64_t vm_flags;//protection or permission
-    file* file;
-    uint64_t vm_offset;//file offset
+    file_table* file;
+    uint64_t file_offset;//file offset
 };
 
 
@@ -99,6 +97,7 @@ struct mm_struct {
     uint64_t rss;       //pages allocated
     uint64_t locked_vm;//number of locked pages
     uint64_t flags;
+    uint64_t v_addr_pointer;
 };
 
 uint16_t getFreePID();
@@ -111,7 +110,6 @@ void createKernelTask(task_struct *task, void (*start)(void));
 void switch_to_user_mode(task_struct *oldTask, task_struct *user_task);
 void schedule();
 task_struct* getFreeTask();
-task_struct* allocate_task(int is_user_task);
 void addTaskToReady(task_struct *readyTask);
 void addTaskToBlocked(task_struct *blockedTask);
 void addTaskToZombie(task_struct *zombieTask);

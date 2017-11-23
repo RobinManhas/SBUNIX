@@ -37,14 +37,17 @@ void map_user_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t** pml_ptr)
 
 
 
-uint64_t get_new_cr3(int is_user_task);
-uint64_t* get_pt_entry( uint64_t vir_addr, int isUser);
-void map_virt_phys_addr_cr3(uint64_t vaddr, uint64_t paddr, uint64_t flags,int isUser);
-vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t flags, file* file,uint64_t offset);
-vm_area_struct* find_vma(mm_struct* mm, uint64_t addr);
-void allocate_pages_to_vma(vm_area_struct* vma, int isUser);
-uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags, struct file *file, uint64_t offset);
-int copy_mm(task_struct* parent_task, task_struct* child_task);
-uint64_t allocate_heap(mm_struct* mm);
+//uint64_t get_new_cr3_for_user_process(task_struct* task);
+//uint64_t* get_pt_entry( uint64_t vir_addr, int isUser);
+//void map_virt_phys_addr_cr3(uint64_t vaddr, uint64_t paddr, uint64_t flags,int isUser);
+////vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t flags, file* file,uint64_t offset);
+//vm_area_struct* find_vma(mm_struct* mm, uint64_t addr);
+//void allocate_pages_to_vma(vm_area_struct* vma, int isUser);
+////uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags, struct file *file, uint64_t offset);
+//int copy_mm(task_struct* parent_task, task_struct* child_task);
+//uint64_t allocate_heap(mm_struct* mm);
+//uint64_t get_next_virtual_page_addr_for_user();
+//
+//void* umalloc(uint64_t size);
 
 #endif //OS_PROJECT_VMM_H

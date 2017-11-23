@@ -235,7 +235,7 @@ uint64_t write_file(char* s,uint64_t write_len){
     return -1;
 }
 
-void* find_file(char* file_name){
+file_table* find_file(char* file_name){
     file_table* file = NULL;
     for(int i =0;i<FILES_MAX ; i++) {
         kprintf("file :%s\n", tarfs[i]->name);
@@ -244,7 +244,7 @@ void* find_file(char* file_name){
         if ((strcmp(tarfs[i]->name, file_name) == 0) && tarfs[i]->type == FILE) {
             kprintf("file found:");
             file = tarfs[i];
-            return (void*)file->start;
+            return file;
         }
     }
     kprintf("No such file:%s\n",file);

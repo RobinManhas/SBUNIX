@@ -59,11 +59,12 @@ struct fd {
     uint64_t inode_no;
     file_table* filenode;
     uint64_t current_pointer;
-
+    int ref_count;
 };
 
 file_table* get_parent_folder(char* name, unsigned int len);
-void* find_file(char* file_name);
+file_table* find_file(char* file_name);
+void init_tarfs();
 FD* create_terminal_IN();
 FD* create_terminal_OUT();
 

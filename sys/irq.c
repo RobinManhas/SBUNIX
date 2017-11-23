@@ -5,6 +5,7 @@
 #include <sys/kprintf.h>
 #include <sys/util.h>
 #include <sys/vmm.h>
+#include <sys/mm.h>
 #include <sys/procmgr.h>
 #include <sys/pmm.h>
 #include <sys/kstring.h>
@@ -150,37 +151,40 @@ void _irq_handler(struct regs* reg)
 }
 
 void handle_page_fault(struct regs* reg){
-    task_struct* CURRENT_TASK = getCurrentTask();
+    task_struct* current_task = getCurrentTask();
     kprintf("inside page fault\n");
     uint64_t faulty_addr;
     __asm__ __volatile__ ("movq %%cr2, %0;" : "=r"(faulty_addr));
 
     uint64_t err_code = reg->err_code;
-    uint64_t phy_new,vir_new;
+    uint64_t new_page,new_vir;
+    uint64_t * pml4_pointer = (uint64_t*)current_task->cr3;
+
+
     //err_code 0bit-> if set; then page is present
     if(err_code & 0x1){
         //get physical address
-        uint64_t* pt_entry = get_pt_entry(faulty_addr,1);
-        uint64_t phy_addr = *pt_entry & ADDRESS_SCHEME;
+        uint64_t* phy_addr = (uint64_t*)returnPhyAdd(faulty_addr,KERNBASE_OFFSET,1);
 
         //not writable and cow set
-        if(!(*pt_entry & PTE_W) && (*pt_entry & PTE_COW) ){
+        if(!(*phy_addr & PTE_W) && (*phy_addr & PTE_COW) ){
             //check if shared
-            Page* page = get_page(phy_addr);
+            Page* page = get_page(*phy_addr);
             if(page != NULL && page->sRefCount >1){
-                 phy_new = allocatePage();
-                 vir_new = returnVirAdd(phy_addr,VMAP_BASE_ADD,1);
-                map_virt_phys_addr_cr3(vir_new,phy_addr,PTE_U_W_P,1);
+                new_page = allocatePage();
+                new_vir = current_task->mm->v_addr_pointer;
+                current_task->mm->v_addr_pointer += 0x1000;
+                map_user_virt_phys_addr(new_vir,new_page,&pml4_pointer);
 
                 //copy contents from old page to new page
-                memcpy((uint64_t *)vir_new,(uint64_t *)faulty_addr,PAGE_SIZE);
+                memcpy((uint64_t *)new_vir,(uint64_t *)faulty_addr,PAGE_SIZE);
 
-                *pt_entry = phy_new|PTE_U_W_P;
+                *phy_addr = new_page|PTE_U_W_P;
 
             }else{
                 //unset cow and set write bit
-                *pt_entry = *pt_entry | PTE_W;
-                *pt_entry = *pt_entry &(~PTE_COW);
+                *phy_addr = *phy_addr | PTE_W;
+                *phy_addr = *phy_addr &(~PTE_COW);
             }
         }else{
             kprintf("reason for page fault is unknown \n");
@@ -188,12 +192,12 @@ void handle_page_fault(struct regs* reg){
 
     }else{
         //page not present
-        vm_area_struct* vma = find_vma(CURRENT_TASK->mm,faulty_addr);
+        vm_area_struct* vma = find_vma(current_task->mm,faulty_addr);
         if(vma == NULL){
             kprintf("vma doesnt exist, reason for page fault is unknown");
             return;
         }
-        allocate_pages_to_vma(vma,1);
+        allocate_pages_to_vma(vma,&pml4_pointer);
 
     }
 

@@ -3,6 +3,8 @@
 #include <sys/procmgr.h>
 #include <sys/common.h>
 #include<sys/kprintf.h>
+#include <sys/mm.h>
+#include <sys/pmm.h>
 
 #define MSR_EFER 0xc0000080		/* extended feature register */
 #define MSR_STAR 0xc0000081		/* legacy mode SYSCALL target */
@@ -90,6 +92,12 @@ void skill(/* kills the current active process */){
 //    return newfd;
 //}
 
+int s_exev(char* binary_name, char *argv[]){
+    //clear exisiting mm
+    memset(getCurrentTask()->mm,0, sizeof(mm_struct));
+    load_elf_binary_by_name(getCurrentTask(),binary_name,argv);
+    return 1;
+}
 
 int syscall_handler(struct regs* reg) {
     int value = 0;

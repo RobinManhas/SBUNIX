@@ -4,7 +4,11 @@
 #define NULL ((void*)0)
 #define KERNBASE 0xffffffff80000000UL // from linkerscript 0xffffffff80000000
 #define VIRBASE  0x88880000000UL
+#define VMABASE 0x2000UL
 #define KERNMASK 0x000000000FFFFFFFUL
+
+#define MM_STACK_START 0x00000FFFFFF8000UL
+#define MM_STACK_END 0x000FFFFFFFFF8000UL
 
 #define TABLE_ENTRIES_MAX 512
 typedef unsigned long  uint64_t;

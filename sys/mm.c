@@ -1,10 +1,10 @@
 //
 // Created by Shweta Sahu on 11/18/17.
 //
-#include <sys/procmgr.h>
 #include <sys/kmalloc.h>
 #include <sys/kprintf.h>
 #include <sys/kstring.h>
+#include <sys/mm.h>
 #include <sys/vmm.h>
 #include <sys/pmm.h>
 
@@ -33,31 +33,40 @@ vm_area_struct* find_vma(mm_struct* mm, uint64_t addr){
     return vma;
 }
 
-vm_area_struct* add_vma_at_last(mm_struct* mm, uint64_t len, uint64_t flags, file *file, uint64_t offset, int extend) {
-    uint64_t start_addr = 0;
+vm_area_struct* add_vma_at_last(mm_struct* mm, uint64_t len, uint64_t flags, file_table *file, uint64_t offset, int extend) {
+    /*TODO: define a starting addrress*/
+    uint64_t start_addr = mm->v_addr_pointer;
     if (mm == NULL) {
         kprintf("mm not assigned");
         return NULL;
     }
-    vm_area_struct *new_vma = allocate_vma(start_addr, start_addr + len, flags, file, offset);
     vm_area_struct *pointer = mm->vma_list;
+    vm_area_struct *new_vma;
+
     if (pointer == NULL) {
+        new_vma = allocate_vma(start_addr, start_addr + len, flags, file, offset);
+        new_vma->vm_mm = mm;
         mm->vma_list = new_vma;
+        mm->total_vm++;
         return new_vma;
     }
-    while (pointer->vm_next != NULL)
-        pointer = pointer->vm_next;
+
+   while (pointer->vm_next != NULL)
+            pointer = pointer->vm_next;
+
 
     //checking if the vma can be extended
     if (extend == 1 && pointer->vm_flags == flags) {
         pointer->vm_end = pointer->vm_end + len;
-        return NULL;
+        return pointer;
 
     }
 
     //aligning to PAGESIZE
     start_addr = (uint64_t) ((((pointer->vm_end - 1) >> 12) + 1) << 12);
 
+    new_vma = allocate_vma(start_addr, start_addr + len, flags, file, offset);
+    new_vma->vm_mm = mm;
 
     pointer->vm_next = new_vma;
     mm->total_vm++;
@@ -65,16 +74,16 @@ vm_area_struct* add_vma_at_last(mm_struct* mm, uint64_t len, uint64_t flags, fil
 
 }
 
-vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t flags, file *file,uint64_t offset){
+vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t flags, file_table *file,uint64_t offset){
     vm_area_struct *vma = NULL;//=get_free_vma_struct
 
-    vma = (vm_area_struct*) umalloc_size(sizeof(vm_area_struct));
+    vma = (vm_area_struct*) kmalloc();
     vma->vm_start       = start_addr;
     vma->vm_end         = end_addr;
     vma->vm_next        = NULL;
     vma->vm_flags       = flags;
     vma->file  = file;
-    vma->vm_offset = offset;
+    vma->file_offset = offset;
     return vma;
 
 }
@@ -89,14 +98,16 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
         kprintf("no vma in parent");
         return 0;
     }
+    uint64_t* parent_cr3   = (uint64_t *)parent_task->cr3;
+    uint64_t* child_cr3    = (uint64_t *)child_task->cr3;
+    uint64_t * parent_pml4_pointer = (uint64_t*)parent_task->cr3;
+    uint64_t * child_pml4_pointer = (uint64_t*)child_task->cr3;
 
     memcpy((void *) child_task->mm, (void *) parent_task->mm, sizeof(mm_struct));
 
     child_task->mm->vma_list = NULL;
     vm_area_struct *child_vm_pointer = NULL;
     vm_area_struct *parent_vm_pointer = parent_task->mm->vma_list;
-    uint64_t* parent_cr3 = (uint64_t *)parent_task->cr3;
-    uint64_t* child_cr3 = (uint64_t *)child_task->cr3;
 
     while (parent_vm_pointer) {
         uint64_t start = parent_vm_pointer->vm_start;
@@ -104,7 +115,8 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
 
 
         vm_area_struct *new_vma = allocate_vma(start, end, parent_vm_pointer->vm_flags, parent_vm_pointer->file,
-                                               parent_vm_pointer->vm_offset);
+                                               parent_vm_pointer->file_offset);
+        new_vma->vm_mm = parent_task->mm;
         if (child_task->mm->vma_list == NULL) {
             child_task->mm->vma_list = new_vma;
             child_vm_pointer = new_vma;
@@ -114,30 +126,57 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
             child_vm_pointer = child_vm_pointer->vm_next;
         }
 
-        // COW
-        uint64_t page_flags;
-        uint64_t *page_phy_add;
-        while (start < end) {
+        uint64_t page_phy_add;
+        //deep copy stack; chceking with end because stack grows backward
+        //assumption: stack is always one page
+        if (end == parent_task->mm->start_stack) {
             setCR3(parent_cr3);
-            //check??
-            page_phy_add = get_pt_entry(start,1);
-             if(*page_phy_add & PTE_P) {
-                 //removing write flag
-                 *page_phy_add = *page_phy_add & (~PTE_W);
-                 //setting cow bits
-                 *page_phy_add = *page_phy_add | PTE_COW;
+            parent_task->mm->v_addr_pointer+= 0x1000;
 
-                 page_flags = *page_phy_add & (~ADDRESS_SCHEME);
-                 *page_phy_add = *page_phy_add & ADDRESS_SCHEME;
+            page_phy_add = returnPhyAdd(start,KERNBASE_OFFSET,0);
+            //check page present
+            if(page_phy_add & PTE_P){
+                uint64_t new_page = allocatePage();
+                uint64_t new_vir = parent_task->mm->v_addr_pointer;
+                parent_task->mm->v_addr_pointer += 0x1000;
+                map_user_virt_phys_addr(new_vir,new_page,&parent_pml4_pointer);
 
-                 setCR3(child_cr3);
-                 map_virt_phys_addr_cr3(start, *page_phy_add, page_flags,1);
-             }
-            start = start + PAGE_SIZE;// for multiple pages
+                memcpy((uint64_t *)new_vir,(uint64_t *)start,PAGE_SIZE);
+
+                setCR3(child_cr3);
+                map_user_virt_phys_addr(start,new_page,&child_pml4_pointer);
+
+            }
+
+        } else {
+            // COW
+            //uint64_t page_flags;
+
+            while (start < end) {
+                setCR3(parent_cr3);
+                //check??
+                page_phy_add = returnPhyAdd(start,KERNBASE_OFFSET,0);
+                if (page_phy_add & PTE_P) {
+                    //removing write flag
+                    page_phy_add = page_phy_add & (~PTE_W);
+                    //setting cow bits
+                    page_phy_add = page_phy_add | PTE_COW;
+
+                    //page_flags = page_phy_add & (~ADDRESS_SCHEME);
+                    //page_phy_add = page_phy_add & ADDRESS_SCHEME;
+                    /*TODO: update ref count of page*/
+
+                    setCR3(child_cr3);
+                    map_user_virt_phys_addr(start, page_phy_add,&child_pml4_pointer);
+                }
+                start = start + PAGE_SIZE;// for multiple pages
+            }
+            setCR3(parent_cr3);
+            parent_vm_pointer = parent_vm_pointer->vm_next;
         }
-        parent_vm_pointer = parent_vm_pointer->vm_next;
     }
     child_task->mm->total_vm = parent_task->mm->total_vm;
+
     return 1;
 }
 
@@ -180,25 +219,29 @@ int extendVma(uint64_t flags,uint64_t len){
 }
 
 //to be used by kernel to create a new linear address interval
-uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags, struct file *file, uint64_t offset){
-    uint64_t start_addr ;
+uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags, struct file_table *file, uint64_t offset){
+    //uint64_t start_addr ;
 
-    start_addr = findFreeVmaSlot(task->mm, addr,len);
+    if(addr == 0)
+        addr = findFreeVmaSlot(task->mm, addr,len);
+
+
     //if free slot found in middle;
-    if(start_addr !=0){
+    if(addr !=0){
         if(extendVma(flags,len)==1)
-            return start_addr;
+            return addr;
 
         vm_area_struct *new_vm;
 
-        new_vm = allocate_vma(start_addr, start_addr + len, flags, file,offset);
+        new_vm = allocate_vma(addr, addr + len, flags, file,offset);
+        new_vm->vm_mm = task->mm;
 
         kprintf("\n node start %p, end%p fd %d", new_vm->vm_start, new_vm->vm_end, new_vm->file);
 
 
         vm_area_struct* curr = task->mm->vma_list;
         if(curr == NULL){
-            curr = new_vm;
+            task->mm->vma_list = new_vm;
         }
         else {
             vm_area_struct *last = NULL;
@@ -207,7 +250,7 @@ uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags,
                 last = curr;
                 curr = curr->vm_next;
 
-                if ((last->vm_end < start_addr) && (curr->vm_start > (start_addr + len))) {
+                if ((last->vm_end < addr) && (curr->vm_start > (addr + len))) {
                     found = 1;
                     break;
                 }
@@ -222,7 +265,7 @@ uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags,
         }
         task->mm->total_vm++;
 
-        return start_addr;
+        return addr;
 
     }else
         return add_vma_at_last(task->mm,len, flags,file,offset,1)->vm_start;
@@ -239,51 +282,101 @@ uint64_t allocate_heap(mm_struct* mm) {
     return start_addr;
 }
 
-void allocate_pages_to_vma(vm_area_struct* vma, int isUser){
+uint64_t allocate_stack(task_struct* task) {
+    uint64_t * task_cr3 = (uint64_t*)task->cr3;
+
+    task->mm->start_stack = MM_STACK_START;
+    vm_area_struct* stack = allocate_vma(MM_STACK_END,MM_STACK_START,PTE_W,NULL,0);
+    vm_area_struct* pointer = task->mm->vma_list;
+    while (pointer->vm_next != NULL)
+        pointer = pointer->vm_next;
+    pointer->vm_next = stack;
+
+    uint64_t phy_page = allocatePage();
+    uint64_t vir_page_addr_to_allocate = MM_STACK_START-PAGE_SIZE;
+    map_user_virt_phys_addr(vir_page_addr_to_allocate, phy_page, &task_cr3);
+    return MM_STACK_START;
+
+
+}
+
+void allocate_pages_to_vma(vm_area_struct* vma,uint64_t** pml_ptr){
     uint64_t start = vma->vm_start;
     uint64_t end = vma->vm_end;
+    file_table* file = vma->file;
+    uint64_t file_content_pointer = file->start + sizeof(struct posix_header_ustar);
+    uint64_t bytes_to_copy =PAGE_SIZE;
     int no_of_pages = (end-start)/PAGE_SIZE;
-    if((end-start)%PAGE_SIZE > 0)
+    uint64_t last_page_data = (end-start)%PAGE_SIZE;
+    if( last_page_data > 0) {
         no_of_pages++;
+    }
 
     uint64_t phy_new;
     while(no_of_pages>=1 && start<end) {
         phy_new = allocatePage();
-        map_virt_phys_addr_cr3( start, phy_new, vma->vm_flags, isUser);
+        map_user_virt_phys_addr(start,phy_new,pml_ptr);
+        if(file != NULL && vma->file_offset < vma->vm_end){
+            //copy data from file starting from offset
+            //bytes_to_copy = PAGE_SIZE;
+            if(no_of_pages == 1 && last_page_data>0){
+                bytes_to_copy = last_page_data;
+            }
+            memcpy((uint64_t *)start,(uint64_t *)(file_content_pointer+vma->file_offset),bytes_to_copy);
+            vma->file_offset += bytes_to_copy;
+        }
+
         no_of_pages--;
-        start = start+PAGE_SIZE;
+        start = start+bytes_to_copy;
     }
 
 }
 
 
-void* umalloc_size(uint64_t size) {
-    uint64_t noOfPages = 0;
+///
+//void* umalloc(uint64_t size) {
+//    uint64_t no_of_pages = 0;
+//    uint64_t *userPtr = (uint64_t*)CURRENT_TASK->cr3;
+//
+//    if (size < PAGE_SIZE){
+//        no_of_pages = 1;
+//    }
+//    else{
+//        no_of_pages = size/PAGE_SIZE;
+//
+//        if (size%PAGE_SIZE >0)
+//            no_of_pages++;
+//    }
+//    uint64_t pages_addr[no_of_pages];
+//    uint64_t vir_addr =0;
+//    for(int i = 0;i<no_of_pages; i++) {
+//        pages_addr[i] = returnPhyAdd(CURRENT_TASK->cr3,KERNBASE_OFFSET,1);
+//    }
+//
+//    //uint64_t
+//    for(int i = 0;i<no_of_pages; i++) {
+//
+//        vir_addr = get_next_virtual_page_addr_for_user();
+//        map_user_virt_phys_addr(vir_addr,pages_addr[i],&userPtr);
+//    }
+//
+//    return (void*)returnVirAdd(pages_addr[0],VMAP_BASE_ADD,1);
+//}
 
-    if (size < PAGE_SIZE){
-        noOfPages = 1;
-    }
-    else{
-        noOfPages = size/PAGE_SIZE;
+uint64_t get_new_cr3_for_user_process(task_struct* task){
 
-        if (size%PAGE_SIZE >0)
-            noOfPages++;
-    }
-    uint64_t pagesAdd[noOfPages];
-    uint64_t virAdd =0;
-    for(int i = 0;i<noOfPages; i++) {
-        pagesAdd[i] = allocatePage();
-    }
+    uint64_t phyPage = allocatePage();
+    short  addType =VMAP_BASE_ADD;
+    uint64_t viPage = returnVirAdd(phyPage,addType,1);
+    uint64_t *userPtr = (uint64_t*)task->cr3;
 
-    for(int i = 0;i<noOfPages; i++) {
+    map_user_virt_phys_addr(viPage, ((uint64_t)phyPage & ADDRESS_SCHEME), &userPtr);
 
-        virAdd = returnVirAdd(pagesAdd[i],VMAP_BASE_ADD,1);
-        map_virt_phys_addr(virAdd,((uint64_t)pagesAdd[i] & ADDRESS_SCHEME),(uint64_t)PTE_U_W_P);
-    }
 
-    return (void*)returnVirAdd(pagesAdd[0],VMAP_BASE_ADD,1);
+    return viPage;
+
+
 }
-
 
 
 

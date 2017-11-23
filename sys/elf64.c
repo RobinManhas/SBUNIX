@@ -8,7 +8,7 @@
 #include <sys/kmalloc.h>
 #include <sys/util.h>
 #include <sys/procmgr.h>
-#include <sys/vmm.h>
+#include <sys/mm.h>
 #include <sys/elf64.h>
 #include <sys/procmgr.h>
 
@@ -58,59 +58,72 @@
 //    return NULL;
 //}
 //loads segments from elf binary image
-int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task){
+int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file){
 
+    int is_exe = 0;
    if(NULL == elf_header){
         kprintf("elf_header is null\n");
         return 0;
     }
-    //vm_area_struct* current_vm = NULL;
-    //vm_area_struct* tmp = NULL;
-    //entry point
+
+   //entry point
     task->rip = elf_header->e_entry;
 
-    Elf64_Phdr* progHeader;// = (Elf64_Phdr*)((uint64_t)elf_header + elf_header->e_phoff);
-   // uint64_t* curr_cr3 = (uint64_t *)getCR3();
+    Elf64_Phdr* progHeader;
+
     //for each entry in the program header table
     for(int i=0; i < elf_header->e_phnum ; i++){
 
         progHeader = (Elf64_Phdr*)((uint64_t)elf_header + elf_header->e_phoff) + i;
 
         if(progHeader->p_type == PT_LOAD && progHeader->p_memsz >= progHeader->p_filesz){
-
-
+            is_exe=1;
             //ELF SECTIONS to be loaded in new virtual memory area
-            //setCR3((uint64_t *)task->cr3);
-            do_mmap(task, progHeader->p_vaddr, progHeader->p_memsz, progHeader->p_flags, NULL,0);
+            do_mmap(task, progHeader->p_vaddr, progHeader->p_memsz, progHeader->p_flags, file,progHeader->p_offset);
 
         }
     }
+    if(!is_exe){
+        kprintf("no Loadable section found: exit\n");
+        return -1;
+    }
     //allocate heap
     allocate_heap(task->mm);
+    allocate_stack(task);
 
-    //allocate stack
+
     //schedule process
     return 1;
 
 }
 
-int load_elf_binary_by_name(char* binary_name, char *argv[]){
+int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[]){
     kprintf("inside load_elf_binary_by_name\n");
-    void* tmp = find_file(binary_name);
+    file_table* file = find_file(binary_name);
+    void* tmp = (void*)file->start;
+    if(file->type != FILE){
+        kprintf("Not a file; exit\n");
+        return -1;
+    }
     Elf64_Ehdr *elf_header = (Elf64_Ehdr*)(tmp+ sizeof(struct posix_header_ustar));
 
     //if file is not executable then return
     if(elf_header == NULL ){
         kprintf("elf header is null\n");
-        return 0;
+        return -1;
     }
     if (elf_header->e_ident[1] != 'E' || elf_header->e_ident[2] != 'L' || elf_header->e_ident[3] != 'F'){
         kprintf("not executable\n");
-        return 0;
+        return -1;
     }
 
-    task_struct* task = allocate_task(1);
-    return load_elf_binary(elf_header,task);
+    if(task == NULL) {
+        kprintf("task is null; allocating new task\n");
+        task = getFreeTask();
+        createUserProcess(task);
+    }
+
+    return load_elf_binary(elf_header,task,file);
     //return 1;
 }
 

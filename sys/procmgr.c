@@ -11,6 +11,7 @@
 #include <sys/idt.h>
 #include <sys/kstring.h>
 #include <sys/util.h>
+#include <sys/mm.h>
 
 uint16_t processID = 0; // to keep track of the allocated process ID's to task struct
 extern uint64_t kernel_rsp;
@@ -305,6 +306,7 @@ void createUserProcess(task_struct *user_task){
     uint64_t kernPage = (((uint64_t)&userFunc) & ADDRESS_SCHEME);
     memcpy((void*)userPage,(void*)kernPage ,PAGE_SIZE);
 
+
     //NOTE: kernPage can be replace by the following to map function to start of new physical page
     // (void*)(kernPage | (((uint64_t)&userFunc) & ~ADDRESS_SCHEME))
 
@@ -327,6 +329,14 @@ void createUserProcess(task_struct *user_task){
     map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);
     map_user_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),&userPtr);
     user_task->rip = userbase | (((uint64_t)&userFunc) & ~ADDRESS_SCHEME); //RM: pop address offset
+
+    userPage = (uint64_t)kmalloc();
+    map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);
+    map_user_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),&userPtr);
+    userbase+=0x1000;
+
+    user_task->mm = (mm_struct*)userPage;
+    user_task->mm->v_addr_pointer = userbase;
 
     // map kernel
     kernPtr = getKernelPML4();
@@ -373,27 +383,52 @@ void switch_to_user_mode(task_struct *oldTask, task_struct *user_task)
     __asm__ volatile("iretq");
 }
 
-task_struct* allocate_task(int is_user_task){
 
-    uint64_t task_struct_size = sizeof(task_struct);
-    task_struct* task=(is_user_task ==1)?(task_struct*)umalloc_size(task_struct_size):(task_struct*)kmalloc_size(
-            task_struct_size);
+pid_t sys_fork() {
+    task_struct* parent = getCurrentTask();
+    task_struct* child = getFreeTask();
+    createUserProcess(child);
+    child->init = parent->init;
+    child->rip = parent->rip;
+    child->rsp = parent->rsp;
+    memcpy(child->stack,parent->stack,PAGE_SIZE);
 
-    mm_struct* mm = (is_user_task ==1)?(mm_struct*)umalloc_size(sizeof(mm_struct)):(mm_struct*)kmalloc_size(sizeof(mm_struct));
 
 
-    task->mm = mm;
-    task->cr3 = get_new_cr3(is_user_task); //to be modified
+    //copy the file descriptor list and increment reference count
+    int i = 0;
+    while( i < MAX_FD && parent->fd[i] != NULL) {
+        FD* fd = (FD*) kmalloc_size(sizeof(FD));
+        fd->perm = parent->fd[i]->perm;
+        fd->filenode =  parent->fd[i]->filenode;
+        fd->current_pointer = parent->fd[i]->current_pointer;
+        fd->ref_count = ++parent->fd[i]->ref_count;
+        i++;
+    }
 
-    task->rsp = (uint64_t)&task->stack[499];
+    if(copy_mm(parent,child)==0){
+        kprintf("error while copying task");
+        return -1;
+    }
 
-    uint64_t *userPtr,*kernPtr;
-    userPtr = (uint64_t*)task->cr3;
-    kernPtr = getKernelPML4();
-    userPtr[511] = kernPtr[511];
-    userPtr[511] |= (PTE_U_W_P);
-    return task;
+    child->parent  = parent;
+    child->ppid = parent->pid;
 
+    if(parent->child_list == NULL)
+        parent->child_list = child;
+    else {
+        child->next = parent->child_list;
+        parent->child_list = child;
+    }
+    parent->no_of_children++;
+
+
+
+    addTaskToReady(child);
+    //schedule the next process; parent will only run after child
+    schedule();
+
+    return child->pid;
 }
 
 void killActiveProcess(){
@@ -401,3 +436,4 @@ void killActiveProcess(){
     // TODO: If any parent, reduce parent's child count. If child, find in ready or blocked queue and move to zombie
     schedule();
 }
+
