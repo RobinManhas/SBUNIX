@@ -71,7 +71,7 @@ uint64_t swrite(uint64_t fdn, uint64_t addr,uint64_t len){
 }
 
 void skill(/* kills the current active process */){
-    killActiveProcess();
+    killTask(CURRENT_TASK);
 }
 
 //uint64_t sclose(uint64_t fdn){
