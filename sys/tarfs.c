@@ -238,16 +238,16 @@ uint64_t write_file(char* s,uint64_t write_len){
 file_table* find_file(char* file_name){
     file_table* file = NULL;
     for(int i =0;i<FILES_MAX ; i++) {
-        kprintf("file :%s\n", tarfs[i]->name);
         if (NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
             break;
+        kprintf("file :%s\n", tarfs[i]->name);
+
         if ((strcmp(tarfs[i]->name, file_name) == 0) && tarfs[i]->type == FILE) {
             kprintf("file found:");
             file = tarfs[i];
-            return file;
+            break;
         }
     }
-    kprintf("No such file:%s\n",file);
-    return NULL;
+    return file;
 
 }

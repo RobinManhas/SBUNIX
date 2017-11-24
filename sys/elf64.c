@@ -79,6 +79,7 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file)
         if(progHeader->p_type == PT_LOAD && progHeader->p_memsz >= progHeader->p_filesz){
             is_exe=1;
             //ELF SECTIONS to be loaded in new virtual memory area
+            //uint64_t * start_pointer =
             do_mmap(task, progHeader->p_vaddr, progHeader->p_memsz, progHeader->p_flags, file,progHeader->p_offset);
 
         }
@@ -92,7 +93,7 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file)
     allocate_stack(task);
 
 
-    //schedule process
+    kprintf("elf loaded successfully\n");
     return 1;
 
 }
@@ -100,6 +101,10 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file)
 int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[]){
     kprintf("inside load_elf_binary_by_name\n");
     file_table* file = find_file(binary_name);
+    if(file == NULL){
+        kprintf("file not found\n");
+        return -1;
+    }
     void* tmp = (void*)file->start;
     if(file->type != FILE){
         kprintf("Not a file; exit\n");

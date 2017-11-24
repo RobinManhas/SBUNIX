@@ -20,11 +20,10 @@ vm_area_struct* find_vma(mm_struct* mm, uint64_t addr){
         if(vma && vma->vm_end > addr && vma->vm_start <= addr)
             return vma;
 
-        vma = NULL;
-        vm_area_struct* vm_pointer = mm->vma_list;
-        while (vm_pointer->vm_next) {
-            if (vma && vma->vm_end > addr && vma->vm_start <= addr)
-                return vma;
+        vma = mm->vma_list;
+        while (vma) {
+            if ( vma->vm_end > addr && vma->vm_start <= addr)
+                break;
             vma = vma->vm_next;
         }
         if (vma)
@@ -279,6 +278,7 @@ uint64_t allocate_heap(mm_struct* mm) {
 
     mm->start_brk = start_addr;
     mm->brk = start_addr;
+    kprintf("heap allocation completed\n");
     return start_addr;
 }
 
@@ -286,6 +286,7 @@ uint64_t allocate_stack(task_struct* task) {
     uint64_t * task_cr3 = (uint64_t*)task->cr3;
 
     task->mm->start_stack = MM_STACK_START;
+    task->rsp = MM_STACK_START-16;
     vm_area_struct* stack = allocate_vma(MM_STACK_END,MM_STACK_START,PTE_W,NULL,0);
     vm_area_struct* pointer = task->mm->vma_list;
     while (pointer->vm_next != NULL)
@@ -295,12 +296,17 @@ uint64_t allocate_stack(task_struct* task) {
     uint64_t phy_page = allocatePage();
     uint64_t vir_page_addr_to_allocate = MM_STACK_START-PAGE_SIZE;
     map_user_virt_phys_addr(vir_page_addr_to_allocate, phy_page, &task_cr3);
+
+    kprintf("stach allocation completed\n");
     return MM_STACK_START;
 
 
 }
 
 void allocate_pages_to_vma(vm_area_struct* vma,uint64_t** pml_ptr){
+
+
+
     uint64_t start = vma->vm_start;
     uint64_t end = vma->vm_end;
     file_table* file = vma->file;
@@ -314,8 +320,10 @@ void allocate_pages_to_vma(vm_area_struct* vma,uint64_t** pml_ptr){
 
     uint64_t phy_new;
     while(no_of_pages>=1 && start<end) {
+
         phy_new = allocatePage();
         map_user_virt_phys_addr(start,phy_new,pml_ptr);
+
         if(file != NULL && vma->file_offset < vma->vm_end){
             //copy data from file starting from offset
             //bytes_to_copy = PAGE_SIZE;
@@ -329,6 +337,8 @@ void allocate_pages_to_vma(vm_area_struct* vma,uint64_t** pml_ptr){
         no_of_pages--;
         start = start+bytes_to_copy;
     }
+    kprintf("virtual addre %x\n",(uint64_t**)vma->vm_start);
+    kprintf("getcr3 %x\n",getCR3());
 
 }
 
