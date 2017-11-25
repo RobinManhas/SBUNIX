@@ -330,7 +330,11 @@ void allocate_pages_to_vma(vm_area_struct* vma,uint64_t** pml_ptr){
             if(no_of_pages == 1 && last_page_data>0){
                 bytes_to_copy = last_page_data;
             }
+
+            //is the code was executed by kernel; then set cr3 of this task
+            setCR3(*pml_ptr);
             memcpy((uint64_t *)start,(uint64_t *)(file_content_pointer+vma->file_offset),bytes_to_copy);
+            setCR3((uint64_t *)getCurrentTask()->cr3);
             vma->file_offset += bytes_to_copy;
         }
 

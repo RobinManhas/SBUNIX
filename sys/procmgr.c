@@ -38,16 +38,16 @@ void runner(){
 }
 
 void userFunc(){
-    uint64_t ret =0;
-    uint64_t syscall = 1;
-    uint64_t arg3 = 5;
-    //__asm__ __volatile__ ("movq %1,%%rax;syscall" : "=r" (ret) : "0" (syscall):"memory");
-    char buff[]="hello";
-    uint64_t arg2=(uint64_t )buff;
-    uint64_t arg1 = 1;
-    __asm__ __volatile__("movq %1,%%rax;movq %2,%%rdi; movq %3,%%rsi; movq %4,%%rdx;syscall" : "=r" (ret):"0"(syscall), "g"(arg1), "g"(arg2) ,"g"(arg3) :"memory" );
-    //schedule();
-    while(1);
+//    uint64_t ret =0;
+//    uint64_t syscall = 1;
+//    uint64_t arg3 = 5;
+//    //__asm__ __volatile__ ("movq %1,%%rax;syscall" : "=r" (ret) : "0" (syscall):"memory");
+//    char buff[]="hello";
+//    uint64_t arg2=(uint64_t )buff;
+//    uint64_t arg1 = 1;
+//    __asm__ __volatile__("movq %1,%%rax;movq %2,%%rdi; movq %3,%%rsi; movq %4,%%rdx;syscall" : "=r" (ret):"0"(syscall), "g"(arg1), "g"(arg2) ,"g"(arg3) :"memory" );
+//    //schedule();
+//    while(1);
 }
 
 void func1()
