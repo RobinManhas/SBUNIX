@@ -12,6 +12,7 @@
 #include <sys/kstring.h>
 #include <sys/util.h>
 #include <sys/mm.h>
+#include <sys/terminal.h>
 
 uint16_t processID = 0; // to keep track of the allocated process ID's to task struct
 extern uint64_t kernel_rsp;
@@ -39,13 +40,13 @@ void runner(){
 void userFunc(){
     uint64_t ret =0;
     uint64_t syscall = 1;
-    uint64_t arg3 = 1;
+    uint64_t arg3 = 5;
     //__asm__ __volatile__ ("movq %1,%%rax;syscall" : "=r" (ret) : "0" (syscall):"memory");
-    int c = 99;
-    uint64_t arg2=(uint64_t )&c;
+    char buff[]="hello";
+    uint64_t arg2=(uint64_t )buff;
     uint64_t arg1 = 1;
     __asm__ __volatile__("movq %1,%%rax;movq %2,%%rdi; movq %3,%%rsi; movq %4,%%rdx;syscall" : "=r" (ret):"0"(syscall), "g"(arg1), "g"(arg2) ,"g"(arg3) :"memory" );
-
+    //schedule();
     while(1);
 }
 
@@ -405,7 +406,6 @@ pid_t sys_fork() {
     memcpy(child->stack,parent->stack,PAGE_SIZE);
 
 
-
     //copy the file descriptor list and increment reference count
     int i = 0;
     while( i < MAX_FD && parent->fd[i] != NULL) {
@@ -417,7 +417,7 @@ pid_t sys_fork() {
         i++;
     }
 
-    if(copy_mm(parent,child)==0){
+    if(copy_mm(parent,child) == -1){
         kprintf("error while copying task");
         return -1;
     }
@@ -435,9 +435,9 @@ pid_t sys_fork() {
 
 
 
-    addTaskToReady(child);
-    //schedule the next process; parent will only run after child
-    schedule();
+//    addTaskToReady(child);
+//    //schedule the next process; parent will only run after child
+//    schedule();
 
     return child->pid;
 }
@@ -559,6 +559,27 @@ void killTask(task_struct *task){
     if(task == current){
         task->state = TASK_STATE_KILLED;
         schedule();
+    }
+
+}
+
+void removeTaskFromBlocked(task_struct* task){
+    if(task == NULL)
+        return;
+
+    task_struct* prevptr = NULL;
+    task_struct *blockedListPtr = gBlockedList;
+
+    while(blockedListPtr){
+        if(blockedListPtr->pid == task->pid) {
+            if(prevptr == NULL)
+                gBlockedList = blockedListPtr->next;
+            else
+                prevptr->next = blockedListPtr->next;
+            return;
+        }
+        prevptr = blockedListPtr;
+        blockedListPtr = blockedListPtr->next;
     }
 
 }

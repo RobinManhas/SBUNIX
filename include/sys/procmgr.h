@@ -115,6 +115,7 @@ task_struct* getFreeTask();
 void addTaskToReady(task_struct *readyTask);
 void addTaskToBlocked(task_struct *blockedTask);
 void addTaskToZombie(task_struct *zombieTask);
+void removeTaskFromBlocked(task_struct* task);
 void removeChildFromParent(task_struct *parent, task_struct*child);
 void destroy_task(task_struct *task);
 void removeTaskFromRunList(task_struct *task);

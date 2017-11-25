@@ -65,7 +65,5 @@ struct fd {
 file_table* get_parent_folder(char* name, unsigned int len);
 file_table* find_file(char* file_name);
 void init_tarfs();
-FD* create_terminal_IN();
-FD* create_terminal_OUT();
 
 #endif

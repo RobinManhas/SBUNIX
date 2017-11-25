@@ -5,4 +5,5 @@ void clearScreen();
 void kprintf(const char *fmt, ...);
 void updateTimeOnScreen(int time);
 void keyboardLocalEcho(char* input);
+void kputch(char c);
 #endif
