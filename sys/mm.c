@@ -91,15 +91,15 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
 
     if(parent_task == NULL || child_task == NULL || parent_task->mm == NULL || child_task->mm == NULL){
         kprintf(" mm not allocated");
-        return 0;
+        return -1;
     }
     if(parent_task->mm->vma_list == NULL){
         kprintf("no vma in parent");
-        return 0;
+        return -1;
     }
-    uint64_t* parent_cr3   = (uint64_t *)parent_task->cr3;
-    uint64_t* child_cr3    = (uint64_t *)child_task->cr3;
-    uint64_t * parent_pml4_pointer = (uint64_t*)parent_task->cr3;
+    //uint64_t* parent_cr3   = (uint64_t *)parent_task->cr3;
+    //uint64_t* child_cr3    = (uint64_t *)child_task->cr3;
+    //uint64_t * parent_pml4_pointer = (uint64_t*)parent_task->cr3;
     uint64_t * child_pml4_pointer = (uint64_t*)child_task->cr3;
 
     memcpy((void *) child_task->mm, (void *) parent_task->mm, sizeof(mm_struct));
@@ -112,9 +112,13 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
         uint64_t start = parent_vm_pointer->vm_start;
         uint64_t end = parent_vm_pointer->vm_end;
 
-
         vm_area_struct *new_vma = allocate_vma(start, end, parent_vm_pointer->vm_flags, parent_vm_pointer->file,
                                                parent_vm_pointer->file_offset);
+
+        // ref count for file ??
+//        if(new_vma->file){
+//            new_vma->file->
+//        }
         new_vma->vm_mm = parent_task->mm;
         if (child_task->mm->vma_list == NULL) {
             child_task->mm->vma_list = new_vma;
@@ -125,54 +129,30 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
             child_vm_pointer = child_vm_pointer->vm_next;
         }
 
-        uint64_t page_phy_add;
-        //deep copy stack; chceking with end because stack grows backward
-        //assumption: stack is always one page
-        if (end == parent_task->mm->start_stack) {
-            setCR3(parent_cr3);
-            parent_task->mm->v_addr_pointer+= 0x1000;
+        uint64_t* page_phy_add;
+        while (start < end) {
 
-            page_phy_add = returnPhyAdd(start,KERNBASE_OFFSET,0);
-            //check page present
-            if(page_phy_add & PTE_P){
-                uint64_t new_page = allocatePage();
-                uint64_t new_vir = parent_task->mm->v_addr_pointer;
-                parent_task->mm->v_addr_pointer += 0x1000;
-                map_user_virt_phys_addr(new_vir,new_page,&parent_pml4_pointer);
+            //*TODO: need pointer for pte entry*/
+            page_phy_add = (uint64_t *)returnPhyAdd(start, KERNBASE_OFFSET, 0);
+            if (!page_phy_add)
+                break;
+            if (*page_phy_add & PTE_P) {
+                //removing write flag
+                *page_phy_add = *page_phy_add & (~PTE_W);
+                //setting cow bits
+                *page_phy_add = *page_phy_add | PTE_COW;
+                //incrementing reference count
+                Page* page = get_page(*page_phy_add);
+                if(page)
+                    page->sRefCount++;
 
-                memcpy((uint64_t *)new_vir,(uint64_t *)start,PAGE_SIZE);
-
-                setCR3(child_cr3);
-                map_user_virt_phys_addr(start,new_page,&child_pml4_pointer);
+                map_user_virt_phys_addr(start, *page_phy_add, &child_pml4_pointer);
 
             }
+            start = start + PAGE_SIZE;// for multiple pages
 
-        } else {
-            // COW
-            //uint64_t page_flags;
-
-            while (start < end) {
-                setCR3(parent_cr3);
-                //check??
-                page_phy_add = returnPhyAdd(start,KERNBASE_OFFSET,0);
-                if (page_phy_add & PTE_P) {
-                    //removing write flag
-                    page_phy_add = page_phy_add & (~PTE_W);
-                    //setting cow bits
-                    page_phy_add = page_phy_add | PTE_COW;
-
-                    //page_flags = page_phy_add & (~ADDRESS_SCHEME);
-                    //page_phy_add = page_phy_add & ADDRESS_SCHEME;
-                    /*TODO: update ref count of page*/
-
-                    setCR3(child_cr3);
-                    map_user_virt_phys_addr(start, page_phy_add,&child_pml4_pointer);
-                }
-                start = start + PAGE_SIZE;// for multiple pages
-            }
-            setCR3(parent_cr3);
-            parent_vm_pointer = parent_vm_pointer->vm_next;
         }
+        parent_vm_pointer = parent_vm_pointer->vm_next;
     }
     child_task->mm->total_vm = parent_task->mm->total_vm;
 
@@ -282,8 +262,8 @@ uint64_t allocate_heap(mm_struct* mm) {
     return start_addr;
 }
 
+
 uint64_t allocate_stack(task_struct* task) {
-    uint64_t * task_cr3 = (uint64_t*)task->cr3;
 
     task->mm->start_stack = MM_STACK_START;
     task->rsp = MM_STACK_START-16;
@@ -293,13 +273,21 @@ uint64_t allocate_stack(task_struct* task) {
         pointer = pointer->vm_next;
     pointer->vm_next = stack;
 
-    uint64_t phy_page = allocatePage();
-    uint64_t vir_page_addr_to_allocate = MM_STACK_START-PAGE_SIZE;
-    map_user_virt_phys_addr(vir_page_addr_to_allocate, phy_page, &task_cr3);
-
-    kprintf("stach allocation completed\n");
+//    uint64_t phy_page = allocatePage();
+//    uint64_t vir_page_addr_to_allocate = MM_STACK_START-PAGE_SIZE;
+//    map_user_virt_phys_addr(vir_page_addr_to_allocate, phy_page, &task_cr3);
+    allocate_single_page(task,MM_STACK_START-PAGE_SIZE);
+    kprintf("stack allocation completed\n");
     return MM_STACK_START;
 
+
+}
+
+void allocate_single_page(task_struct* task, uint64_t addr){
+    uint64_t * task_cr3 = (uint64_t*)task->cr3;
+    uint64_t phy_page = allocatePage();
+    uint64_t vir_page_addr_to_allocate = (addr>>12)<<12;
+    map_user_virt_phys_addr(vir_page_addr_to_allocate, phy_page, &task_cr3);
 
 }
 
