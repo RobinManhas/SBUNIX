@@ -4,8 +4,8 @@
 
 
 static const int ERROR = -1;
-static int isExecuting = 0;
-static int isPutValExecuting = 0;
+static int isExecuting = -1;
+static int isPutValExecuting = -1;
 
 ssize_t sys_write(int fd, const void *buf, ssize_t count) {
 return syscall3(SYSCALL_WRITE, fd, (long)buf, count);
@@ -36,21 +36,21 @@ void putn(long n){
 }
 
 int putVal(const char *s){
-  if(isPutValExecuting){
+  if(isPutValExecuting == 1){
     return -1;
   }
   isPutValExecuting = 1;
   if(s == '\0' || *s == '\0'){
-    isPutValExecuting = 0;
+    isPutValExecuting = -1;
     return 0;
   }
   for( ; *s; ++s){
     if (putchar(*s) != *s) {
-      isPutValExecuting = 0;
+      isPutValExecuting = -1;
       return EOF;
     }
   }
-  isPutValExecuting = 0;
+  isPutValExecuting = -1;
   return 0;
 }
 
@@ -68,21 +68,25 @@ return syscall3(SYSCALL_OPEN,(long)filename, flag , mode);
 
 int puts(const char *s)
 {
-  if(isExecuting)
+  //isExecuting = 0;
+  if(isExecuting==1)
     return -1;
+  int i =1;
 
   isExecuting = 1;
   if(s == '\0' || *s == '\0'){
-    isExecuting = 0;
+    isExecuting = -1;
     return 0;
   }
   for( ; *s; ++s){
     if (putchar(*s) != *s){
-      isExecuting = 0;
+      isExecuting = -1;
       return EOF;
-    } 
+    }
+    i++;
   }
-  isExecuting = 0;
+  isExecuting = -1;
+  putchar(i);
   return (putchar('\n') == '\n') ? 0 : EOF;
 }
 
@@ -163,7 +167,7 @@ int filegets(char *str , int size,int fd){
     if(i>=size){
       break;
     }
-    ret = sys_read(fd, &s, 1); 
+    ret = sys_read(fd, &s, 1);
   }
   str[i]='\0';
   return ret;

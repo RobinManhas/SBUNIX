@@ -292,7 +292,7 @@ void createKernelTask(task_struct *task, void (*func)(void)){
 }
 
 void createUserProcess(task_struct *user_task){
-    uint64_t userbase = 0x88880000000UL;
+    uint64_t userbase = 0x55550000000UL;
     user_task->type = TASK_USER;
     user_task->state = TASK_STATE_RUNNING;
     user_task->cr3 = (uint64_t)kmalloc();
@@ -301,8 +301,13 @@ void createUserProcess(task_struct *user_task){
     user_task->nextChild = NULL;
     user_task->stack = kmalloc();
     user_task->rip = (uint64_t)&userFunc;
-    user_task->rsp = (uint64_t)&user_task->stack[499];
-    user_task->kernInitRSP = (uint64_t)&user_task->stack[499];
+
+//    user_task->stack[499] = (uint64_t)(MM_STACK_START-0x10);
+//    user_task->rsp = (uint64_t )&user_task->stack[499];
+
+    user_task->rsp = (uint64_t )(MM_STACK_START-0x10);
+
+    user_task->kernInitRSP = (uint64_t)&user_task->stack[399];
     user_task->fd[0]=create_terminal_IN();
     FD* filedec = create_terminal_OUT();
     user_task->fd[1]= filedec;
@@ -403,7 +408,6 @@ pid_t sys_fork() {
     child->init = parent->init;
     child->rip = parent->rip;
     child->rsp = parent->rsp;
-    memcpy(child->stack,parent->stack,PAGE_SIZE);
 
 
     //copy the file descriptor list and increment reference count
@@ -434,8 +438,13 @@ pid_t sys_fork() {
     parent->no_of_children++;
 
 
-
-//    addTaskToReady(child);
+    //copy kernel stack;
+    uint64_t rsp ;
+    __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(rsp));
+    //aligning down
+    rsp = (rsp>>12)<<12;
+    memcpy(child->stack, (uint64_t *)rsp, PAGE_SIZE);
+//    child->kernInitRSP = &child->stack[499];
 //    //schedule the next process; parent will only run after child
 //    schedule();
 

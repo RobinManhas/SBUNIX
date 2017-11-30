@@ -11,6 +11,7 @@
 #include <sys/kmalloc.h>
 #include <sys/procmgr.h>
 #include <sys/common.h>
+#include <sys/mm.h>
 
 #define INITIAL_STACK_SIZE 4096
 uint8_t initial_stack[INITIAL_STACK_SIZE]__attribute__((aligned(16)));
@@ -46,7 +47,14 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     * process : virtual address space + registers + stack
 *********************************************************************************************************/
 
+    init_idt();
+    init_irq();
+    init_keyboard();
+    init_tarfs();
     syscalls_init();
+    __asm__ ("sti");
+
+
 
     kernel_idle_task = getFreeTask();
     createKernelInitProcess(kernel_idle_task);
@@ -54,14 +62,14 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     task1 = getFreeTask();
     createKernelTask(task1,func1);
 
-    task2 = getFreeTask();
-    createKernelTask(task2,func2);
+//    task2 = getFreeTask();
+//    createKernelTask(task2,func2);
+//
+//    user_task = getFreeTask();
+//    createUserProcess(user_task);
 
-    user_task = getFreeTask();
-    createUserProcess(user_task);
+    load_elf_binary_by_name(NULL,"bin/test",NULL);
 
-    init_idt();
-    init_irq();
     kprintf("In main: init IDT and IRQ success, calling schedule\n");
     schedule();
 
@@ -71,10 +79,11 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
         __asm__ __volatile__("hlt;");
     }
 
+
 //    init_idt();
 //    init_irq();
     //init_timer();
-    //init_keyboard();
+
 //    __asm__ ("sti");
 //    init_pci();
 

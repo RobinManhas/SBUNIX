@@ -74,6 +74,22 @@ void skill(/* kills the current active process */){
     killTask(CURRENT_TASK);
 }
 
+uint64_t sbrk(uint64_t size){
+   mm_struct* mm = getCurrentTask()->mm;
+    if (size == 0)
+        return mm->brk;
+    else{
+        vm_area_struct* heap = find_vma(mm, mm->brk);
+        if(heap == NULL){
+            kprintf("ERROR: heap not found in brk");
+            return 0;
+        }
+        mm->brk += size;
+        heap->vm_end = mm->brk;
+    }
+    return mm->brk;
+}
+
 //uint64_t sclose(uint64_t fdn){
 //    currentTask->fd[fdn]=NULL;
 //    //need to check inode for fs extra 10 points??
@@ -102,7 +118,7 @@ int s_exev(char* binary_name, char *argv[]){
 int syscall_handler(struct regs* reg) {
     int value = 0;
     int syscallNo = reg->rax;
-    kprintf("syscall no %d\n",syscallNo);
+    //kprintf("syscall no %d\n",syscallNo);
     CURRENT_TASK = getCurrentTask();
     switch (syscallNo) {
         case SYSCALL_READ:
@@ -120,7 +136,8 @@ int syscall_handler(struct regs* reg) {
 //        case SYSCALL_CLOSE:
 //            value = sclose(reg->rdi);
 //            break;
-//        case SYSCALL_BRK:
+          case SYSCALL_BRK:
+              value = sbrk(reg->rdi);
 //            break;
 //        case SYSCALL_PIPE:
 //            break;
@@ -135,6 +152,7 @@ int syscall_handler(struct regs* reg) {
 //        case SYSCALL_EXECVE:
 //            break;
         case SYSCALL_EXIT:
+            schedule();
 //            break;
 //        case SYSCALL_WAIT4:
 //            break;

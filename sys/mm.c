@@ -243,6 +243,8 @@ uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags,
             }
         }
         task->mm->total_vm++;
+//        uint64_t* pml = (uint64_t*)task->cr3;
+//        allocate_pages_to_vma(new_vm,&pml);
 
         return addr;
 
@@ -266,7 +268,8 @@ uint64_t allocate_heap(mm_struct* mm) {
 uint64_t allocate_stack(task_struct* task) {
 
     task->mm->start_stack = MM_STACK_START;
-    task->rsp = MM_STACK_START-16;
+    //task->rsp = MM_STACK_START-16;
+    //task->rsp = (uint64_t )(MM_STACK_START-0x10);
     vm_area_struct* stack = allocate_vma(MM_STACK_END,MM_STACK_START,PTE_W,NULL,0);
     vm_area_struct* pointer = task->mm->vma_list;
     while (pointer->vm_next != NULL)
