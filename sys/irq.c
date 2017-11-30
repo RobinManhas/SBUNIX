@@ -164,11 +164,16 @@ void _irq_handler(struct regs* reg)
     if(reg->int_no==128){
         kprintf("syscall interrupt received, %d\n",reg->rax);
     }
-    else if(reg->int_no<32 && reg->int_no!=14){
+    else if(reg->int_no==14){
+        handle_page_fault(reg);
+    }else if(reg->int_no==13){
         kprintf("got interrupt no %d\n",reg->int_no);
         kprintf("got error no %d\n",reg->err_code);
-    }else if(reg->int_no==14) {
-        handle_page_fault(reg);
+        uint64_t faulty_addr;
+        __asm__ __volatile__ ("movq %%cr2, %0;" : "=r"(faulty_addr));
+        kprintf("error:%x\n",faulty_addr);
+
+        __asm__ volatile("hlt;":::);
     }
     else {
         long num = (reg->int_no) - 32;
@@ -198,6 +203,7 @@ void handle_page_fault(struct regs* reg){
     uint64_t faulty_addr;
     __asm__ __volatile__ ("movq %%cr2, %0;" : "=r"(faulty_addr));
 
+    kprintf("error:%x\n",faulty_addr);
     uint64_t err_code = reg->err_code;
     uint64_t new_page,new_vir;
     uint64_t * pml4_pointer = (uint64_t*)current_task->cr3;
@@ -222,6 +228,7 @@ void handle_page_fault(struct regs* reg){
                 memcpy((uint64_t *)new_vir,(uint64_t *)faulty_addr,PAGE_SIZE);
 
                 *phy_addr = new_page|PTE_U_W_P;
+                page->sRefCount--;
 
             }else{
                 //unset cow and set write bit
@@ -232,14 +239,19 @@ void handle_page_fault(struct regs* reg){
             kprintf("reason for page fault is unknown \n");
         }
 
-    }else{
+    }else {
         //page not present
         vm_area_struct* vma = find_vma(current_task->mm,faulty_addr);
         if(vma == NULL){
-            kprintf("vma doesnt exist, reason for page fault is unknown");
+            kprintf("ERROR: page fault address is out of bound");
             return;
         }
-        allocate_pages_to_vma(vma,&pml4_pointer);
+        //allocate all pages to vma if file is present
+        if(vma->file != NULL)
+            allocate_pages_to_vma(vma,&pml4_pointer);
+        else
+            allocate_single_page(current_task,faulty_addr);
+
 
     }
     return;
