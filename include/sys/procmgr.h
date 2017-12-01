@@ -50,6 +50,7 @@ typedef struct task_struct{
     struct task_struct* parent;
     struct task_struct* child_list;
     uint8_t no_of_children;
+    char* name;
 } task_struct;
 
 //task_struct* CURRENT_TASK;

@@ -52,15 +52,16 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     init_keyboard();
     init_tarfs();
     syscalls_init();
-    __asm__ ("sti");
+    __asm__ ("sti"); //enable interrupts
 
 
 
     kernel_idle_task = getFreeTask();
+    kernel_idle_task->name ="Idle_task";
     createKernelInitProcess(kernel_idle_task);
 
-    task1 = getFreeTask();
-    createKernelTask(task1,func1);
+//    task1 = getFreeTask();
+//    createKernelTask(task1,func1);
 
 //    task2 = getFreeTask();
 //    createKernelTask(task2,func2);
@@ -74,10 +75,10 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     schedule();
 
     // do not exit start thread
-    while(1){
-        schedule();
-        __asm__ __volatile__("hlt;");
-    }
+//    while(1){
+//        schedule();
+//        __asm__ __volatile__("hlt;");
+//    }
 
 
 //    init_idt();

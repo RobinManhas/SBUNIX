@@ -32,8 +32,8 @@ task_struct* getCurrentTask(){
 /* init function */
 void runner(){
     while(1) {
-        kprintf("inside idle\n");
-        schedule();
+        //kprintf("inside idle\n");
+        //schedule();
     }
 }
 
@@ -302,12 +302,18 @@ void createUserProcess(task_struct *user_task){
     user_task->stack = kmalloc();
     user_task->rip = (uint64_t)&userFunc;
 
+    uint64_t curr_rsp;
+    __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(curr_rsp));
+
+    curr_rsp = (curr_rsp>>12)<<12;
+    memcpy(user_task->stack, (uint64_t *)curr_rsp, PAGE_SIZE);
+
 //    user_task->stack[499] = (uint64_t)(MM_STACK_START-0x10);
 //    user_task->rsp = (uint64_t )&user_task->stack[499];
 
-    user_task->rsp = (uint64_t )(MM_STACK_START-0x10);
+    //user_task->rsp = (uint64_t )(MM_STACK_START-0x10);
 
-    user_task->kernInitRSP = (uint64_t)&user_task->stack[399];
+    user_task->kernInitRSP = (uint64_t)&user_task->stack[510];
     user_task->fd[0]=create_terminal_IN();
     FD* filedec = create_terminal_OUT();
     user_task->fd[1]= filedec;
@@ -339,13 +345,13 @@ void createUserProcess(task_struct *user_task){
     userbase+=0x1000;
 
     // map rsp
-    user_task->rsp = (uint64_t)&user_task->stack[499];
-
-    // map user page rip
-    map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);
-    map_user_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),&userPtr);
-    user_task->rip = userbase | (((uint64_t)&userFunc) & ~ADDRESS_SCHEME); //RM: pop address offset
-    userbase+=0x1000;
+//    user_task->rsp = (uint64_t)&user_task->stack[499];
+//
+//    // map user page rip
+//    map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);
+//    map_user_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),&userPtr);
+//    user_task->rip = userbase | (((uint64_t)&userFunc) & ~ADDRESS_SCHEME); //RM: pop address offset
+//    userbase+=0x1000;
 
     userPage = (uint64_t)kmalloc();
     map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);

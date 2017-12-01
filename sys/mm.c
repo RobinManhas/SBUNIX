@@ -268,18 +268,26 @@ uint64_t allocate_heap(mm_struct* mm) {
 uint64_t allocate_stack(task_struct* task) {
 
     task->mm->start_stack = MM_STACK_START;
-    //task->rsp = MM_STACK_START-16;
-    //task->rsp = (uint64_t )(MM_STACK_START-0x10);
-    vm_area_struct* stack = allocate_vma(MM_STACK_END,MM_STACK_START,PTE_W,NULL,0);
+
+    vm_area_struct* stack = allocate_vma(MM_STACK_END,MM_STACK_START,PTE_U_W_P,NULL,0);
     vm_area_struct* pointer = task->mm->vma_list;
     while (pointer->vm_next != NULL)
         pointer = pointer->vm_next;
     pointer->vm_next = stack;
 
-//    uint64_t phy_page = allocatePage();
-//    uint64_t vir_page_addr_to_allocate = MM_STACK_START-PAGE_SIZE;
-//    map_user_virt_phys_addr(vir_page_addr_to_allocate, phy_page, &task_cr3);
+    allocate_single_page(task,MM_STACK_START);
+
+
+    task->rsp = (uint64_t )(MM_STACK_START-PAGE_SIZE-0x10);
     allocate_single_page(task,MM_STACK_START-PAGE_SIZE);
+
+   // memset( MM_STACK_START-PAGE_SIZE,0,PAGE_SIZE);
+
+
+
+    kprintf(" stack rsp at : %x\n",task->rsp);
+    kprintf(" task cr3 : %x\n", task->cr3);
+
     kprintf("stack allocation completed\n");
     return MM_STACK_START;
 
