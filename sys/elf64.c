@@ -67,7 +67,7 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file)
     }
 
    //entry point
-    task->rip = elf_header->e_entry;
+    task->user_rip = elf_header->e_entry;
 
     Elf64_Phdr* progHeader;
 
@@ -94,7 +94,7 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file)
 
     //allocate page for e_entry address
     uint64_t * pml4_pointer = (uint64_t*)task->cr3;
-    vm_area_struct* vm = find_vma(task->mm,task->rip);
+    vm_area_struct* vm = find_vma(task->mm,task->user_rip);
     allocate_pages_to_vma(vm,&pml4_pointer);
 
 //    vm = find_vma(task->mm,0x60117c);

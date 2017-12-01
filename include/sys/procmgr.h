@@ -35,9 +35,11 @@ typedef struct task_struct{
     uint16_t pid;
     uint16_t ppid; // parent's pid
 
-    uint64_t rip;
-    uint64_t rsp;
+    uint64_t rsp;  //kernel rsp
     uint64_t kernInitRSP;
+    
+    uint64_t user_rsp;
+    uint64_t user_rip;
     uint64_t cr3;
     uint64_t* stack;
 

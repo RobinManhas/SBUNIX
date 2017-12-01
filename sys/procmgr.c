@@ -265,7 +265,7 @@ void createKernelInitProcess(task_struct *ktask){
     ktask->stack[510] = (uint64_t)runner;
     ktask->rsp = (uint64_t)&ktask->stack[510];
     ktask->cr3 = (uint64_t)getKernelPML4();
-    ktask->rip = (uint64_t) &runner;
+    ktask->user_rip = (uint64_t) &runner;
     ktask->type = TASK_KERNEL;
     ktask->state = TASK_STATE_IDLE;
     ktask->no_of_children = 0;
@@ -281,7 +281,7 @@ void createKernelTask(task_struct *task, void (*func)(void)){
     task->init = 1;
     task->stack[510] = (uint64_t)func;
     task->rsp = (uint64_t)&task->stack[510];
-    task->rip = (uint64_t)&func1;
+    task->user_rip = (uint64_t)&func1;
     task->cr3 = (uint64_t)getKernelPML4();
     task->no_of_children = 0;
     task->next = NULL;
@@ -365,7 +365,7 @@ void createUserProcess(task_struct *user_task){
     kernPtr = getKernelPML4();
     userPtr[511] = kernPtr[511];
     userPtr[511] |= (PTE_U_W_P);
-    kprintf("User process ready, kernFunc: %x, ring3Func: %x\n",&userFunc,user_task->rip);
+    kprintf("User process ready, kernFunc: %x, ring3Func: %x\n",&userFunc,user_task->user_rip);
     addTaskToReady(user_task);
 }
 
@@ -397,7 +397,7 @@ void switch_to_user_mode(task_struct *oldTask, task_struct *user_task)
     __asm__ volatile("mov %%ax, %%fs"::);
     __asm__ volatile("mov %%ax, %%gs"::);
 
-    __asm__ volatile("movq %0, %%rax"::"r"(user_task->rsp));
+    __asm__ volatile("movq %0, %%rax"::"r"(user_task->user_rsp));
     __asm__ volatile("pushq $0x23");
     __asm__ volatile("pushq %rax");
     __asm__ volatile("pushfq");
@@ -405,7 +405,7 @@ void switch_to_user_mode(task_struct *oldTask, task_struct *user_task)
     __asm__ volatile("or $0x200, %%rax;":::);
     __asm__ volatile("pushq %rax");
     __asm__ volatile("pushq $0x2B");
-    __asm__ volatile("pushq %0"::"r"(user_task->rip));
+    __asm__ volatile("pushq %0"::"r"(user_task->user_rip));
     __asm__ volatile("iretq");
 }
 
@@ -415,7 +415,7 @@ pid_t sys_fork() {
     task_struct* child = getFreeTask();
     createUserProcess(child);
     child->init = parent->init;
-    child->rip = parent->rip;
+    child->user_rip = parent->user_rip;
     child->rsp = parent->rsp;
 
 

@@ -278,9 +278,9 @@ uint64_t allocate_stack(task_struct* task) {
 
     allocate_single_page(task,MM_STACK_START);
     kprintf("stack start : %x\n",MM_STACK_START);
-    task->rsp = (uint64_t )(MM_STACK_START);
+    task->user_rsp = (uint64_t )(MM_STACK_START);
 
-    kprintf("stack allocation complete, rsp: %x, task_cr3: %x\n",task->rsp,task->cr3);
+    kprintf("stack allocation complete, rsp: %x, task_cr3: %x\n",task->user_rsp,task->cr3);
     return MM_STACK_START;
 }
 
