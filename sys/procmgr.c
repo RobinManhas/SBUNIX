@@ -300,7 +300,7 @@ void createUserProcess(task_struct *user_task){
     user_task->next = NULL;
     user_task->nextChild = NULL;
     user_task->stack = kmalloc();
-    user_task->rip = (uint64_t)&userFunc;
+    //user_task->rip = (uint64_t)&userFunc;
 
     uint64_t curr_rsp;
     __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(curr_rsp));

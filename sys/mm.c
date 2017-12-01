@@ -216,7 +216,7 @@ uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags,
         new_vm = allocate_vma(addr, addr + len, flags, file,offset);
         new_vm->vm_mm = task->mm;
 
-        kprintf("\n node start %p, end%p fd %d", new_vm->vm_start, new_vm->vm_end, new_vm->file);
+        kprintf("node start %p, end%p fd %d\n", new_vm->vm_start, new_vm->vm_end, new_vm->file);
 
 
         vm_area_struct* curr = task->mm->vma_list;
@@ -277,22 +277,11 @@ uint64_t allocate_stack(task_struct* task) {
     pointer->vm_next = stack;
 
     allocate_single_page(task,MM_STACK_START);
+    kprintf("stack start : %x\n",MM_STACK_START);
+    task->rsp = (uint64_t )(MM_STACK_START);
 
-
-    task->rsp = (uint64_t )(MM_STACK_START-PAGE_SIZE-0x10);
-    allocate_single_page(task,MM_STACK_START-PAGE_SIZE);
-
-   // memset( MM_STACK_START-PAGE_SIZE,0,PAGE_SIZE);
-
-
-
-    kprintf(" stack rsp at : %x\n",task->rsp);
-    kprintf(" task cr3 : %x\n", task->cr3);
-
-    kprintf("stack allocation completed\n");
+    kprintf("stack allocation complete, rsp: %x, task_cr3: %x\n",task->rsp,task->cr3);
     return MM_STACK_START;
-
-
 }
 
 void allocate_single_page(task_struct* task, uint64_t addr){
