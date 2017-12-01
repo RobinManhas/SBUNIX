@@ -71,7 +71,7 @@ int puts(const char *s)
   //isExecuting = 0;
   if(isExecuting==1)
     return -1;
-  int i =1;
+
 
   isExecuting = 1;
   if(s == '\0' || *s == '\0'){
@@ -83,10 +83,9 @@ int puts(const char *s)
       isExecuting = 0;
       return EOF;
     }
-    i++;
   }
   isExecuting = 0;
-  putchar(i);
+
   return (putchar('\n') == '\n') ? 0 : EOF;
 }
 
@@ -107,7 +106,7 @@ int execve(char *filename, char* args[], char* envs[]){
 
 void* sys_brk(size_t size){
   void* currentPointer = (void* )syscall1(SYSCALL_BRK, 0);
-  syscall1(SYSCALL_BRK, (long)currentPointer+size);
+  syscall1(SYSCALL_BRK, (long)(currentPointer+size));
   return currentPointer;
 }
 
@@ -135,7 +134,7 @@ int dup2(int fd, int newfd){
 
 int getch(){
   int c ;
-  if(sys_read(1, &c, 1) > 0){
+  if(sys_read(0, &c, 1) > 0){
     return c;
   }
   return ERROR;

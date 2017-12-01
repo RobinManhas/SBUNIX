@@ -401,6 +401,9 @@ void switch_to_user_mode(task_struct *oldTask, task_struct *user_task)
     __asm__ volatile("pushq $0x23");
     __asm__ volatile("pushq %rax");
     __asm__ volatile("pushfq");
+    __asm__ volatile("popq %rax");
+    __asm__ volatile("or $0x200, %%rax;":::);
+    __asm__ volatile("pushq %rax");
     __asm__ volatile("pushq $0x2B");
     __asm__ volatile("pushq %0"::"r"(user_task->rip));
     __asm__ volatile("iretq");

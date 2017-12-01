@@ -69,7 +69,7 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
 //    user_task = getFreeTask();
 //    createUserProcess(user_task);
 
-    load_elf_binary_by_name(NULL,"bin/test",NULL);
+    load_elf_binary_by_name(NULL,"bin/sbush",NULL);
 
     kprintf("In main: init IDT and IRQ success, calling schedule\n");
     schedule();

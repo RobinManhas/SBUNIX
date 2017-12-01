@@ -64,6 +64,7 @@ vm_area_struct* add_vma_at_last(mm_struct* mm, uint64_t len, uint64_t flags, fil
     //aligning to PAGESIZE
     start_addr = (uint64_t) ((((pointer->vm_end - 1) >> 12) + 1) << 12);
 
+    kprintf("\nadding vma at last: %x\n",start_addr);
     new_vma = allocate_vma(start_addr, start_addr + len, flags, file, offset);
     new_vma->vm_mm = mm;
 
@@ -256,7 +257,7 @@ uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags,
 
 uint64_t allocate_heap(mm_struct* mm) {
     // at heap at last
-    uint64_t start_addr = add_vma_at_last(mm, 0, PTE_W, NULL, 0, 0)->vm_start;
+    uint64_t start_addr = add_vma_at_last(mm, 1, PTE_W, NULL, 0, 0)->vm_start;
 
     mm->start_brk = start_addr;
     mm->brk = start_addr;

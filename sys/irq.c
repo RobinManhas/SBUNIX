@@ -74,8 +74,8 @@ void init_irq()
     unsigned char ring0Attr = PRES | DPL_0 | S | INTR_GATE;
     unsigned char ring3Attr = PRES | DPL_3 | S | INTR_GATE;
     irq_remap();
-    idt_set_gate(32, (long)_irq0, 0x08, ring0Attr);
-    idt_set_gate(33, (long)_irq1, 0x08, ring0Attr);
+    idt_set_gate(32, (long)_irq0, 0x08, ring3Attr);
+    idt_set_gate(33, (long)_irq1, 0x08, ring3Attr);
     idt_set_gate(0, (long)isr0, 0x08, ring0Attr);
     idt_set_gate(1, (long)isr0, 0x08, ring0Attr);
     idt_set_gate(2, (long)isr0, 0x08, ring0Attr);

@@ -74,18 +74,19 @@ void skill(/* kills the current active process */){
     killTask(CURRENT_TASK);
 }
 
-uint64_t sbrk(uint64_t size){
-   mm_struct* mm = getCurrentTask()->mm;
-    if (size == 0)
+uint64_t sbrk(uint64_t pointer){
+
+    mm_struct* mm = getCurrentTask()->mm;
+    if (pointer == 0)
         return mm->brk;
     else{
         vm_area_struct* heap = find_vma(mm, mm->brk);
         if(heap == NULL){
-            kprintf("ERROR: heap not found in brk");
+            kprintf("ERROR: Heap not found in brk\n");
             return 0;
         }
-        mm->brk += size;
-        heap->vm_end = mm->brk;
+        mm->brk =  pointer;
+        heap->vm_end = mm->brk+1;
     }
     return mm->brk;
 }
@@ -138,7 +139,7 @@ int syscall_handler(struct regs* reg) {
 //            break;
           case SYSCALL_BRK:
               value = sbrk(reg->rdi);
-//            break;
+                break;
 //        case SYSCALL_PIPE:
 //            break;
 //        case SYSCALL_DUP2:
