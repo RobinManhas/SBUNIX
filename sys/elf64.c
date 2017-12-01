@@ -100,7 +100,6 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file)
 //    vm = find_vma(task->mm,0x60117c);
 //    allocate_pages_to_vma(vm,&pml4_pointer);
 
-
     kprintf("elf loaded successfully\n");
     return 1;
 

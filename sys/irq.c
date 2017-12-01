@@ -26,7 +26,6 @@ void isr14();
 void syscall();
 void isr13();
 
-
 extern void syscall_handler();
 void handle_page_fault(struct regs* reg);
 
