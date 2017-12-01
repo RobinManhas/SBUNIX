@@ -24,44 +24,8 @@ void _irq1();
 void isr0();
 void isr14();
 void syscall();
-void ISR_HANDLER_0();
-void ISR_HANDLER_1();
+void isr13();
 
-void ISR_HANDLER_2();
-
-void ISR_HANDLER_3();
-
-void ISR_HANDLER_4();
-
-void ISR_HANDLER_5();
-void ISR_HANDLER_6();
-
-void ISR_HANDLER_7();
-
-void ISR_HANDLER_8();
-
-void ISR_HANDLER_9();
-void ISR_HANDLER_10();
-
-void ISR_HANDLER_11();
-
-void ISR_HANDLER_12();
-void ISR_HANDLER_13();
-void ISR_HANDLER_16();
-void ISR_HANDLER_17();
-
-void ISR_HANDLER_18();
-
-void ISR_HANDLER_19();
-void ISR_HANDLER_20();
-void ISR_HANDLER_21();
-void ISR_HANDLER_22();
-void ISR_HANDLER_23();
-
-void ISR_HANDLER_24();
-
-void ISR_HANDLER_25();
-void ISR_HANDLER_26();
 
 extern void syscall_handler();
 void handle_page_fault(struct regs* reg);
@@ -112,35 +76,35 @@ void init_irq()
     irq_remap();
     idt_set_gate(32, (long)_irq0, 0x08, ring0Attr);
     idt_set_gate(33, (long)_irq1, 0x08, ring0Attr);
-    idt_set_gate(0, (long)ISR_HANDLER_0, 0x08, ring0Attr);
-    idt_set_gate(1, (long)ISR_HANDLER_1, 0x08, ring0Attr);
-    idt_set_gate(2, (long)ISR_HANDLER_2, 0x08, ring0Attr);
-    idt_set_gate(3, (long)ISR_HANDLER_3, 0x08, ring0Attr);
-    idt_set_gate(4, (long)ISR_HANDLER_4, 0x08, ring0Attr);
-    idt_set_gate(5, (long)ISR_HANDLER_5, 0x08, ring0Attr);
-    idt_set_gate(6, (long)ISR_HANDLER_6, 0x08, ring0Attr);
-    idt_set_gate(7, (long)ISR_HANDLER_7, 0x08, ring0Attr);
-    idt_set_gate(8, (long)ISR_HANDLER_8, 0x08, ring0Attr);
-    idt_set_gate(9, (long)ISR_HANDLER_9, 0x08, ring0Attr);
-    idt_set_gate(10, (long)ISR_HANDLER_10, 0x08, ring0Attr);
-    idt_set_gate(11, (long)ISR_HANDLER_11, 0x08, ring0Attr);
-    idt_set_gate(12, (long)ISR_HANDLER_12, 0x08, ring0Attr);
-    idt_set_gate(13, (long)ISR_HANDLER_13, 0x08, ring0Attr);
+    idt_set_gate(0, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(1, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(2, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(3, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(4, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(5, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(6, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(7, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(8, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(9, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(10, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(11, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(12, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(13, (long)isr13, 0x08, ring0Attr);
     idt_set_gate(14, (long)isr14, 0x08, ring0Attr);
     idt_set_gate(15, (long)isr0, 0x08, ring0Attr);
-    idt_set_gate(16, (long)ISR_HANDLER_16, 0x08, ring0Attr);
-    idt_set_gate(17, (long)ISR_HANDLER_17, 0x08, ring0Attr);
-    idt_set_gate(18, (long)ISR_HANDLER_18, 0x08, ring0Attr);
-    idt_set_gate(19, (long)ISR_HANDLER_19, 0x08, ring0Attr);
+    idt_set_gate(16, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(17, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(18, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(19, (long)isr0, 0x08, ring0Attr);
 
 
-    idt_set_gate(20, (long)ISR_HANDLER_20, 0x08, ring0Attr);
-    idt_set_gate(21, (long)ISR_HANDLER_21, 0x08, ring0Attr);
-    idt_set_gate(22, (long)ISR_HANDLER_22, 0x08, ring0Attr);
-    idt_set_gate(23, (long)ISR_HANDLER_23, 0x08, ring0Attr);
-    idt_set_gate(24, (long)ISR_HANDLER_24, 0x08, ring0Attr);
-    idt_set_gate(25, (long)ISR_HANDLER_25, 0x08, ring0Attr);
-    idt_set_gate(26, (long)ISR_HANDLER_26, 0x08, ring0Attr);
+    idt_set_gate(20, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(21, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(22, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(23, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(24, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(25, (long)isr0, 0x08, ring0Attr);
+    idt_set_gate(26, (long)isr0, 0x08, ring0Attr);
 
 
     idt_set_gate(26, (long)isr0, 0x08, ring0Attr);
@@ -155,7 +119,7 @@ void init_irq()
     idt_set_gate(31, (long)isr0, 0x08, ring0Attr);
     idt_set_gate(128, (long)syscall, 0x08, ring3Attr);
 
-    //outb(0x21,0xFD);   // to disable irq lines : 0xFD=11111101 enable only keyboard(0 to enable)
+    outb(0x21,0xFD);   // to disable irq lines : 0xFD=11111101 enable only keyboard(0 to enable)
 }
 
 

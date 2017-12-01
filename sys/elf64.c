@@ -97,6 +97,9 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file)
     vm_area_struct* vm = find_vma(task->mm,task->rip);
     allocate_pages_to_vma(vm,&pml4_pointer);
 
+//    vm = find_vma(task->mm,0x60117c);
+//    allocate_pages_to_vma(vm,&pml4_pointer);
+
 
     kprintf("elf loaded successfully\n");
     return 1;
@@ -104,7 +107,7 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file)
 }
 
 int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[]){
-    kprintf("inside load_elf_binary_by_name\n");
+    //kprintf("inside load_elf_binary_by_name\n");
     file_table* file = find_file(binary_name);
     if(file == NULL){
         kprintf("file not found\n");

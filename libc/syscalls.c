@@ -21,11 +21,11 @@ return ret;
 	return ret; 
 }
 
- long syscall3(const long syscall,const long arg1,const long arg2,const long arg3) 
-{ 
+ long syscall3(const long syscall,const long arg1,const long arg2,const long arg3)
+{
 long ret;
 __asm__("movq %1,%%rax;movq %2,%%rdi; movq %3,%%rsi; movq %4,%%rdx;syscall" : "=r" (ret):"0"(syscall), "g"(arg1), "g"(arg2) ,"g"(arg3) :"memory" );
-return ret; 
+return ret;
 }
 
 long syscall4(const long syscall,const long arg1,const long arg2,const long arg3, const long arg4)

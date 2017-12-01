@@ -117,12 +117,12 @@ void init_tarfs(){
 
     }
     //for debug purpose only
-    for(int i =0 ; i <FILES_MAX; i++){
-        if(NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
-            break;
-        kprintf("%s  %d  %d\n",tarfs[i]->name, tarfs[i]->type, tarfs[i]->noOfChild);
-
-    }
+//    for(int i =0 ; i <FILES_MAX; i++){
+//        if(NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
+//            break;
+//        kprintf("%s  %d  %d\n",tarfs[i]->name, tarfs[i]->type, tarfs[i]->noOfChild);
+//
+//    }
 
 
 }
@@ -240,7 +240,7 @@ file_table* find_file(char* file_name){
     for(int i =0;i<FILES_MAX ; i++) {
         if (NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
             break;
-        kprintf("file :%s\n", tarfs[i]->name);
+        //kprintf("file :%s\n", tarfs[i]->name);
 
         if ((strcmp(tarfs[i]->name, file_name) == 0) && tarfs[i]->type == FILE) {
             kprintf("file found:");

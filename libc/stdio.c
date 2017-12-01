@@ -91,6 +91,8 @@ int puts(const char *s)
 }
 
 
+
+
 size_t sys_execve(char* filename, char** args, char ** envs){
   return syscall3(SYSCALL_EXECVE,(long)filename, (long)args, (long) envs);
 }
@@ -131,47 +133,47 @@ int dup2(int fd, int newfd){
   return syscall2(SYSCALL_DUP2,fd,newfd);
 }
 
-//int getch(){
-//  int c ;
-//  if(sys_read(1, &c, 1) > 0){
-//    return c;
-//  }
-//  return ERROR;
-//}
+int getch(){
+  int c ;
+  if(sys_read(1, &c, 1) > 0){
+    return c;
+  }
+  return ERROR;
+}
 
-//char *gets(char* s) {
-//  char read;
-//  //str =s;
-//  for( int count=0; ; count++){
-//    read = getch();
-//    if ( read == -1 || read == '\n'){
-//      s[count]='\0';
-//      break;
-//    }
-//    s[count]= read;
-//  }
-//  return s;
-//}
+char *gets(char* s) {
+  char read;
+  //str =s;
+  for( int count=0; ; count++){
+    read = getch();
+    if ( read == -1 || read == '\n'){
+      s[count]='\0';
+      break;
+    }
+    s[count]= read;
+  }
+  return s;
+}
 
 pid_t fork(){
   return syscall0(SYSCALL_FORK);
 }
 
-//int filegets(char *str , int size,int fd){
-//  char s='\0';
-//  int i = 0;
-//  int ret = sys_read(fd, &s, 1);
-//  while(s!='\n' && ret!=0){
-//    str[i]=s;
-//    i++;
-//    if(i>=size){
-//      break;
-//    }
-//    ret = sys_read(fd, &s, 1);
-//  }
-//  str[i]='\0';
-//  return ret;
-//}
+int filegets(char *str , int size,int fd){
+  char s='\0';
+  int i = 0;
+  int ret = sys_read(fd, &s, 1);
+  while(s!='\n' && ret!=0){
+    str[i]=s;
+    i++;
+    if(i>=size){
+      break;
+    }
+    ret = sys_read(fd, &s, 1);
+  }
+  str[i]='\0';
+  return ret;
+}
 
 int pipe(int pipefd[2]){
   return syscall1(SYSCALL_PIPE,(long)pipefd);
