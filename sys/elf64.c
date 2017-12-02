@@ -3,7 +3,6 @@
 //
 #include <sys/elf64.h>
 #include <sys/tarfs.h>
-#include <sys/kstring.h>
 #include <sys/kprintf.h>
 #include <sys/kmalloc.h>
 #include <sys/util.h>
@@ -58,7 +57,7 @@
 //    return NULL;
 //}
 //loads segments from elf binary image
-int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file){
+int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file, char *argv[],char * envp[]){
 
     int is_exe = 0;
    if(NULL == elf_header){
@@ -90,7 +89,10 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file)
     }
     //allocate heap
     allocate_heap(task->mm);
-    allocate_stack(task);
+
+
+
+    allocate_stack(task,argv, envp);
 
     //allocate page for e_entry address
     uint64_t * pml4_pointer = (uint64_t*)task->cr3;
@@ -100,12 +102,11 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file)
 //    vm = find_vma(task->mm,0x60117c);
 //    allocate_pages_to_vma(vm,&pml4_pointer);
 
-    kprintf("elf loaded successfully\n");
     return 1;
 
 }
 
-int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[]){
+int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[],char * envp[]){
     //kprintf("inside load_elf_binary_by_name\n");
     file_table* file = find_file(binary_name);
     if(file == NULL){
@@ -130,12 +131,12 @@ int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[]){
     }
 
     if(task == NULL) {
-        kprintf("task is null; allocating new task\n");
+        //kprintf("task is null; allocating new task\n");
         task = getFreeTask();
         createUserProcess(task);
     }
 
-    return load_elf_binary(elf_header,task,file);
+    return load_elf_binary(elf_header,task,file,argv,envp);
     //return 1;
 }
 

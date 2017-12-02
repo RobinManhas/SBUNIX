@@ -14,7 +14,7 @@ file_table* new_file_table(char* name, char type,uint64_t size, uint64_t first ,
 
     file_table* newFile = (file_table *)kmalloc_size(sizeof(file_table));
     //kprintf("size of filetable %d\n", sizeof(file_table));
-    strcpy(newFile->name,name);
+    kstrcpy(newFile->name,name);
     newFile->type = type;
     newFile->size = size;
     newFile->current = first;
@@ -47,12 +47,12 @@ file_table* get_parent_folder(char* name, unsigned int len){
             return NULL;
     }
     char* parent_name = kmalloc(); // to be changed;need to provide size
-    strncpy(parent_name,name,len+1);
+    kstrncpy(parent_name,name,len+1);
     //kprintf("parent folder is: %s\n",parent_name);
     for(int i =0;i<FILES_MAX ; i++){
-        if(NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
+        if(NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
             break;
-        if(strcmp(tarfs[i]->name, parent_name)==0) {
+        if(kstrcmp(tarfs[i]->name, parent_name)==0) {
             //kprintf("parent found");
             return tarfs[i];
         }
@@ -89,19 +89,19 @@ void init_tarfs(){
         start = (struct posix_header_ustar*)(&_binary_tarfs_start+ tmp);
         pointer = (uint64_t *)start;
 
-        if(strlen(start->name) == 0) {
+        if(kstrlen(start->name) == 0) {
             break;
         }
        //kprintf("filename %s\n",start->name);
        //kprintf("file size %s\n",start->size);
-        size = octalToDecimal(stoi(start->size));
+        size = octalToDecimal(kstoi(start->size));
         if(size% header_size != 0){
             tmp += (size  + (header_size - size %header_size)+ header_size);
         }
         else
             tmp += (size + header_size);
 
-       length = strlen(start->name);
+       length = kstrlen(start->name);
         if(start->typeflag   == DIRECTORY) {
             //kprintf("processing for directory\n");
             parent = get_parent_folder(start->name,length-1);
@@ -137,9 +137,9 @@ void init_tarfs(){
  */
 DIR *opendir(const char *name){
     for(int i =0;i<FILES_MAX ; i++) {
-        if (NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
+        if (NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
             break;
-        if ((strcmp(tarfs[i]->name, name) == 0) && tarfs[i]->type == DIRECTORY) {
+        if ((kstrcmp(tarfs[i]->name, name) == 0) && tarfs[i]->type == DIRECTORY) {
             kprintf("directory found\n");
             DIR* dir = (DIR*)kmalloc();
             dir->filenode = tarfs[i];
@@ -156,7 +156,7 @@ dirent *readdir(DIR *dirp){
     if(NULL == dirp || dirp->filenode->type != DIRECTORY)
         return NULL;
     if((dirp->curr >0) && (dirp->filenode->noOfChild > 2) && (dirp->curr < dirp->filenode->noOfChild) ){
-        strcpy(dirp->curr_dirent.d_name , dirp->filenode->child[dirp->curr]->name);
+        kstrcpy(dirp->curr_dirent.d_name , dirp->filenode->child[dirp->curr]->name);
         dirp->curr++;
         return &dirp->curr_dirent;
     }
@@ -179,9 +179,9 @@ int open_file(char* file, int flag){ // returns filedescriptor id
     FD* filedesc;
     task_struct* currentTask = getCurrentTask();
     for(int i =0;i<FILES_MAX ; i++) {
-        if (NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
+        if (NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
             break;
-        if ((strcmp(tarfs[i]->name, file) == 0) && tarfs[i]->type == FILE) {
+        if ((kstrcmp(tarfs[i]->name, file) == 0) && tarfs[i]->type == FILE) {
             kprintf("file found\n");
             filedesc =(FD*)kmalloc();
             //filedesc->current_process = currentTask;
@@ -213,7 +213,7 @@ uint64_t read_file(int fdNo, uint64_t buf,int size){
         if (size > end - read_current) {
             size = end - read_current;
         }
-        memcpy((void *) buf, (void *) read_current, size);
+        kmemcpy((void *) buf, (void *) read_current, size);
         filedesc->current_pointer += size;
         return  size;
     }
@@ -238,12 +238,12 @@ uint64_t write_file(char* s,uint64_t write_len){
 file_table* find_file(char* file_name){
     file_table* file = NULL;
     for(int i =0;i<FILES_MAX ; i++) {
-        if (NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
+        if (NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
             break;
         //kprintf("file :%s\n", tarfs[i]->name);
 
-        if ((strcmp(tarfs[i]->name, file_name) == 0) && tarfs[i]->type == FILE) {
-            kprintf("file found:");
+        if ((kstrcmp(tarfs[i]->name, file_name) == 0) && tarfs[i]->type == FILE) {
+            //kprintf("file found:");
             file = tarfs[i];
             break;
         }

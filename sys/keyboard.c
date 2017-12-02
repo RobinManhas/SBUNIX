@@ -224,7 +224,7 @@ void keyboard_handler() {
 
 }
 void init_keyboard() {
-    kprintf("inside keyboard init \n");
+    //kprintf("inside keyboard init \n");
     irq_install_handler(1, &keyboard_handler);
 
 }

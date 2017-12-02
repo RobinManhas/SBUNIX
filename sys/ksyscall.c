@@ -37,7 +37,7 @@ uint64_t rdmsr(uint64_t id) {
 }
 
 void syscalls_init() {
-    kprintf("Inside syscall init\n");
+    //kprintf("Inside syscall init\n");
     uint64_t efer = rdmsr(MSR_EFER)|0x1;
     wrmsr(MSR_EFER, efer);
 
@@ -46,7 +46,7 @@ void syscalls_init() {
     uint64_t val = ((uint64_t)0x1b << 48 |(uint64_t)0x8 << 32);
     wrmsr(MSR_STAR,val);
     wrmsr(MSR_LSTAR, (uint64_t)syscall_entry);
-    wrmsr(MSR_SYSCALL_MASK, 1<<9);
+    //wrmsr(MSR_SYSCALL_MASK, 1<<9);
 }
 
 
@@ -109,10 +109,10 @@ uint64_t sbrk(uint64_t pointer){
 //    return newfd;
 //}
 
-int s_exev(char* binary_name, char *argv[]){
+int s_exev(char* binary_name, char *argv[],char* envp[]){
     //clear exisiting mm
     memset(getCurrentTask()->mm,0, sizeof(mm_struct));
-    load_elf_binary_by_name(getCurrentTask(),binary_name,argv);
+    load_elf_binary_by_name(getCurrentTask(),binary_name,argv,envp);
     return 1;
 }
 
@@ -148,8 +148,9 @@ int syscall_handler(struct regs* reg) {
 //        case SYSCALL_GETPID:
 //            value = sgetpid();
 //            break;
-//        case SYSCALL_FORK:
-//            break;
+        case SYSCALL_FORK:
+            value = sys_fork();
+            break;
 //        case SYSCALL_EXECVE:
 //            break;
         case SYSCALL_EXIT:

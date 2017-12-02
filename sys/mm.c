@@ -64,7 +64,7 @@ vm_area_struct* add_vma_at_last(mm_struct* mm, uint64_t len, uint64_t flags, fil
     //aligning to PAGESIZE
     start_addr = (uint64_t) ((((pointer->vm_end - 1) >> 12) + 1) << 12);
 
-    kprintf("\nadding vma at last: %x\n",start_addr);
+    //kprintf("\nadding vma at last: %x\n",start_addr);
     new_vma = allocate_vma(start_addr, start_addr + len, flags, file, offset);
     new_vma->vm_mm = mm;
 
@@ -103,7 +103,7 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
     //uint64_t * parent_pml4_pointer = (uint64_t*)parent_task->cr3;
     uint64_t * child_pml4_pointer = (uint64_t*)child_task->cr3;
 
-    memcpy((void *) child_task->mm, (void *) parent_task->mm, sizeof(mm_struct));
+    kmemcpy((void *) child_task->mm, (void *) parent_task->mm, sizeof(mm_struct));
 
     child_task->mm->vma_list = NULL;
     vm_area_struct *child_vm_pointer = NULL;
@@ -216,9 +216,7 @@ uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags,
         new_vm = allocate_vma(addr, addr + len, flags, file,offset);
         new_vm->vm_mm = task->mm;
 
-        kprintf("node start %p, end%p fd %d\n", new_vm->vm_start, new_vm->vm_end, new_vm->file);
-
-
+        kprintf("vma start %p, end %p fd %p\n", new_vm->vm_start, new_vm->vm_end, new_vm->file);
         vm_area_struct* curr = task->mm->vma_list;
         if(curr == NULL){
             task->mm->vma_list = new_vm;
@@ -261,12 +259,22 @@ uint64_t allocate_heap(mm_struct* mm) {
 
     mm->start_brk = start_addr;
     mm->brk = start_addr;
-    kprintf("heap allocation completed\n");
     return start_addr;
 }
 
+int no_of_elements(char** arr) {
+    if(arr == NULL)
+        return 0;
+    int l = 0;
+    while(*arr++)
+        l++;
+    return l;
+}
 
-uint64_t allocate_stack(task_struct* task) {
+
+
+uint64_t allocate_stack(task_struct* task,char *argv[], char *envp[]) {
+
 
     task->mm->start_stack = MM_STACK_START;
 
@@ -277,10 +285,66 @@ uint64_t allocate_stack(task_struct* task) {
     pointer->vm_next = stack;
 
     allocate_single_page(task,MM_STACK_START);
-    kprintf("stack start : %x\n",MM_STACK_START);
-    task->user_rsp = (uint64_t )(MM_STACK_START);
+    task->mm->start_stack = (uint64_t)MM_STACK_START;
 
-    kprintf("stack allocation complete, rsp: %x, task_cr3: %x\n",task->user_rsp,task->cr3);
+
+
+    //set argv and envp
+    //check & validate data
+
+
+    uint64_t * task_cr3 = (uint64_t*)task->cr3;
+    uint64_t * curr_cr3 = (uint64_t *)getCurrentTask()->cr3;
+    setCR3(task_cr3);
+    int argc_count = no_of_elements(argv);
+    int envp_count = no_of_elements(envp);
+    //kprintf("argc count: %d, envp count: %d\n",argc_count,envp_count);
+
+    uint64_t * stack_top = (uint64_t*) task->mm->start_stack;
+    uint64_t *arg_tmp[20];
+    uint64_t *env_tmp[20];
+    int i, l;
+    //envp strings
+    for (i=envp_count-1; i>=0; i--) {
+        l = kstrlen(envp[i])+1;
+        stack_top = (uint64_t*)((void*)stack_top - l);
+        kmemcpy((char*)stack_top, envp[i], l);
+        env_tmp[i] = stack_top;
+    }
+    //argv strings
+    for (i=argc_count-1; i>=0; i--) {
+        l = kstrlen(argv[i])+1;
+        stack_top = (uint64_t*)((void*)stack_top - l);
+        kmemcpy((char*)stack_top, argv[i], l);
+        arg_tmp[i] = stack_top;
+    }
+    stack_top--;
+    *stack_top = 0;
+    // envp pointers
+    for (i = envp_count-1; i >= 0; i--) {
+        stack_top--;
+        *stack_top = (uint64_t)env_tmp[i];
+        kprintf("env pointer:%p value: %s\n", stack_top, *stack_top);
+    }
+
+    stack_top--;
+    *stack_top = 0;
+   //argv pointers
+    for (i = argc_count-1; i >= 0; i--) {
+        stack_top--;
+        *stack_top = (uint64_t)arg_tmp[i];
+        kprintf("arg pointer: %p value: %s\n", stack_top, *stack_top);
+    }
+    stack_top--;
+    *stack_top = (uint64_t)argc_count;
+    // Store the arg count
+    kprintf("argc pointer %p; value: %d ; user_rsp: %p\n", stack_top, *stack_top, stack_top);
+
+    // Reset stack pointer
+    task->user_rsp = (uint64_t )(stack_top);
+
+    setCR3(curr_cr3);
+
     return MM_STACK_START;
 }
 
@@ -322,7 +386,7 @@ void allocate_pages_to_vma(vm_area_struct* vma,uint64_t** pml_ptr){
 
             //is the code was executed by kernel; then set cr3 of this task
             setCR3(*pml_ptr);
-            memcpy((uint64_t *)start,(uint64_t *)(file_content_pointer+vma->file_offset),bytes_to_copy);
+            kmemcpy((uint64_t *)start,(uint64_t *)(file_content_pointer+vma->file_offset),bytes_to_copy);
             setCR3((uint64_t *)getCurrentTask()->cr3);
             vma->file_offset += bytes_to_copy;
         }
@@ -330,8 +394,8 @@ void allocate_pages_to_vma(vm_area_struct* vma,uint64_t** pml_ptr){
         no_of_pages--;
         start = start+bytes_to_copy;
     }
-    kprintf("virtual addre %x\n",(uint64_t**)vma->vm_start);
-    kprintf("getcr3 %x\n",getCR3());
+//    kprintf("virtual addre %x\n",(uint64_t**)vma->vm_start);
+//    kprintf("getcr3 %x\n",getCR3());
 
 }
 

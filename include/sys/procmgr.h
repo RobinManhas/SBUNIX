@@ -38,7 +38,7 @@ typedef struct task_struct{
 
     uint64_t rsp;  //kernel rsp
     uint64_t kernInitRSP;
-    
+
     uint64_t user_rsp;
     uint64_t user_rip;
     uint64_t cr3;
@@ -125,6 +125,7 @@ void destroy_task(task_struct *task);
 void removeTaskFromRunList(task_struct *task);
 void moveTaskToZombie(task_struct *task);
 task_struct* getCurrentTask();
+pid_t sys_fork();
 //task_struct* currentTask;
 
 #endif //OS_PROCESSM_H

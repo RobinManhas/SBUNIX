@@ -4,7 +4,7 @@
 
 
 
-unsigned int strlen(const char *s){
+unsigned int kstrlen(const char *s){
 	if(!s){
 		return -1;
 	}
@@ -14,7 +14,7 @@ unsigned int strlen(const char *s){
 }
 
 
-int strcmp(const char *s1, const char *s2){
+int kstrcmp(const char *s1, const char *s2){
 	while(*s1 && *s2 && *s1 == *s2) {
 		s1++;
 		s2++;
@@ -23,7 +23,7 @@ int strcmp(const char *s1, const char *s2){
 }
 
 
-long stoi(const char *s){
+long kstoi(const char *s){
     long result = 0;
 	while(*s !='\0' && *s>='0' && *s <='9'){
         result = result*10 + (*s-'0');
@@ -32,7 +32,7 @@ long stoi(const char *s){
     return result;
 }
 
-char *strcpy(char *dest, const char *src){
+char *kstrcpy(char *dest, const char *src){
 	unsigned int s = 0;
 	for(s=0;src[s]!='\0';s++){
 		dest[s]=src[s];
@@ -41,7 +41,7 @@ char *strcpy(char *dest, const char *src){
 	return dest;
 }
 
-void* memcpy( void* dest, const void* src, unsigned long count) {
+void* kmemcpy( void* dest, const void* src, unsigned long count) {
 	char *d = dest;
 	const char *s = src;
 	for (int i = 0; i < count; i++) {
@@ -52,7 +52,7 @@ void* memcpy( void* dest, const void* src, unsigned long count) {
 
 
 
-char *strncpy(char *dest, const char *src, unsigned int n){
+char *kstrncpy(char *dest, const char *src, unsigned int n){
     unsigned int i =0;
     for(i=0;i<n;i++){
         dest[i]=src[i];

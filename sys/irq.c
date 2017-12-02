@@ -162,11 +162,11 @@ void _irq_handler(struct regs* reg)
 
 void handle_page_fault(struct regs* reg){
     task_struct* current_task = getCurrentTask();
-    kprintf("inside page fault\n");
+    kprintf("inside page fault: ");
     uint64_t faulty_addr;
     __asm__ __volatile__ ("movq %%cr2, %0;" : "=r"(faulty_addr));
 
-    kprintf("error:%x\n",faulty_addr);
+    kprintf("error addr:%x\n",faulty_addr);
     uint64_t err_code = reg->err_code;
     uint64_t new_page,new_vir;
     uint64_t * pml4_pointer = (uint64_t*)current_task->cr3;
@@ -188,7 +188,7 @@ void handle_page_fault(struct regs* reg){
                 map_user_virt_phys_addr(new_vir,new_page,&pml4_pointer);
 
                 //copy contents from old page to new page
-                memcpy((uint64_t *)new_vir,(uint64_t *)faulty_addr,PAGE_SIZE);
+                kmemcpy((uint64_t *)new_vir,(uint64_t *)faulty_addr,PAGE_SIZE);
 
                 *phy_addr = new_page|PTE_U_W_P;
                 page->sRefCount--;
@@ -207,7 +207,7 @@ void handle_page_fault(struct regs* reg){
         vm_area_struct* vma = find_vma(current_task->mm,faulty_addr);
         if(vma == NULL){
             kprintf("ERROR: page fault address is out of bound");
-            return;
+            __asm__ volatile("hlt");;
         }
         //allocate all pages to vma if file is present
         if(vma->file != NULL)

@@ -31,7 +31,7 @@ uint64_t read_terminal(int fdNo, uint64_t buf,int size){
         schedule();
     }
 
-    memcpy((void*)buf,(void*)buffer,buf_pointer);
+    kmemcpy((void*)buf,(void*)buffer,buf_pointer);
     task_assigned_to_terminal=NULL;
     return buf_pointer;
 

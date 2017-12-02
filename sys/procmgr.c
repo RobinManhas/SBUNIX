@@ -334,7 +334,7 @@ void createUserProcess(task_struct *user_task){
     __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(curr_rsp));
 
     curr_rsp = (curr_rsp>>12)<<12;
-    memcpy(user_task->stack, (uint64_t *)curr_rsp, PAGE_SIZE);
+    kmemcpy(user_task->stack, (uint64_t *)curr_rsp, PAGE_SIZE);
 
 //    user_task->stack[499] = (uint64_t)(MM_STACK_START-0x10);
 //    user_task->rsp = (uint64_t )&user_task->stack[499];
@@ -354,7 +354,7 @@ void createUserProcess(task_struct *user_task){
 
     uint64_t userPage = (uint64_t)kmalloc();
     uint64_t kernPage = (((uint64_t)&userFunc) & ADDRESS_SCHEME);
-    memcpy((void*)userPage,(void*)kernPage ,PAGE_SIZE);
+    kmemcpy((void*)userPage,(void*)kernPage ,PAGE_SIZE);
 
 
     //NOTE: kernPage can be replace by the following to map function to start of new physical page
@@ -388,6 +388,7 @@ void createUserProcess(task_struct *user_task){
 
     user_task->mm = (mm_struct*)userPage;
     user_task->mm->v_addr_pointer = userbase;
+    user_task->mm->vma_cache = NULL;
 
     // map kernel
     kernPtr = getKernelPML4();
@@ -480,7 +481,7 @@ pid_t sys_fork() {
     __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(rsp));
     //aligning down
     rsp = (rsp>>12)<<12;
-    memcpy(child->stack, (uint64_t *)rsp, PAGE_SIZE);
+    kmemcpy(child->stack, (uint64_t *)rsp, PAGE_SIZE);
 //    child->kernInitRSP = &child->stack[499];
 //    //schedule the next process; parent will only run after child
 //    schedule();
