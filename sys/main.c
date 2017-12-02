@@ -60,19 +60,16 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     kernel_idle_task->name ="Idle_task";
     createKernelInitProcess(kernel_idle_task);
 
-    task1 = getFreeTask();
-    createKernelTask(task1,func1);
+    //task1 = getFreeTask();
+    //createKernelTask(task1,func1);
 
 //    task2 = getFreeTask();
 //    createKernelTask(task2,func2);
 //
-//    user_task = getFreeTask();
-//    createUserProcess(user_task);
+    user_task = getFreeTask();
+    createKernelTask(user_task,func1);
 
-    char * argv[]={"/bin/sbush","/temp", NULL};
-    char * envp[]={"PATH=/bin:", "HOME=/root", "USER=root", NULL};
-
-    load_elf_binary_by_name(NULL,"bin/sbush",argv, envp);
+    //load_elf_binary_by_name(NULL,"bin/sbush",argv, envp);
 
     kprintf("In main: init IDT and IRQ success, calling schedule\n");
     schedule();

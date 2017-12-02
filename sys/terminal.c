@@ -89,11 +89,15 @@ void add_buffer(char c){
     //print on screen
     kputch(c);
     if(task_assigned_to_terminal != NULL) {
-        if (c == '\n' || buf_pointer > buffer_length) {
+        if (c == '\n' || buf_pointer+1 == buffer_length) {
             full_flag = 1;
+
+            buffer[buf_pointer++] = c;
+
             removeTaskFromBlocked(task_assigned_to_terminal);
             task_assigned_to_terminal->state = TASK_STATE_RUNNING;
             addTaskToReady(task_assigned_to_terminal);
+            task_assigned_to_terminal = NULL;
             schedule();
 
         } else if (c == '\b') {

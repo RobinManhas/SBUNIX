@@ -346,8 +346,7 @@ int processCommand(char* str){
 }
 
 
-//int main(int argc, char *argv[], char *envp[]) {
-int main(){
+int main(int argc, char *argv[], char *envp[]) {
     //putchar(envp[0][0]);
    // long addrArg = (long)argv;
     //char* argvalues = (char*)addrArg;
@@ -374,6 +373,7 @@ int main(){
     printCommandPrompt();
     while(gets(str) != NULL)
     {
+        puts(str);
 //        if(processCommand(str)== -1){
 //            break;
 //        }

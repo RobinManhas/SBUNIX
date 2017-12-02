@@ -32,9 +32,9 @@ int counter = 0;
 /* init function */
 void runner(){
     while(1) {
-        kprintf("inside kernel idle runner: %d\n",counter++);
-        if(counter == 10000) // wrap around
-            counter = 0;
+//        kprintf("inside kernel idle runner: %d\n",counter++);
+//        if(counter == 10000) // wrap around
+//            counter = 0;
         schedule();
     }
 }
@@ -51,17 +51,56 @@ void userFunc(){
 //    //schedule();
 //    while(1);
 }
+void createUserProcess_temp(task_struct *user_task){
+    uint64_t userbase = VIRBASE;
+    user_task->type = TASK_USER;
+    user_task->no_of_children = 0;
+    user_task->next = NULL;
+    user_task->nextChild = NULL;
 
+    user_task->fd[0]=create_terminal_IN();
+    FD* filedec = create_terminal_OUT();
+    user_task->fd[1]= filedec;
+    user_task->fd[2]= filedec;
+
+    uint64_t *userPtr,*kernPtr;
+    userPtr = (uint64_t*)user_task->cr3;
+    userPtr[510] = returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1);
+    userPtr[510] |= (PTE_U_W_P);
+
+    map_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),PTE_U_W_P);
+    map_user_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),&userPtr);
+    userbase+=0x1000;
+
+    // map stack
+    map_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),PTE_U_W_P);
+    map_user_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),&userPtr);
+    user_task->stack = (uint64_t*)userbase;
+    userbase+=0x1000;
+
+    uint64_t userPage = (uint64_t)kmalloc();
+    map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);
+    map_user_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),&userPtr);
+    userbase+=0x1000;
+
+    user_task->mm = (mm_struct*)userPage;
+    user_task->mm->v_addr_pointer = userbase;
+    user_task->mm->vma_cache = NULL;
+
+    // map kernel
+    kernPtr = getKernelPML4();
+    userPtr[511] = kernPtr[511];
+    userPtr[511] |= (PTE_U_W_P);
+}
 void func1()
 {
-    kprintf("Thread 1: Entry, task ID: %d\n",currentTask->pid);
-    schedule();
-    kprintf("Thread 1: Returning from switch first time\n");
-    schedule();
-    kprintf("Thread 1: Returning from switch second time\n");
-    schedule();
-    kprintf("Thread 1: Returning from switch third time\n");
-    schedule();
+//    kprintf("Thread 1: Entry, task ID: %d\n",current->pid);
+//    schedule();
+//    kprintf("Thread 1: Returning from switch first time\n");
+//    schedule();
+//    kprintf("Thread 1: Returning from switch second time\n");
+//    schedule();
+//    kprintf("Thread 1: Returning from switch third time\n");
 //    init_idt();
 //    init_irq();
 //    kprintf("Thread 1: init IDT and IRQ success\n");
@@ -70,6 +109,11 @@ void func1()
 //    init_timer();
 //    init_keyboard();
 //    __asm__ ("sti");
+    createUserProcess_temp(getCurrentTask());
+    char * argv[]={"/bin/sbush","/temp", NULL};
+    char * envp[]={"PATH=/bin:", "HOME=/root", "USER=root", NULL};
+    load_elf_binary_by_name(getCurrentTask(),"bin/sbush",argv,envp);
+    switch_to_user_mode(NULL,getCurrentTask());
     while(1);
 
 }
@@ -266,10 +310,14 @@ void schedule()
             }
         }
 
-        if(currentTask->type == TASK_KERNEL)
-            switch_to(prevTask,currentTask);
-        else if(currentTask->type == TASK_USER)
-            switch_to_user_mode(prevTask,currentTask);
+//        if(current->type == TASK_KERNEL)
+//            switch_to(prev,current);
+//        else if(current->type == TASK_USER)
+//            switch_to_user_mode(prev,current);
+        switch_to(prevTask,currentTask);
+        set_tss_rsp((uint64_t *)currentTask->rsp);
+        kernel_rsp = currentTask->rsp;
+
     }
 
 }
@@ -320,7 +368,7 @@ void createKernelTask(task_struct *task, void (*func)(void)){
 }
 
 void createUserProcess(task_struct *user_task){
-    uint64_t userbase = 0x55550000000UL;
+    uint64_t userbase = VIRBASE;
     user_task->type = TASK_USER;
     user_task->state = TASK_STATE_RUNNING;
     user_task->cr3 = (uint64_t)kmalloc();
@@ -416,8 +464,13 @@ void switch_to_user_mode(task_struct *oldTask, task_struct *user_task)
 //
 //    __asm__ __volatile__("movq %%rsp, %0":"=r"(oldTask->rsp));
 
-    set_tss_rsp((void*)(user_task->kernInitRSP - 16));
-    kernel_rsp = (user_task->kernInitRSP - 16);
+    uint64_t ret;
+    __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(ret));
+    ret = (ret>>12) <<12;
+    set_tss_rsp((uint64_t *)ret);
+    kernel_rsp = ret;
+    //set_tss_rsp((void*)(user_task->kernInitRSP - 16));
+    //kernel_rsp = (user_task->kernInitRSP - 16);
 
     setCR3((uint64_t*)user_task->cr3);
     __asm__ volatile("mov $0x23, %%ax"::);

@@ -46,7 +46,7 @@ void syscalls_init() {
     uint64_t val = ((uint64_t)0x1b << 48 |(uint64_t)0x8 << 32);
     wrmsr(MSR_STAR,val);
     wrmsr(MSR_LSTAR, (uint64_t)syscall_entry);
-    //wrmsr(MSR_SYSCALL_MASK, 1<<9);
+    //wrmsr(MSR_SYSCALL_MASK, 1<<9); //disable interrupts in syscall mode need to check this code
 }
 
 
@@ -97,17 +97,17 @@ uint64_t sbrk(uint64_t pointer){
 //    return 1;
 //}
 //
-//uint64_t sgetpid(){
-//    return currentTask->pid;
-//}
-//
-//uint64_t sdup2(uint64_t oldfd , uint64_t newfd){
-//    if (newfd == oldfd)
-//        return newfd;
-//    currentTask->fd[newfd] = NULL;
-//    currentTask->fd[newfd] = currentTask->fd[oldfd];
-//    return newfd;
-//}
+uint64_t sgetpid(){
+    return CURRENT_TASK->pid;
+}
+
+uint64_t sdup2(uint64_t oldfd , uint64_t newfd){
+    if (newfd == oldfd)
+        return newfd;
+    CURRENT_TASK->fd[newfd] = NULL;
+    CURRENT_TASK->fd[newfd] = CURRENT_TASK->fd[oldfd];
+    return newfd;
+}
 
 int s_exev(char* binary_name, char *argv[],char* envp[]){
     //clear exisiting mm
@@ -117,7 +117,7 @@ int s_exev(char* binary_name, char *argv[],char* envp[]){
 }
 
 int syscall_handler(struct regs* reg) {
-    int value = 0;
+    int value = -1;
     int syscallNo = reg->rax;
     //kprintf("syscall no %d\n",syscallNo);
     CURRENT_TASK = getCurrentTask();
@@ -142,9 +142,9 @@ int syscall_handler(struct regs* reg) {
                 break;
 //        case SYSCALL_PIPE:
 //            break;
-//        case SYSCALL_DUP2:
-//            value = sdup2(reg->rdi,reg->rsi);
-//            break;
+        case SYSCALL_DUP2:
+            value = sdup2(reg->rdi, reg->rsi);
+            break;
 //        case SYSCALL_GETPID:
 //            value = sgetpid();
 //            break;

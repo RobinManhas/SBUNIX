@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-int main(){
-    puts("helooooooo");
+int main(int argc, char *argv[], char *envp[]){
+puts("helooooooo");
     return 1;
 }
