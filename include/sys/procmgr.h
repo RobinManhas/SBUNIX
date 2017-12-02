@@ -26,7 +26,8 @@ typedef enum task_state {
     TASK_STATE_ZOMBIE = 3,
     TASK_STATE_IDLE = 4,
     TASK_STATE_KILLED = 5,
-    TASK_MAX = 5
+    TASK_STATE_KERNEL_RUNNER = 6,
+    TASK_MAX = 7
 }task_state;
 
 //should not increse 4096 bytes

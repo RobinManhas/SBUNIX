@@ -153,7 +153,7 @@ int syscall_handler(struct regs* reg) {
 //        case SYSCALL_EXECVE:
 //            break;
         case SYSCALL_EXIT:
-            schedule();
+            killTask(getCurrentTask());
 //            break;
 //        case SYSCALL_WAIT4:
 //            break;
@@ -164,7 +164,7 @@ int syscall_handler(struct regs* reg) {
 //        case SYSCALL_CHDIR:
 //            break;
         default:
-            kprintf("got a syscall\n");
+            kprintf("got a syscall : %d\n",syscallNo);
 
     }
     return value;

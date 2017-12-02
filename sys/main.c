@@ -60,8 +60,8 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     kernel_idle_task->name ="Idle_task";
     createKernelInitProcess(kernel_idle_task);
 
-//    task1 = getFreeTask();
-//    createKernelTask(task1,func1);
+    task1 = getFreeTask();
+    createKernelTask(task1,func1);
 
 //    task2 = getFreeTask();
 //    createKernelTask(task2,func2);

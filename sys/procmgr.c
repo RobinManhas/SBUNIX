@@ -21,19 +21,21 @@ task_struct* gReadyList = NULL;
 task_struct* gBlockedList = NULL;
 task_struct* gZombieList = NULL;
 
-task_struct *current=NULL, *prev=NULL;
+task_struct *currentTask=NULL, *prevTask=NULL;
 
 task_struct* tasks_list[100];
 
 task_struct* getCurrentTask(){
-    return current;
+    return currentTask;
 }
-
+int counter = 0;
 /* init function */
 void runner(){
     while(1) {
-        //kprintf("inside idle\n");
-        //schedule();
+        kprintf("inside kernel idle runner: %d\n",counter++);
+        if(counter == 10000) // wrap around
+            counter = 0;
+        schedule();
     }
 }
 
@@ -52,13 +54,14 @@ void userFunc(){
 
 void func1()
 {
-    kprintf("Thread 1: Entry, task ID: %d\n",current->pid);
+    kprintf("Thread 1: Entry, task ID: %d\n",currentTask->pid);
     schedule();
     kprintf("Thread 1: Returning from switch first time\n");
     schedule();
     kprintf("Thread 1: Returning from switch second time\n");
     schedule();
     kprintf("Thread 1: Returning from switch third time\n");
+    schedule();
 //    init_idt();
 //    init_irq();
 //    kprintf("Thread 1: init IDT and IRQ success\n");
@@ -73,7 +76,7 @@ void func1()
 
 void func2()
 {
-    kprintf("Thread 2: Entry, task ID: %d\n",current->pid);
+    kprintf("Thread 2: Entry, task ID: %d\n",currentTask->pid);
     schedule();
     kprintf("Thread 2: Returning from switch first time\n");
     schedule();
@@ -101,12 +104,12 @@ void addTaskToReady(task_struct *readyTask){
         //RM: add to end of ready list
         task_struct *iter = gReadyList;
         if(iter == readyTask){ // checks being added as a process got pushed to list multiple times
-            kprintf("Error: ready task already exists, returning\n");
+            kprintf("Error: ready task already exists : %d, returning\n",readyTask->pid);
             return;
         }
         while(iter->next != NULL){
             if(iter == readyTask){
-                kprintf("Error: ready task already exists, returning\n");
+                kprintf("Error: ready task already exists : %d, returning\n",readyTask->pid);
                 return;
             }
             iter = iter->next;
@@ -162,71 +165,96 @@ void addTaskToZombie(task_struct *zombieTask){
 
 void switch_to(task_struct *current, task_struct *next)
 {
-    __asm__ __volatile__("pushq %rax");
-    __asm__ __volatile__("pushq %rbx");
-    __asm__ __volatile__("pushq %rcx");
-    __asm__ __volatile__("pushq %rdx");
-    __asm__ __volatile__("pushq %rdi");
-    __asm__ __volatile__("pushq %rsi");
-    __asm__ __volatile__("pushq %rbp");
-    __asm__ __volatile__("pushq %r8");
-    __asm__ __volatile__("pushq %r9");
-    __asm__ __volatile__("pushq %r10");
-    __asm__ __volatile__("pushq %r11");
-    __asm__ __volatile__("pushq %r12");
 
-    __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
-    __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
-
-    if(next->init == 1){
-        next->init = 0;
+    if(next->state == TASK_STATE_KERNEL_RUNNER)
+    { // just put runner function into rsp and return, idle task can start from function beginning, hence do not need saving of registers
+        next->stack[510] = (uint64_t)runner;
+        next->rsp = (uint64_t)&next->stack[510];
+        __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
     }
     else{
-        __asm__ __volatile__("popq %r12");
-        __asm__ __volatile__("popq %r11");
-        __asm__ __volatile__("popq %r10");
-        __asm__ __volatile__("popq %r9");
-        __asm__ __volatile__("popq %r8");
-        __asm__ __volatile__("popq %rbp");
-        __asm__ __volatile__("popq %rsi");
-        __asm__ __volatile__("popq %rdi");
-        __asm__ __volatile__("popq %rdx");
-        __asm__ __volatile__("popq %rcx");
-        __asm__ __volatile__("popq %rbx");
-        __asm__ __volatile__("popq %rax");
+        __asm__ __volatile__("pushq %rax");
+        __asm__ __volatile__("pushq %rbx");
+        __asm__ __volatile__("pushq %rcx");
+        __asm__ __volatile__("pushq %rdx");
+        __asm__ __volatile__("pushq %rdi");
+        __asm__ __volatile__("pushq %rsi");
+        __asm__ __volatile__("pushq %rbp");
+        __asm__ __volatile__("pushq %r8");
+        __asm__ __volatile__("pushq %r9");
+        __asm__ __volatile__("pushq %r10");
+        __asm__ __volatile__("pushq %r11");
+        __asm__ __volatile__("pushq %r12");
+
+        __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
+        __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
+
+        if(next->init == 1){
+            next->init = 0;
+        }
+        else{
+            __asm__ __volatile__("popq %r12");
+            __asm__ __volatile__("popq %r11");
+            __asm__ __volatile__("popq %r10");
+            __asm__ __volatile__("popq %r9");
+            __asm__ __volatile__("popq %r8");
+            __asm__ __volatile__("popq %rbp");
+            __asm__ __volatile__("popq %rsi");
+            __asm__ __volatile__("popq %rdi");
+            __asm__ __volatile__("popq %rdx");
+            __asm__ __volatile__("popq %rcx");
+            __asm__ __volatile__("popq %rbx");
+            __asm__ __volatile__("popq %rax");
+        }
+
     }
+
 }
 
 void schedule()
 {
-    if(current != NULL /*gReadyList != NULL*/){
-        prev = current;
-        current = gReadyList;
-        if(current == NULL)
-            current = kernel_idle_task; // TODO: currently does not switch properly
+    if(currentTask != NULL /*gReadyList != NULL*/){
+        prevTask = currentTask;
+        currentTask = gReadyList;
+        if(currentTask == NULL){
+            if(prevTask->state == TASK_STATE_KERNEL_RUNNER)
+            {
+                currentTask = prevTask;
+                switch_to(prevTask,currentTask);
+            }
+            else if(prevTask->state == TASK_STATE_RUNNING){
+                currentTask = prevTask;
+                return;
+            }
+            else{ // cannot run previous task too, run idle task
+                currentTask = kernel_idle_task;
+                switch_to(prevTask,currentTask);
+            }
+        }
         else
             gReadyList = gReadyList->next;
 
-        // add prev task switched to end of ready list
-        switch(prev->state)
+        // add prevTask task switched to end of ready list
+        switch(prevTask->state)
         {
             case TASK_STATE_RUNNING:
             {
-                addTaskToReady(prev);
+                addTaskToReady(prevTask);
                 break;
             }
             case TASK_STATE_BLOCKED:
             {
-                addTaskToBlocked(prev);
+                addTaskToBlocked(prevTask);
                 break;
             }
             case TASK_STATE_ZOMBIE:
             {
-                addTaskToZombie(prev);
+                addTaskToZombie(prevTask);
                 break;
             }
             case TASK_STATE_IDLE:
             case TASK_STATE_KILLED:
+            case TASK_STATE_KERNEL_RUNNER:
             {
                 // don't add idle task or killed task to any queue.
                 break;
@@ -238,10 +266,10 @@ void schedule()
             }
         }
 
-        if(current->type == TASK_KERNEL)
-            switch_to(prev,current);
-        else if(current->type == TASK_USER)
-            switch_to_user_mode(prev,current);
+        if(currentTask->type == TASK_KERNEL)
+            switch_to(prevTask,currentTask);
+        else if(currentTask->type == TASK_USER)
+            switch_to_user_mode(prevTask,currentTask);
     }
 
 }
@@ -255,6 +283,7 @@ task_struct* getFreeTask()
 {
     task_struct *task = (task_struct*)kmalloc();
     task->pid = getFreePID();
+   // kprintf("assigned task add: %x, pid: %x\n",task,task->pid);
     tasks_list[task->pid] = task;
     return task;
 }
@@ -267,12 +296,11 @@ void createKernelInitProcess(task_struct *ktask){
     ktask->cr3 = (uint64_t)getKernelPML4();
     ktask->user_rip = (uint64_t) &runner;
     ktask->type = TASK_KERNEL;
-    ktask->state = TASK_STATE_IDLE;
+    ktask->state = TASK_STATE_KERNEL_RUNNER;
     ktask->no_of_children = 0;
     ktask->next = NULL;
     ktask->nextChild = NULL;
-    current = ktask;
-
+    currentTask = ktask;
 }
 
 void createKernelTask(task_struct *task, void (*func)(void)){
@@ -568,13 +596,13 @@ void killTask(task_struct *task){
         return;
 
     // user process can't kill kernel task
-    if(task->type == TASK_KERNEL && current->type != TASK_KERNEL) {
+    if(task->type == TASK_KERNEL && currentTask->type != TASK_KERNEL) {
         return;
     }
 
     destroy_task(task);
-    // make current active as zombie, add to zombie taken care in schedule
-    if(task == current){
+    // make currentTask active as zombie, add to zombie taken care in schedule
+    if(task == currentTask){
         task->state = TASK_STATE_KILLED;
         schedule();
     }
