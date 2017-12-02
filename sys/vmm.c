@@ -27,6 +27,8 @@ uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t vi
     uint64_t value;
     if(!pml_table){
         pml_table = (uint64_t*)allocatePage(); // not keeping track of page as this won't need freeing
+        pml_table[PML4_REC_SLOT] = (uint64_t)pml_table; // recursive slot
+        pml_table[PML4_REC_SLOT] |= PTE_U_W_P;
     }
 
     uint16_t pml4Off = ((virPageStart>>39)&0x1ff);
@@ -59,7 +61,7 @@ uint64_t* pageTablesInit(uint64_t phyPageStart, uint64_t phyPageEnd, uint64_t vi
        // kprintf("pm:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff]);
     }
 
-    //kprintf("pm:%x,pdp:%x,pp:%x,pt:%x\n",pml_table,pdp,pd,pt);
+    //kprintf("pm:%x,pdp:%x,pp:%x,pt:%x, 510: %x\n",pml_table,pdp,pd,pt,pml_table[PML4_REC_SLOT]);
 
     return pml_table;
 }
@@ -427,6 +429,108 @@ void map_virt_phys_addr_cr3(uint64_t vaddr, uint64_t paddr, uint64_t flags,int i
 
     //kprintf("IP pm:%x,pdp:%x,pp:%x,pt:%x,pml:%x\n",pml_table[pml4Off],pdp[pdpOff],pd[pdOff],pt[ptOff],pml_table);
     return;
+}
+
+uint64_t getPTEntry(uint64_t vaddr)
+{
+
+    uint64_t pageTableEntry = 0;
+
+    // keep this code as an alternate to current self reference implementation
+    uint64_t *pml=NULL,*pdp=NULL,*pd=NULL,*pt=NULL;
+    uint64_t *pml_entry=NULL,*pdp_entry=NULL,*pd_entry=NULL,*pt_entry=NULL;
+
+//    uint16_t pml4Off = ((vaddr>>39)&0x1ff);
+//    uint16_t pdpOff = ((vaddr>>30)&0x1ff);
+//    uint16_t pdOff = ((vaddr>>21)&0x1ff);
+//    uint16_t ptOff = ((vaddr>>12)&0x1ff);
+//    pml = pml_ptr;
+//    if(pml4Off <= 256)
+//        pdp = (uint64_t*)((((((((pml4Off << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 12ull) | 0x000000000000ull);
+//    else
+//        pdp = (uint64_t*)((((((((pml4Off << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 12ull) | 0xFFFF000000000000ull);
+//
+//    if(pml4Off <= 256)
+//        pd = (uint64_t*)((((((((pml4Off << 9ull ) | pdpOff) << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 12ull) | 0x000000000000ull);
+//    else
+//        pd = (uint64_t*)((((((((pml4Off << 9ull ) | pdpOff) << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 12ull) | 0xFFFF000000000000ull);
+//    if(pml4Off <= 256)
+//        pt = (uint64_t*)((((((((pml4Off << 9ull ) | pdpOff) << 9ull ) | pdOff) << 9ull ) | 0x1FEULL) << 12ull) | 0x000000000000ull);
+//    else
+//        pt = (uint64_t*)((((((((pml4Off << 9ull ) | pdpOff) << 9ull ) | pdOff) << 9ull ) | 0x1FEULL) << 12ull) | 0xFFFF000000000000ull);
+
+    // Important checks before PTE access, DO NOT REMOVE.
+    pml = (uint64_t*)M_PML4E(vaddr);
+    pml_entry = pml+M_PML4_OFF((uint64_t)vaddr);
+    if(*pml_entry & PTE_P){
+        pdp = (uint64_t*)M_PDPE(vaddr);
+        pdp_entry = pdp+M_PDP_OFF((uint64_t)vaddr);
+
+        if(*pdp_entry & PTE_P){
+            pd = (uint64_t*)M_PDE(vaddr);
+           pd_entry = pd+M_PD_OFF((uint64_t)vaddr);
+
+            if(*pd_entry & PTE_P){
+                pt = (uint64_t*)M_PTE(vaddr);
+                pt_entry = pt+M_PT_OFF((uint64_t)vaddr);
+
+                // return pt entry
+                pageTableEntry = *pt_entry;
+                //kprintf("pt entry for virpage: %x is %x, %x\n",vaddr,pt_entry,pageTableEntry);
+
+            } else {
+                kprintf("Error: couldn't fetch pt entry\n");
+                return 0; //failure
+            }
+        } else {
+            kprintf("Error: couldn't fetch pd entry\n");
+            return 0; //failure
+        }
+    } else {
+        kprintf("Error: couldn't fetch pdp entry\n");
+        return 0; //failure
+    }
+
+    return (uint64_t)pageTableEntry;
+}
+
+uint64_t setPTEntry(uint64_t vaddr, uint64_t paddr){
+    uint64_t *pml=NULL,*pdp=NULL,*pd=NULL,*pt=NULL;
+    uint64_t *pml_entry=NULL,*pdp_entry=NULL,*pd_entry=NULL,*pt_entry=NULL;
+
+    // Important checks before PTE set, DO NOT REMOVE.
+    pml = (uint64_t*)M_PML4E(vaddr);
+    pml_entry = pml+M_PML4_OFF((uint64_t)vaddr);
+    if(*pml_entry & PTE_P){
+        pdp = (uint64_t*)M_PDPE(vaddr);
+        pdp_entry = pdp+M_PDP_OFF((uint64_t)vaddr);
+
+        if(*pdp_entry & PTE_P){
+            pd = (uint64_t*)M_PDE(vaddr);
+            pd_entry = pd+M_PD_OFF((uint64_t)vaddr);
+
+            if(*pd_entry & PTE_P){
+                pt = (uint64_t*)M_PTE(vaddr);
+                pt_entry = pt+M_PT_OFF((uint64_t)vaddr);
+
+                // return pt entry
+                *pt_entry = paddr;
+                //kprintf("pt entry set for virpage: %x is %x, %x\n",vaddr,pt_entry,*pt_entry);
+
+            } else {
+                kprintf("Error: couldn't set pt entry\n");
+                return 0; //failure
+            }
+        } else {
+            kprintf("Error: couldn't set pd entry\n");
+            return 0; //failure
+        }
+    } else {
+        kprintf("Error: couldn't set pdp entry\n");
+        return 0; //failure
+    }
+
+    return 1; // success
 }
 
 void map_user_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t** pml_ptr)

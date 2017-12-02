@@ -65,8 +65,8 @@ void createUserProcess_temp(task_struct *user_task){
 
     uint64_t *userPtr,*kernPtr;
     userPtr = (uint64_t*)user_task->cr3;
-    userPtr[510] = returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1);
-    userPtr[510] |= (PTE_U_W_P);
+    userPtr[PML4_REC_SLOT] = returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1);
+    userPtr[PML4_REC_SLOT] |= (PTE_U_W_P);
 
     map_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),PTE_U_W_P);
     map_user_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),&userPtr);

@@ -65,7 +65,12 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
 
 //    task2 = getFreeTask();
 //    createKernelTask(task2,func2);
-//
+
+//    uint64_t addr = (uint64_t)kmalloc();
+//    uint64_t ret = getPTEntry(addr);
+//    setPTEntry(addr,0x9000);
+//    ret = getPTEntry(addr);
+
     user_task = getFreeTask();
     createKernelTask(user_task,func1);
 
