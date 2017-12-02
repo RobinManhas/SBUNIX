@@ -212,6 +212,24 @@ void switch_to(task_struct *current, task_struct *next)
 
     if(next->state == TASK_STATE_KERNEL_RUNNER)
     { // just put runner function into rsp and return, idle task can start from function beginning, hence do not need saving of registers
+        if(current->state != TASK_STATE_KERNEL_RUNNER)
+        {
+            __asm__ __volatile__("pushq %rax");
+            __asm__ __volatile__("pushq %rbx");
+            __asm__ __volatile__("pushq %rcx");
+            __asm__ __volatile__("pushq %rdx");
+            __asm__ __volatile__("pushq %rdi");
+            __asm__ __volatile__("pushq %rsi");
+            __asm__ __volatile__("pushq %rbp");
+            __asm__ __volatile__("pushq %r8");
+            __asm__ __volatile__("pushq %r9");
+            __asm__ __volatile__("pushq %r10");
+            __asm__ __volatile__("pushq %r11");
+            __asm__ __volatile__("pushq %r12");
+
+            __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
+        }
+
         next->stack[510] = (uint64_t)runner;
         next->rsp = (uint64_t)&next->stack[510];
         __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
@@ -357,7 +375,7 @@ void createKernelTask(task_struct *task, void (*func)(void)){
     task->init = 1;
     task->stack[510] = (uint64_t)func;
     task->rsp = (uint64_t)&task->stack[510];
-    task->user_rip = (uint64_t)&func1;
+    task->user_rip = (uint64_t)func;
     task->cr3 = (uint64_t)getKernelPML4();
     task->no_of_children = 0;
     task->next = NULL;
