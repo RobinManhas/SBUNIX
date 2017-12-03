@@ -27,7 +27,10 @@ typedef enum task_state {
     TASK_STATE_ZOMBIE = 3,
     TASK_STATE_IDLE = 4,
     TASK_STATE_KILLED = 5,
-    TASK_MAX = 6
+    TASK_STATE_KERNEL_RUNNER = 6,
+    TASK_STATE_SLEEP = 7,
+    TASK_STATE_WAIT = 8,
+    TASK_MAX = 9
 }task_state;
 
 //should not increse 4096 bytes
@@ -55,6 +58,7 @@ typedef struct task_struct{
     uint8_t no_of_children;
     char name[50];
     file_table* curr_dir;
+	int sleepTime;
 } task_struct;
 
 //task_struct* CURRENT_TASK;
@@ -126,6 +130,7 @@ void destroy_task(task_struct *task);
 void removeTaskFromRunList(task_struct *task);
 void moveTaskToZombie(task_struct *task);
 task_struct* getCurrentTask();
+void reduceSleepTime();
 //task_struct* currentTask;
 
 #endif //OS_PROCESSM_H

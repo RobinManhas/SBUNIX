@@ -14,12 +14,17 @@
 #include <sys/mm.h>
 #include <sys/terminal.h>
 
+#define ALIGN_MASK(x, mask) (((x) + (mask)) & ~(mask))
+#define ALIGN_UP(ptr, amt) ALIGN_MASK(ptr,(((__typeof__(ptr))(amt) - 1)))
+
+
 uint16_t processID = 0; // to keep track of the allocated process ID's to task struct
 extern uint64_t kernel_rsp;
 extern task_struct *kernel_idle_task; // this store the idle task struct. this task is run when no other active task are available.
 task_struct* gReadyList = NULL;
 task_struct* gBlockedList = NULL;
 task_struct* gZombieList = NULL;
+task_struct* gSleepList = NULL;
 
 task_struct *currentTask=NULL, *prevTask=NULL;
 
@@ -50,7 +55,8 @@ void userFunc(){
 //    //schedule();
 //    while(1);
 }
-void createUserProcess_temp(task_struct *user_task){
+
+void initialiseUserProcess(task_struct *user_task){
     uint64_t userbase = VIRBASE;
     user_task->type = TASK_USER;
     user_task->no_of_children = 0;
@@ -71,11 +77,16 @@ void createUserProcess_temp(task_struct *user_task){
     map_user_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),&userPtr);
     userbase+=0x1000;
 
+
+
     // map stack
     map_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),PTE_U_W_P);
     map_user_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),&userPtr);
     user_task->stack = (uint64_t*)userbase;
     userbase+=0x1000;
+
+
+    kprintf("kernel start add %x\n",user_task->rsp);
 
     uint64_t userPage = (uint64_t)kmalloc();
     map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);
@@ -90,6 +101,26 @@ void createUserProcess_temp(task_struct *user_task){
     kernPtr = getKernelPML4();
     userPtr[511] = kernPtr[511];
     userPtr[511] |= (PTE_U_W_P);
+}
+void createUserProcess(task_struct *user_task){
+    user_task->state = TASK_STATE_RUNNING;
+    user_task->cr3 = (uint64_t)kmalloc();
+    user_task->stack = kmalloc();
+
+    initialiseUserProcess(user_task);
+
+    //Need to check why we need this
+    uint64_t curr_rsp;
+    __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(curr_rsp));
+    curr_rsp = (curr_rsp>>12)<<12;
+    kmemcpy(user_task->stack, (uint64_t *)curr_rsp, PAGE_SIZE);
+    user_task->kernInitRSP = (uint64_t)&user_task->stack[510];
+
+//    uint64_t userPage = (uint64_t)kmalloc();
+//    uint64_t kernPage = (((uint64_t)&userFunc) & ADDRESS_SCHEME);
+//    kmemcpy((void*)userPage,(void*)kernPage ,PAGE_SIZE);
+
+    addTaskToReady(user_task);
 }
 void func1()
 {
@@ -108,7 +139,7 @@ void func1()
 //    init_timer();
 //    init_keyboard();
 //    __asm__ ("sti");
-    createUserProcess_temp(getCurrentTask());
+    initialiseUserProcess(getCurrentTask());
     char * argv[]={"/bin/sbush","/temp", NULL};
     char * envp[]={"PATH=/bin:", "HOME=/root", "USER=root", NULL};
     load_elf_binary_by_name(getCurrentTask(),"bin/sbush",argv,envp);
@@ -206,6 +237,27 @@ void addTaskToZombie(task_struct *zombieTask){
         iter->next = zombieTask;
     }
 }
+void addTaskToSleep(task_struct *sleepTask){
+    if(sleepTask == NULL){
+        kprintf("Error: invalid task in add to sleep, returning\n");
+        return;
+    }
+
+    sleepTask->next = NULL;
+    if(gSleepList == NULL)
+    {
+        gSleepList = sleepTask;
+    }
+    else
+    {
+        //RM: add to end of sleep list
+        task_struct *iter = gSleepList;
+        while(iter->next != NULL)
+            iter = iter->next;
+
+        iter->next = sleepTask;
+    }
+}
 
 void switch_to(task_struct *current, task_struct *next)
 {
@@ -272,6 +324,11 @@ void schedule()
                 addTaskToZombie(prevTask);
                 break;
             }
+            case TASK_STATE_SLEEP:
+            {
+                addTaskToSleep(prevTask);
+                break;
+            }
             case TASK_STATE_IDLE:
             case TASK_STATE_KILLED:
             {
@@ -290,8 +347,8 @@ void schedule()
 //        else if(current->type == TASK_USER)
 //            switch_to_user_mode(prev,current);
         switch_to(prevTask,currentTask);
-        set_tss_rsp((uint64_t *)currentTask->rsp);
-        kernel_rsp = currentTask->rsp;
+        set_tss_rsp((uint64_t *)(ALIGN_UP(currentTask->rsp,PAGE_SIZE)-16));
+        kernel_rsp = ALIGN_UP(currentTask->rsp,PAGE_SIZE)-16;
 
     }
 
@@ -357,85 +414,7 @@ void createKernelTask(task_struct *task, void (*func)(void)){
     addTaskToReady(task);
 }
 
-void createUserProcess(task_struct *user_task){
-    uint64_t userbase = VIRBASE;
-    user_task->type = TASK_USER;
-    user_task->state = TASK_STATE_RUNNING;
-    user_task->cr3 = (uint64_t)kmalloc();
-    user_task->no_of_children = 0;
-    user_task->next = NULL;
-    user_task->nextChild = NULL;
-    user_task->stack = kmalloc();
 
-    uint64_t curr_rsp;
-    __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(curr_rsp));
-
-    curr_rsp = (curr_rsp>>12)<<12;
-    kmemcpy(user_task->stack, (uint64_t *)curr_rsp, PAGE_SIZE);
-
-//    user_task->stack[499] = (uint64_t)(MM_STACK_START-0x10);
-//    user_task->rsp = (uint64_t )&user_task->stack[499];
-
-    //user_task->rsp = (uint64_t )(MM_STACK_START-0x10);
-
-    user_task->kernInitRSP = (uint64_t)&user_task->stack[510];
-    user_task->fd[0]=create_terminal_IN();
-    FD* filedec = create_terminal_OUT();
-    user_task->fd[1]= filedec;
-    user_task->fd[2]= filedec;
-
-    uint64_t *userPtr,*kernPtr;
-    userPtr = (uint64_t*)user_task->cr3;
-    userPtr[510] = returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1);
-    userPtr[510] |= (PTE_U_W_P);
-
-    uint64_t userPage = (uint64_t)kmalloc();
-    uint64_t kernPage = (((uint64_t)&userFunc) & ADDRESS_SCHEME);
-    kmemcpy((void*)userPage,(void*)kernPage ,PAGE_SIZE);
-
-
-    //NOTE: kernPage can be replace by the following to map function to start of new physical page
-    // (void*)(kernPage | (((uint64_t)&userFunc) & ~ADDRESS_SCHEME))
-
-    /* RM: change everything in accordance to user process at this point    *
-     * map pml4                                                             */
-    map_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),PTE_U_W_P);
-    map_user_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),&userPtr);
-    userbase+=0x1000;
-
-    // map stack
-    map_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),PTE_U_W_P);
-    map_user_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),&userPtr);
-    user_task->stack = (uint64_t*)userbase;
-    userbase+=0x1000;
-
-    // map rsp
-//    user_task->rsp = (uint64_t)&user_task->stack[499];
-//
-//    // map user page rip
-//    map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);
-//    map_user_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),&userPtr);
-//    user_task->rip = userbase | (((uint64_t)&userFunc) & ~ADDRESS_SCHEME); //RM: pop address offset
-//    userbase+=0x1000;
-
-    userPage = (uint64_t)kmalloc();
-    map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);
-    map_user_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),&userPtr);
-    userbase+=0x1000;
-
-    user_task->mm = (mm_struct*)userPage;
-    user_task->mm->v_addr_pointer = userbase;
-    user_task->mm->vma_cache = NULL;
-    user_task->curr_dir = tarfs[0];
-
-
-    // map kernel
-    kernPtr = getKernelPML4();
-    userPtr[511] = kernPtr[511];
-    userPtr[511] |= (PTE_U_W_P);
-    kprintf("User process ready, kernFunc: %x, ring3Func: %x\n",&userFunc,user_task->user_rip);
-    addTaskToReady(user_task);
-}
 
 void switch_to_user_mode(task_struct *oldTask, task_struct *user_task)
 {
@@ -457,9 +436,9 @@ void switch_to_user_mode(task_struct *oldTask, task_struct *user_task)
 
     uint64_t ret;
     __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(ret));
-    ret = (ret>>12) <<12;
-    set_tss_rsp((uint64_t *)ret);
-    kernel_rsp = ret;
+
+    set_tss_rsp((uint64_t *)ALIGN_UP(ret, PAGE_SIZE) - 16);
+    kernel_rsp = ALIGN_UP(ret, PAGE_SIZE) - 16;
     //set_tss_rsp((void*)(user_task->kernInitRSP - 16));
     //kernel_rsp = (user_task->kernInitRSP - 16);
 
@@ -625,4 +604,47 @@ void removeTaskFromBlocked(task_struct* task){
     }
 
 }
+//run only when 1 millisec has elapsed
+void reduceSleepTime(){
+    task_struct *sleepListPtr = gSleepList;
+    task_struct* prevptr = NULL;
+    while(sleepListPtr){
+        sleepListPtr->sleepTime--;
+        if(sleepListPtr->sleepTime == 0) {
+            if(prevptr==NULL){
+                gSleepList = sleepListPtr->next;
+                addTaskToReady(sleepListPtr);
+                sleepListPtr = gSleepList;
+            }else{
+                prevptr->next = sleepListPtr->next;
+                addTaskToReady(sleepListPtr);
+                sleepListPtr = prevptr->next;
+            }
+            continue;
+        }
+        prevptr = sleepListPtr;
+        sleepListPtr = sleepListPtr->next;
+    }
+}
 
+
+void removeTaskFromSleep(task_struct* task){
+    if(task == NULL)
+        return;
+
+    task_struct* prevptr = NULL;
+    task_struct *sleepListPtr = gSleepList;
+
+    while(sleepListPtr){
+        if(sleepListPtr->pid == task->pid) {
+            if(prevptr == NULL)
+                gSleepList = sleepListPtr->next;
+            else
+                prevptr->next = sleepListPtr->next;
+            return;
+        }
+        prevptr = sleepListPtr;
+        sleepListPtr = sleepListPtr->next;
+    }
+
+}

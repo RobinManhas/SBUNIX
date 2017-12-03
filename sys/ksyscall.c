@@ -111,10 +111,10 @@ uint64_t sdup2(uint64_t oldfd , uint64_t newfd){
     return newfd;
 }
 
-int s_exev(char* binary_name, char *argv[],char* envp[]){
+int s_exev(uint64_t binary_name, uint64_t argv,uint64_t envp){
     //clear exisiting mm
     memset(getCurrentTask()->mm,0, sizeof(mm_struct));
-    load_elf_binary_by_name(getCurrentTask(),binary_name,argv,envp);
+    load_elf_binary_by_name(getCurrentTask(),(char *)binary_name,(char **)argv,(char **)envp);
     return 1;
 }
 pid_t sfork() {
@@ -187,6 +187,13 @@ int sopen(uint64_t path, uint64_t flags){
 
 }
 
+int ssleep(uint64_t sec){
+    getCurrentTask()->sleepTime = sec*1000;
+    getCurrentTask()->state = TASK_STATE_SLEEP;
+    schedule();
+    return 1;
+}
+
 int syscall_handler(struct regs* reg) {
     int value = -1;
     int syscallNo = reg->rax;
@@ -223,8 +230,9 @@ int syscall_handler(struct regs* reg) {
         case SYSCALL_FORK:
             value = sfork();
             break;
-//        case SYSCALL_EXECVE:
-//            break;
+        case SYSCALL_EXECVE:
+            value = s_exev(reg->rdi,reg->rsi,reg->rdx);
+            break;
         case SYSCALL_EXIT:
             killTask(getCurrentTask());
 //            break;
@@ -237,6 +245,9 @@ int syscall_handler(struct regs* reg) {
 //            break;
         case SYSCALL_CHDIR:
             value = schdir(reg->rdi);
+            break;
+        case SYSCALL_SLEEP:
+            ssleep(reg->rdi);
             break;
         default:
             kprintf("got a syscall : %d\n",syscallNo);
