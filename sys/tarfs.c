@@ -6,7 +6,6 @@
 #include <sys/kstring.h>
 #include <sys/kmalloc.h>
 #include <sys/util.h>
-#include <dirent.h>
 #include <sys/procmgr.h>
 #include <sys/pmm.h>
 
@@ -129,53 +128,6 @@ void init_tarfs(){
 }
 
 
-/**
- * Currently supporting only full path names
- * to support . and .. need to modify init_tarfs and opendir , change the tarfs from array to tree storing only name in name
- * not the full path
- * @param name
- * @return
- */
-DIR *opendir(const char *name){
-    for(int i =0;i<FILES_MAX ; i++) {
-        if (NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
-            break;
-        if ((kstrcmp(tarfs[i]->name, name) == 0) && tarfs[i]->type == DIRECTORY) {
-            kprintf("directory found\n");
-            DIR* dir = (DIR*)kmalloc();
-            dir->filenode = tarfs[i];
-            dir->curr = 2; // next child pointer
-            return dir;
-        }
-    }
-    kprintf("No such directory:%s\n",name);
-    return NULL;
-
-}
-
-//returns a dirent with the next child info.
-dirent *readdir(DIR *dirp){
-    if(NULL == dirp || dirp->filenode->type != DIRECTORY)
-        return NULL;
-    if((dirp->curr >0) && (dirp->filenode->noOfChild > 2) && (dirp->curr < dirp->filenode->noOfChild) ){
-        kstrcpy(dirp->curr_dirent.d_name , dirp->filenode->child[dirp->curr]->name);
-        dirp->curr++;
-        return &dirp->curr_dirent;
-    }
-    return NULL;
-
-}
-int closedir(DIR *dirp){
-    if(NULL == dirp || dirp->filenode->type != DIRECTORY ||dirp->curr < 2)
-        return -1;
-    dirp->curr = 0;
-    dirp->filenode = NULL;
-//    dirp->curr_dirent = NULL;
-    dirp = NULL;
-    return 0;
-
-}
-
 
 int open_file(char* file, int flag){ // returns filedescriptor id
     FD* filedesc;
@@ -184,7 +136,7 @@ int open_file(char* file, int flag){ // returns filedescriptor id
         if (NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
             break;
         if (kstrcmp(tarfs[i]->name, file) == 0) {
-            kprintf("file found\n");
+           // kprintf("file found\n");
             filedesc =(FD*)kmalloc();
             //filedesc->current_process = currentTask;
             filedesc->perm = flag;
@@ -196,6 +148,10 @@ int open_file(char* file, int flag){ // returns filedescriptor id
                 }
             }
             filedesc->fileOps=&tarfsOps;
+            if(filedesc->filenode->type == FILE)
+                filedesc->current_pointer = 0;
+            else
+                filedesc->current_pointer = 2;
             currentTask->fd[count]=filedesc;
             return count;
         }
@@ -205,23 +161,45 @@ int open_file(char* file, int flag){ // returns filedescriptor id
 
 }
 
-uint64_t read_file(int fdNo, uint64_t buf,int size){
-    task_struct* currentTask = getCurrentTask();
-    FD* filedesc = currentTask->fd[fdNo];
-    if(filedesc != NULL && filedesc->perm != O_WRONLY){
-        uint64_t read_current = filedesc->current_pointer;
-        uint64_t end = filedesc->filenode->end;
+uint64_t read_file(int fdNo, uint64_t buf,int size) {
+    task_struct *currentTask = getCurrentTask();
+    FD *filedesc = currentTask->fd[fdNo];
+    //if(filedesc != NULL && filedesc->perm != O_WRONLY){
+    uint64_t read_current = filedesc->current_pointer;
+    if (filedesc->filenode->type == FILE) {
 
-        if (size > end - read_current) {
-            size = end - read_current;
+        uint64_t offset = filedesc->filenode->start+ sizeof(struct posix_header_ustar)+read_current;
+        uint64_t file_size = filedesc->filenode->size;
+
+        if (file_size < read_current) {
+            return -1;
         }
-        kmemcpy((void *) buf, (void *) read_current, size);
+        else if(file_size == read_current){
+            return 0;
+        }
+        else if(file_size - read_current < size){
+            size = file_size-read_current;
+
+        }
+
+        kmemcpy((void *) buf, (void *) offset, size);
         filedesc->current_pointer += size;
-        return  size;
+        return size;
+    } else if (read_current >= 2 && filedesc->filenode->noOfChild > read_current) {
+        char *name = get_name(filedesc->filenode->child[read_current]);
+        size = kstrlen(name);
+        kmemcpy((void *) buf, (void *) name, size);
+        filedesc->current_pointer++;
+        return size;
+
     }
-    kprintf("No fileDescriptor:%s\n",fdNo);
-    return  -1;
+    return 1;
+    //}
+    //return  -1;
 }
+
+
+
 
 int close_file(int fdNo){
     task_struct* currentTask = getCurrentTask();
@@ -254,10 +232,36 @@ file_table* find_file(char* file_name){
 
 }
 
+//returns the name mentioned at last in file
+char* get_name(file_table* child){
+    if(child == NULL || child->name == NULL)
+        return NULL;
+    int l;
+    char* t, *tmp;
+    tmp = child->name;
+    l = kstrlen(tmp)-1;
+    if(child->type == DIRECTORY){
+        t = tmp+l-1;
+        tmp[l]='\0';
+    }
 
+    else
+        t = tmp+l;
+    while( *t != '/') {
 
-file_table* getChild(file_table* dir, char* child_name){
-    kprintf("inside getChild : %s\n",child_name);
+        if(t==tmp)
+            break;
+        t--;
+    }
+    if(*t == '/')
+        t++;
+
+    return t;
+
+}
+
+file_table* get_child(file_table *dir, char *child_name){
+    //kprintf("inside getChild : %s\n",child_name);
     int i,l;
     char* tmp;
     char* t;
@@ -278,7 +282,7 @@ file_table* getChild(file_table* dir, char* child_name){
         }
         if(*t == '/')
             t++;
-        kprintf("child: %s\n",t);
+        //kprintf("child: %s\n",t);
         if(kstrcmp(child_name,t) == 0){
             return dir->child[i];
         }
@@ -295,7 +299,7 @@ file_table* find_file_using_relative_path(char* p_path){
     }
     //char ab_path[100];
     int l = kstrlen(p_path);
-    kprintf("inside path %s: \n", p_path);
+    //kprintf("inside path %s: \n", p_path);
     char path[100];
     kmemcpy((void*)path,(void*)p_path,l);
     if(path[l-1]!= '/'){
@@ -314,7 +318,7 @@ file_table* find_file_using_relative_path(char* p_path){
             tmp[j++]=path[i++];
 
         }
-        kprintf("out of while tmp:%s \n",tmp);
+        //kprintf("out of while tmp:%s \n",tmp);
         if(path[i] == '/'){
             if(kstrcmp(tmp,"")==0) {
                 kprintf("ERROR:incorrect path\n");
@@ -326,12 +330,12 @@ file_table* find_file_using_relative_path(char* p_path){
             }
             else if(kstrcmp(tmp,"..")==0){
                 curr_dir = curr_dir->child[1];//point to parent
-                kprintf("curr_dir %s\n",curr_dir->name);
+                //kprintf("curr_dir %s\n",curr_dir->name);
                 i++;
             }
             else{
                 tmp[j++] = path[i++];
-                curr_dir = getChild(curr_dir,tmp);
+                curr_dir = get_child(curr_dir, tmp);
                 if(curr_dir == NULL){
                     kprintf("ERROR:incorrect path\n");
                     return NULL;

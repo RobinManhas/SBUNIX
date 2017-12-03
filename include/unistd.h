@@ -31,37 +31,6 @@
 #define O_RDWR 0x0002
 #define O_CREAT 0x0100
 
-struct linux_dirent {
-    unsigned long  d_ino;     /* Inode number */
-    unsigned long  d_off;     /* Offset to next linux_dirent */
-    unsigned short d_reclen;  /* Length of this linux_dirent */
-    char           d_name[];  /* Filename (null-terminated) */
-                        /* length is actually (d_reclen - 2 -
-                           offsetof(struct linux_dirent, d_name) */
-
-};
-
-
-struct file_stat {
-  unsigned long st_dev;  /*ID of device containing the file.*/
-  unsigned long st_ino;  /*Serial number for the file.*/
-  unsigned int st_mode;  /*Access mode and file type for the file*/
-  unsigned long st_nlink;  /*Number of links to the file.*/
-  unsigned int st_uid;  /*User ID of file owner.*/
-  unsigned int st_gid;  /*Group ID of group owner.*/
-  unsigned int st_rdev;  /*Device ID (if the file is a character or block special device).*/
-  unsigned long  st_size;  /*File size in bytes */
-  unsigned long  st_blksize;  /*A file system-specific preferred I/O block size for this object.*/
-  unsigned long  st_blocks;  /*Number of blocks allocated for this file.*/
-  unsigned long st_atime;  /*Time of last access.*/
-  unsigned long st_mtime;  /*Time of last data modification.*/
-  unsigned long st_ctime;  /*Time of last file status change.*/
-};
-
-
-
-
-
 int open(const char *pathname, int flags);
 int close(int fd);
 size_t sys_read(int fd, const void *buf, size_t count);

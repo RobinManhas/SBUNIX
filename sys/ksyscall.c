@@ -93,11 +93,11 @@ uint64_t sbrk(uint64_t pointer){
     return mm->brk;
 }
 
-//uint64_t sclose(uint64_t fdn){
-//    currentTask->fd[fdn]=NULL;
-//    //need to check inode for fs extra 10 points??
-//    return 1;
-//}
+uint64_t sclose(uint64_t fdn){
+    if(fdn<MAX_FD)
+        CURRENT_TASK->fd[fdn]->fileOps->close_file(fdn);
+    return 1;
+}
 //
 uint64_t sgetpid(){
     return CURRENT_TASK->pid;
@@ -174,12 +174,12 @@ int schdir(uint64_t path) {
         return -1;
     }
     getCurrentTask()->curr_dir = dir;
-    kprintf("path changed to: %s\n", getCurrentTask()->curr_dir);
+    kprintf("path changed to: %s\n", getCurrentTask()->curr_dir->name);
     return 1;
 }
 int scwd(uint64_t path){
     char* curr_dir = getCurrentTask()->curr_dir->name;
-    kmemcpy((void *)path,(void*)curr_dir,kstrlen(curr_dir));
+    kmemcpy((void *)path,(void*)curr_dir,kstrlen(curr_dir)+1);
     return 1;
 }
 int sopen(uint64_t path, uint64_t flags){
@@ -213,9 +213,9 @@ int syscall_handler(struct regs* reg) {
 //            break;
 //        case SYSCALL_LSEEK:
 //            break;
-//        case SYSCALL_CLOSE:
-//            value = sclose(reg->rdi);
-//            break;
+        case SYSCALL_CLOSE:
+            value = sclose(reg->rdi);
+            break;
           case SYSCALL_BRK:
               value = sbrk(reg->rdi);
                 break;

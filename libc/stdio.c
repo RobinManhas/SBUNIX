@@ -1,6 +1,8 @@
 #include <string.h>
 #include <syscalls.h>
 #include <stdio.h>
+#include <dirent.h>
+#include <stdlib.h>
 
 
 static const int ERROR = -1;
@@ -13,6 +15,47 @@ return syscall3(SYSCALL_WRITE, fd, (long)buf, count);
 
 size_t sys_read(int fd, const void *buf, size_t count) {
 return syscall3(SYSCALL_READ, fd, (long)buf, count);
+}
+
+DIR *opendir(char *name){
+  int fd = fileOpen(name,O_RDONLY);
+  if(fd>0) {
+    DIR *dir = (DIR *) malloc(sizeof(DIR));
+    dir->filenode =fd;
+    dir->curr = 2; // next child pointer
+    dir->curr_dirent = malloc(sizeof(dirent));
+    return dir;
+  }
+  puts("ERROR: cannot open dir");
+  return NULL;
+}
+
+
+dirent *readdir(DIR *dirp){
+    if(NULL == dirp )
+        return NULL;
+    if((dirp->curr >0)) {
+      // kstrcpy(dirp->curr_dirent.d_name , dirp->filenode->child[dirp->curr]->name);
+
+      int i = sys_read(dirp->filenode, (void *) (dirp->curr_dirent->d_name), 1);
+      if(i<0)
+        return NULL;
+      dirp->curr++;
+      return dirp->curr_dirent;
+    }
+    return NULL;
+
+}
+
+int closedir(DIR *dirp){
+  if(NULL == dirp || dirp->filenode <2)
+    return -1;
+  int ret = close(dirp->filenode);
+  dirp->curr = 0;
+  dirp->filenode = 0;
+  dirp = NULL;
+  return ret;
+
 }
 
 int putchar(int c)
