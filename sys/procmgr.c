@@ -28,14 +28,13 @@ task_struct* tasks_list[100];
 task_struct* getCurrentTask(){
     return currentTask;
 }
-int counter = 0;
+
 /* init function */
 void runner(){
     while(1) {
-//        kprintf("inside kernel idle runner: %d\n",counter++);
-//        if(counter == 10000) // wrap around
-//            counter = 0;
+        //kprintf("inside idle\n");
         schedule();
+        __asm__ __volatile__ ("hlt");
     }
 }
 
@@ -118,6 +117,7 @@ void func1()
 
 }
 
+
 void func2()
 {
     kprintf("Thread 2: Entry, task ID: %d\n",currentTask->pid);
@@ -148,12 +148,12 @@ void addTaskToReady(task_struct *readyTask){
         //RM: add to end of ready list
         task_struct *iter = gReadyList;
         if(iter == readyTask){ // checks being added as a process got pushed to list multiple times
-            kprintf("Error: ready task already exists : %d, returning\n",readyTask->pid);
+            //kprintf("Error: ready task already exists, returning\n");
             return;
         }
         while(iter->next != NULL){
             if(iter == readyTask){
-                kprintf("Error: ready task already exists : %d, returning\n",readyTask->pid);
+                //kprintf("Error: ready task already exists, returning\n");
                 return;
             }
             iter = iter->next;
@@ -209,68 +209,39 @@ void addTaskToZombie(task_struct *zombieTask){
 
 void switch_to(task_struct *current, task_struct *next)
 {
+    __asm__ __volatile__("pushq %rax");
+    __asm__ __volatile__("pushq %rbx");
+    __asm__ __volatile__("pushq %rcx");
+    __asm__ __volatile__("pushq %rdx");
+    __asm__ __volatile__("pushq %rdi");
+    __asm__ __volatile__("pushq %rsi");
+    __asm__ __volatile__("pushq %rbp");
+    __asm__ __volatile__("pushq %r8");
+    __asm__ __volatile__("pushq %r9");
+    __asm__ __volatile__("pushq %r10");
+    __asm__ __volatile__("pushq %r11");
+    __asm__ __volatile__("pushq %r12");
 
-    if(next->state == TASK_STATE_KERNEL_RUNNER)
-    { // just put runner function into rsp and return, idle task can start from function beginning, hence do not need saving of registers
-        if(current->state != TASK_STATE_KERNEL_RUNNER)
-        {
-            __asm__ __volatile__("pushq %rax");
-            __asm__ __volatile__("pushq %rbx");
-            __asm__ __volatile__("pushq %rcx");
-            __asm__ __volatile__("pushq %rdx");
-            __asm__ __volatile__("pushq %rdi");
-            __asm__ __volatile__("pushq %rsi");
-            __asm__ __volatile__("pushq %rbp");
-            __asm__ __volatile__("pushq %r8");
-            __asm__ __volatile__("pushq %r9");
-            __asm__ __volatile__("pushq %r10");
-            __asm__ __volatile__("pushq %r11");
-            __asm__ __volatile__("pushq %r12");
+    __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
+    __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
 
-            __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
-        }
-
-        next->stack[510] = (uint64_t)runner;
-        next->rsp = (uint64_t)&next->stack[510];
-        __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
+    if(next->init == 1){
+        next->init = 0;
     }
     else{
-        __asm__ __volatile__("pushq %rax");
-        __asm__ __volatile__("pushq %rbx");
-        __asm__ __volatile__("pushq %rcx");
-        __asm__ __volatile__("pushq %rdx");
-        __asm__ __volatile__("pushq %rdi");
-        __asm__ __volatile__("pushq %rsi");
-        __asm__ __volatile__("pushq %rbp");
-        __asm__ __volatile__("pushq %r8");
-        __asm__ __volatile__("pushq %r9");
-        __asm__ __volatile__("pushq %r10");
-        __asm__ __volatile__("pushq %r11");
-        __asm__ __volatile__("pushq %r12");
-
-        __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
-        __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
-
-        if(next->init == 1){
-            next->init = 0;
-        }
-        else{
-            __asm__ __volatile__("popq %r12");
-            __asm__ __volatile__("popq %r11");
-            __asm__ __volatile__("popq %r10");
-            __asm__ __volatile__("popq %r9");
-            __asm__ __volatile__("popq %r8");
-            __asm__ __volatile__("popq %rbp");
-            __asm__ __volatile__("popq %rsi");
-            __asm__ __volatile__("popq %rdi");
-            __asm__ __volatile__("popq %rdx");
-            __asm__ __volatile__("popq %rcx");
-            __asm__ __volatile__("popq %rbx");
-            __asm__ __volatile__("popq %rax");
-        }
-
+        __asm__ __volatile__("popq %r12");
+        __asm__ __volatile__("popq %r11");
+        __asm__ __volatile__("popq %r10");
+        __asm__ __volatile__("popq %r9");
+        __asm__ __volatile__("popq %r8");
+        __asm__ __volatile__("popq %rbp");
+        __asm__ __volatile__("popq %rsi");
+        __asm__ __volatile__("popq %rdi");
+        __asm__ __volatile__("popq %rdx");
+        __asm__ __volatile__("popq %rcx");
+        __asm__ __volatile__("popq %rbx");
+        __asm__ __volatile__("popq %rax");
     }
-
 }
 
 void schedule()
@@ -278,21 +249,8 @@ void schedule()
     if(currentTask != NULL /*gReadyList != NULL*/){
         prevTask = currentTask;
         currentTask = gReadyList;
-        if(currentTask == NULL){
-            if(prevTask->state == TASK_STATE_KERNEL_RUNNER)
-            {
-                currentTask = prevTask;
-                switch_to(prevTask,currentTask);
-            }
-            else if(prevTask->state == TASK_STATE_RUNNING){
-                currentTask = prevTask;
-                return;
-            }
-            else{ // cannot run previous task too, run idle task
-                currentTask = kernel_idle_task;
-                switch_to(prevTask,currentTask);
-            }
-        }
+        if(currentTask == NULL)
+            currentTask = kernel_idle_task; // TODO: currently does not switch properly
         else
             gReadyList = gReadyList->next;
 
@@ -316,7 +274,6 @@ void schedule()
             }
             case TASK_STATE_IDLE:
             case TASK_STATE_KILLED:
-            case TASK_STATE_KERNEL_RUNNER:
             {
                 // don't add idle task or killed task to any queue.
                 break;
@@ -349,12 +306,26 @@ task_struct* getFreeTask()
 {
     task_struct *task = (task_struct*)kmalloc();
     task->pid = getFreePID();
-   // kprintf("assigned task add: %x, pid: %x\n",task,task->pid);
     tasks_list[task->pid] = task;
     return task;
 }
 
-void createKernelInitProcess(task_struct *ktask){
+void createKernelInitProcess(task_struct *ktask, task_struct *startFuncTask){
+
+    // this task struct is for main thread, just that instead of initial stack we assign a stack to this too
+    startFuncTask = kmalloc();
+    startFuncTask->init = 1;
+    startFuncTask->pid = -1;
+    startFuncTask->stack = kmalloc();
+    startFuncTask->rsp = (uint64_t)&startFuncTask->stack[510];
+    startFuncTask->cr3 = (uint64_t)getKernelPML4();
+    startFuncTask->type = TASK_KERNEL;
+    startFuncTask->state = TASK_STATE_IDLE;
+    startFuncTask->no_of_children = 0;
+    startFuncTask->next = NULL;
+    startFuncTask->nextChild = NULL;
+
+    // this is our kernel init task, it runs first of all other task, and keeps running when no runnable task exists. it waits on an interrupt
     ktask->stack = kmalloc();
     ktask->init = 1;
     ktask->stack[510] = (uint64_t)runner;
@@ -362,11 +333,12 @@ void createKernelInitProcess(task_struct *ktask){
     ktask->cr3 = (uint64_t)getKernelPML4();
     ktask->user_rip = (uint64_t) &runner;
     ktask->type = TASK_KERNEL;
-    ktask->state = TASK_STATE_KERNEL_RUNNER;
+    ktask->state = TASK_STATE_RUNNING;
     ktask->no_of_children = 0;
     ktask->next = NULL;
     ktask->nextChild = NULL;
-    currentTask = ktask;
+    currentTask = startFuncTask;
+    addTaskToReady(ktask);
 }
 
 void createKernelTask(task_struct *task, void (*func)(void)){
@@ -394,7 +366,6 @@ void createUserProcess(task_struct *user_task){
     user_task->next = NULL;
     user_task->nextChild = NULL;
     user_task->stack = kmalloc();
-    //user_task->rip = (uint64_t)&userFunc;
 
     uint64_t curr_rsp;
     __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(curr_rsp));

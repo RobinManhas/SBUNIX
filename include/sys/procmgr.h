@@ -26,8 +26,7 @@ typedef enum task_state {
     TASK_STATE_ZOMBIE = 3,
     TASK_STATE_IDLE = 4,
     TASK_STATE_KILLED = 5,
-    TASK_STATE_KERNEL_RUNNER = 6,
-    TASK_MAX = 7
+    TASK_MAX = 6
 }task_state;
 
 //should not increse 4096 bytes
@@ -111,7 +110,7 @@ void killTask(task_struct *task);
 void threadInit();
 void switch_to(task_struct *current, task_struct *next);
 void createUserProcess(task_struct *user_task);
-void createKernelInitProcess(task_struct *ktask);
+void createKernelInitProcess(task_struct *ktask, task_struct *startFuncTask);
 void createKernelTask(task_struct *task, void (*start)(void));
 void switch_to_user_mode(task_struct *oldTask, task_struct *user_task);
 void schedule();

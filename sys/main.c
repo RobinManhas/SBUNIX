@@ -19,7 +19,7 @@ uint32_t* loader_stack;
 extern char kernmem, physbase;
 uint64_t maxPhyRegion;
 extern uint64_t* pml_table;
-task_struct *kernel_idle_task, *task1, *task2, *user_task;
+task_struct *kernel_idle_task, *startTask, *task2, *user_task;
 extern void func1();
 extern void func2();
 
@@ -54,11 +54,9 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     syscalls_init();
     __asm__ ("sti"); //enable interrupts
 
-
-
     kernel_idle_task = getFreeTask();
     kernel_idle_task->name ="Idle_task";
-    createKernelInitProcess(kernel_idle_task);
+    createKernelInitProcess(kernel_idle_task, startTask);
 
     //task1 = getFreeTask();
     //createKernelTask(task1,func1);
