@@ -218,7 +218,7 @@ uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
             }
             else // not adding kernbase offset
             {
-                kprintf("Error: Address passed already in physical add range\n");
+                //kprintf("Error: Address passed already in physical add range\n");
                 if(removeFlags)
                     return (add & ADDRESS_SCHEME);
                 else
@@ -236,7 +236,7 @@ uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
             }
             else // not adding VIRBASE offset
             {
-                kprintf("Error: Address passed already in physical add range\n");
+                //kprintf("Error: Address passed already in physical add range\n");
                 if(removeFlags)
                     return (add & ADDRESS_SCHEME);
                 else
@@ -263,7 +263,7 @@ uint64_t returnVirAdd(uint64_t add, short addType, short removeFlags)
             }
             else // not adding kernbase offset
             {
-                kprintf("Error: Address passed already in virtual add range\n");
+                //kprintf("Error: Address passed already in virtual add range\n");
                 if(removeFlags)
                     return (add & ADDRESS_SCHEME);
                 else
@@ -281,7 +281,7 @@ uint64_t returnVirAdd(uint64_t add, short addType, short removeFlags)
             }
             else // not adding VIRBASE offset
             {
-                kprintf("Error: Address passed already in virtual add range\n");
+                //kprintf("Error: Address passed already in virtual add range\n");
                 if(removeFlags)
                     return (add & ADDRESS_SCHEME);
                 else
@@ -479,15 +479,15 @@ uint64_t getPTEntry(uint64_t vaddr)
                 //kprintf("pt entry for virpage: %x is %x, %x\n",vaddr,pt_entry,pageTableEntry);
 
             } else {
-                kprintf("Error: couldn't fetch pt entry\n");
+                //kprintf("Error: couldn't fetch pt entry\n");
                 return 0; //failure
             }
         } else {
-            kprintf("Error: couldn't fetch pd entry\n");
+            //kprintf("Error: couldn't fetch pd entry\n");
             return 0; //failure
         }
     } else {
-        kprintf("Error: couldn't fetch pdp entry\n");
+        //kprintf("Error: couldn't fetch pdp entry\n");
         return 0; //failure
     }
 
@@ -518,15 +518,15 @@ uint64_t setPTEntry(uint64_t vaddr, uint64_t paddr){
                 //kprintf("pt entry set for virpage: %x is %x, %x\n",vaddr,pt_entry,*pt_entry);
 
             } else {
-                kprintf("Error: couldn't set pt entry\n");
+                //kprintf("Error: couldn't set pt entry\n");
                 return 0; //failure
             }
         } else {
-            kprintf("Error: couldn't set pd entry\n");
+            //kprintf("Error: couldn't set pd entry\n");
             return 0; //failure
         }
     } else {
-        kprintf("Error: couldn't set pdp entry\n");
+        //kprintf("Error: couldn't set pdp entry\n");
         return 0; //failure
     }
 

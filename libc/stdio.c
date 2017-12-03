@@ -54,8 +54,6 @@ int putVal(const char *s){
   return 0;
 }
 
-
-
 int getdir(void* buf, int size){
   long ret = syscall2((long)SYSCALL_GETCWD,(long)buf,(long)50);
   return (int)ret;

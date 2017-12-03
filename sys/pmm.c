@@ -136,18 +136,25 @@ void addToDirtyPageList(Page* page){
    // kprintf("dirty page added: %x\n",pDirtyPageList);
 }
 
-void deallocatePage(uint64_t add){
-    uint64_t phyAdd = add;
+void deallocatePage(uint64_t add){ // TODO: code not verified, check vaddr assignments when updating pointers
+    uint8_t usingVAddr = 0;
+    uint64_t phyAdd = add & ADDRESS_SCHEME;
     if(add > KERNBASE)
         phyAdd = returnPhyAdd(add,KERNBASE_OFFSET,1);
 
     Page* pageIter = pDirtyPageList;
     Page* prevPage = NULL;
+
+    if(pageIter == NULL)
+        return;
+
+    if((uint64_t)pDirtyPageList > KERNBASE)
+        usingVAddr = 1;
     //kprintf("deal add:%x , v:%x, p:%x\n",pageIter->uAddress,add,phyAdd);
     while(pageIter){
         if(pageIter->uAddress != phyAdd){
             prevPage = pageIter;
-            if(add > KERNBASE)
+            if(usingVAddr)
                 pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
             else
                 pageIter = pageIter->pNext;
@@ -161,14 +168,25 @@ void deallocatePage(uint64_t add){
     if(0 == (--pageIter->sRefCount)){
        // kprintf("removing page from dirty: %x\n",pageIter);
         // clean page
-        memset((void*)add,0,PAGE_SIZE);
+        if(usingVAddr)
+            memset((void*)returnVirAdd((uint64_t)pageIter->uAddress,KERNBASE_OFFSET,1),0,PAGE_SIZE);
+        else
+            memset((void*)pageIter->uAddress,0,PAGE_SIZE);
 
         // remove from dirty list
         if(prevPage == NULL){ // at root
-            pDirtyPageList = pageIter->pNext;
+            if(usingVAddr)
+                pDirtyPageList = (void*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,1);
+            else
+                pDirtyPageList = pageIter->pNext;
+
         }
         else{ // not root
-            prevPage->pNext = pageIter->pNext;
+            if(usingVAddr)
+                prevPage->pNext = (void*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,1);
+            else
+                prevPage->pNext = pageIter->pNext;
+
         }
 
         pageIter->pNext = NULL;
@@ -188,10 +206,18 @@ void deallocatePage(uint64_t add){
 }
 
 Page* get_page(uint64_t addr){
+    uint8_t usingVAddr = 0;
+    uint64_t recvAdd = addr & ADDRESS_SCHEME;
     Page* pageIter = pDirtyPageList;
+    if(pageIter == NULL)
+        return NULL;
+
+    if((uint64_t)pDirtyPageList > KERNBASE)
+        usingVAddr = 1;
+
     while(pageIter){
-        if(pageIter->uAddress != addr){
-            if(addr > KERNBASE)
+        if(pageIter->uAddress != recvAdd){
+            if(usingVAddr)
                 pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
             else
                 pageIter = pageIter->pNext;
@@ -201,6 +227,6 @@ Page* get_page(uint64_t addr){
             return pageIter;
         }
     }
-    return pageIter;
+    return NULL;
 
 }

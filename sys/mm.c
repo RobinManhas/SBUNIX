@@ -100,6 +100,7 @@ vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t fl
     vma->vm_flags       = flags;
     vma->file  = file;
     vma->file_offset = offset;
+    vma->type = VMA_TYPE_NORMAL;
     return vma;
 
 }
@@ -117,7 +118,7 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
     //uint64_t* parent_cr3   = (uint64_t *)parent_task->cr3;
     //uint64_t* child_cr3    = (uint64_t *)child_task->cr3;
     //uint64_t * parent_pml4_pointer = (uint64_t*)parent_task->cr3;
-    uint64_t * child_pml4_pointer = (uint64_t*)child_task->cr3;
+    //uint64_t * child_pml4_pointer = (uint64_t*)child_task->cr3;
 
     kmemcpy((void *) child_task->mm, (void *) parent_task->mm, sizeof(mm_struct));
 
@@ -146,29 +147,59 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
             child_vm_pointer = child_vm_pointer->vm_next;
         }
 
-        uint64_t* page_phy_add;
-        while (start < end) {
+        uint64_t page_phy_add;
+        if(parent_vm_pointer->type == VMA_TYPE_STACK){
+            while (start < end) {
+                page_phy_add = getPTEntry(end);
+                if (!page_phy_add){
+                    // this check acts (hopefully) as the breakpoint for copying auto-growing stack between
+                    // our currently allocated ranges 0x555555554000  to: 0x7ffffffffff8
+                    kprintf("Error: physical page entry not found: %x\n",end);
+                    break;
+                }
+                if (page_phy_add & PTE_P) {
+                    //removing write flag
+                    page_phy_add = page_phy_add & (~PTE_W);
+                    //setting cow bits
+                    page_phy_add = page_phy_add | PTE_COW;
+                    //incrementing reference count
+                    Page* page = get_page(page_phy_add);
+                    if(page)
+                        page->sRefCount++;
 
-            //*TODO: need pointer for pte entry*/
-            page_phy_add = (uint64_t *)returnPhyAdd(start, KERNBASE_OFFSET, 0);
-            if (!page_phy_add)
-                break;
-            if (*page_phy_add & PTE_P) {
-                //removing write flag
-                *page_phy_add = *page_phy_add & (~PTE_W);
-                //setting cow bits
-                *page_phy_add = *page_phy_add | PTE_COW;
-                //incrementing reference count
-                Page* page = get_page(*page_phy_add);
-                if(page)
-                    page->sRefCount++;
+                    setPTEntry(end,page_phy_add);
 
-                map_user_virt_phys_addr(start, *page_phy_add, &child_pml4_pointer);
+                }
+                end = end - PAGE_SIZE;
+            }
+        }
+        else{
+            while (start < end) {
+
+                page_phy_add = getPTEntry(start);
+                if (!page_phy_add){
+                    kprintf("Error: physical page entry not found: %x\n",start);
+                    break;
+                }
+
+                if (page_phy_add & PTE_P) {
+                    //removing write flag
+                    page_phy_add = page_phy_add & (~PTE_W);
+                    //setting cow bits
+                    page_phy_add = page_phy_add | PTE_COW;
+                    //incrementing reference count
+                    Page* page = get_page(page_phy_add);
+                    if(page)
+                        page->sRefCount++;
+
+                    setPTEntry(start,page_phy_add);
+
+                }
+                start = start + PAGE_SIZE;
 
             }
-            start = start + PAGE_SIZE;// for multiple pages
-
         }
+
         parent_vm_pointer = parent_vm_pointer->vm_next;
     }
     child_task->mm->total_vm = parent_task->mm->total_vm;
@@ -285,14 +316,12 @@ int no_of_elements(char** arr) {
     return l;
 }
 
-
-
 uint64_t allocate_stack(task_struct* task,char *argv[], char *envp[]) {
-
 
     task->mm->start_stack = MM_STACK_START;
 
     vm_area_struct* stack = allocate_vma(MM_STACK_END,MM_STACK_START,PTE_U_W_P,NULL,0);
+    stack->type = VMA_TYPE_STACK;
     vm_area_struct* pointer = task->mm->vma_list;
     while (pointer->vm_next != NULL)
         pointer = pointer->vm_next;

@@ -25,7 +25,6 @@ uint64_t read_terminal(int fdNo, uint64_t buf,int size){
     full_flag =0;
     buf_pointer=0;
 
-
     while(!full_flag) {
         task_assigned_to_terminal->state = TASK_STATE_BLOCKED;
         schedule();

@@ -336,6 +336,7 @@ int main(int argc, char *argv[], char *envp[]) {
 //    strcat(LIB_PATH,"/");
     //strncpy(argvalues,argvalues,strlen(argvalues)-5);
    // strcat(LIB_PATH,argvalues);
+    int value = 10;
     char* msg = "In sbushhhh";
     puts(msg);
 
@@ -348,20 +349,20 @@ int main(int argc, char *argv[], char *envp[]) {
     strcpy(PS1Value,"sbush:\\w> ");
 
     puts(PS1Value);
-    char* str;
+//    char* str;
     isConsoleInput = 1;
-    str = (char*)malloc(MAX_READ_BYTES);
+//    str = (char*)malloc(MAX_READ_BYTES);
     printCommandPrompt();
-    while(gets(str) != NULL)
-    {
-        puts(str);
+//    while(gets(str) != NULL)
+//    {
+//        puts(str);
 //        if(processCommand(str)== -1){
 //            break;
 //        }
 //        printCommandPrompt();
-
-    }
-/* To understand parent/ child forking, keep for future use
+//
+//    }
+// To understand parent/ child forking, keep for future use
 	puts("before fork");
 	int id = fork();
 	if(id == 0){
@@ -371,10 +372,15 @@ int main(int argc, char *argv[], char *envp[]) {
 	else
 		puts("inside parent fork");
 
+    value = 30;
+
+    if(value == 30) // changing a local variable 'value', ideally must result in page fault as COW set
+        puts("value");
+
 	if(id == 0){
 		puts("child still active");
 	}
-	puts("after fork"); */
+	puts("after fork");
 
     //free(str); // TODO RM: Make sure this is dealloc to avoid memleaks (check other leaks)
     return 0;

@@ -175,12 +175,12 @@ void handle_page_fault(struct regs* reg){
     //err_code 0bit-> if set; then page is present
     if(err_code & 0x1){
         //get physical address
-        uint64_t* phy_addr = (uint64_t*)returnPhyAdd(faulty_addr,KERNBASE_OFFSET,1);
+        uint64_t phy_addr = getPTEntry(faulty_addr);
 
         //not writable and cow set
-        if(!(*phy_addr & PTE_W) && (*phy_addr & PTE_COW) ){
+        if(!(phy_addr & PTE_W) && (phy_addr & PTE_COW) ){
             //check if shared
-            Page* page = get_page(*phy_addr);
+            Page* page = get_page(phy_addr);
             if(page != NULL && page->sRefCount >1){
                 new_page = allocatePage();
                 new_vir = current_task->mm->v_addr_pointer;
@@ -190,14 +190,16 @@ void handle_page_fault(struct regs* reg){
                 //copy contents from old page to new page
                 kmemcpy((uint64_t *)new_vir,(uint64_t *)faulty_addr,PAGE_SIZE);
 
-                *phy_addr = new_page|PTE_U_W_P;
+                phy_addr = new_page|PTE_U_W_P;
                 page->sRefCount--;
 
             }else{
                 //unset cow and set write bit
-                *phy_addr = *phy_addr | PTE_W;
-                *phy_addr = *phy_addr &(~PTE_COW);
+                phy_addr = phy_addr | PTE_W;
+                phy_addr = phy_addr &(~PTE_COW);
             }
+
+            setPTEntry(faulty_addr,phy_addr);
         }else{
             kprintf("reason for page fault is unknown \n");
         }

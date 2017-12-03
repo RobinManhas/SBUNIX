@@ -21,6 +21,13 @@ typedef enum task_type {
     TASK_USER = 2
 }task_type;
 
+typedef enum vma_type{
+	VMA_TYPE_STACK = 1,
+	VMA_TYPE_HEAP = 2,
+	VMA_TYPE_NORMAL = 3,
+	VMA_TYPE_MAX = 4
+}vma_type;
+
 typedef enum task_state {
     TASK_STATE_RUNNING = 1,
     TASK_STATE_BLOCKED = 2,
@@ -83,6 +90,7 @@ struct vm_area_struct{
     uint64_t vm_flags;//protection or permission
     file_table* file;
     uint64_t file_offset;//file offset
+	vma_type type;
 };
 
 
