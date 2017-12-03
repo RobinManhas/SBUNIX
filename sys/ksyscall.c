@@ -5,6 +5,8 @@
 #include<sys/kprintf.h>
 #include <sys/mm.h>
 #include <sys/pmm.h>
+#include <sys/kstring.h>
+#include <sys/kmalloc.h>
 
 #define MSR_EFER 0xc0000080		/* extended feature register */
 #define MSR_STAR 0xc0000081		/* legacy mode SYSCALL target */
@@ -115,6 +117,75 @@ int s_exev(char* binary_name, char *argv[],char* envp[]){
     load_elf_binary_by_name(getCurrentTask(),binary_name,argv,envp);
     return 1;
 }
+pid_t sfork() {
+    task_struct* parent = getCurrentTask();
+    task_struct* child = getFreeTask();
+    createUserProcess(child);
+    child->init = parent->init;
+    child->user_rip = parent->user_rip;
+    child->rsp = parent->rsp;
+
+
+    //copy the file descriptor list and increment reference count
+    int i = 0;
+    while( i < MAX_FD && parent->fd[i] != NULL) {
+        FD* fd = (FD*) kmalloc_size(sizeof(FD));
+        fd->perm = parent->fd[i]->perm;
+        fd->filenode =  parent->fd[i]->filenode;
+        fd->current_pointer = parent->fd[i]->current_pointer;
+        fd->ref_count = ++parent->fd[i]->ref_count;
+        i++;
+    }
+
+    if(copy_mm(parent,child) == -1){
+        kprintf("error while copying task");
+        return -1;
+    }
+
+    child->parent  = parent;
+    child->ppid = parent->pid;
+
+    if(parent->child_list == NULL)
+        parent->child_list = child;
+    else {
+        child->nextChild = parent->child_list;
+        parent->child_list = child;
+    }
+    parent->no_of_children++;
+
+
+    //copy kernel stack;
+    uint64_t rsp ;
+    __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(rsp));
+    //aligning down
+    rsp = (rsp>>12)<<12;
+    kmemcpy(child->stack, (uint64_t *)rsp, PAGE_SIZE);
+//    child->kernInitRSP = &child->stack[499];
+//    //schedule the next process; parent will only run after child
+//    schedule();
+
+    return child->pid;
+}
+
+int schdir(uint64_t path) {
+   file_table* dir = find_file_using_relative_path((char*)path);
+    if(dir->type == FILE){
+        kprintf("ERROR: not a directory");
+        return -1;
+    }
+    getCurrentTask()->curr_dir = dir;
+    kprintf("path changed to: %s\n", getCurrentTask()->curr_dir);
+    return 1;
+}
+int scwd(uint64_t path){
+    char* curr_dir = getCurrentTask()->curr_dir->name;
+    kmemcpy((void *)path,(void*)curr_dir,kstrlen(curr_dir));
+    return 1;
+}
+int sopen(uint64_t path, uint64_t flags){
+    return open_file((char*)path,(int)flags);
+
+}
 
 int syscall_handler(struct regs* reg) {
     int value = -1;
@@ -128,8 +199,9 @@ int syscall_handler(struct regs* reg) {
         case SYSCALL_WRITE:
             value = swrite(reg->rdi,reg->rsi,reg->rdx);
             break;
-//        case SYSCALL_OPEN:
-//            break;
+        case SYSCALL_OPEN:
+            value = sopen(reg->rdi, reg->rsi);
+            break;
 //        case SYSCALL_FSTAT:
 //            break;
 //        case SYSCALL_LSEEK:
@@ -149,7 +221,7 @@ int syscall_handler(struct regs* reg) {
 //            value = sgetpid();
 //            break;
         case SYSCALL_FORK:
-            value = sys_fork();
+            value = sfork();
             break;
 //        case SYSCALL_EXECVE:
 //            break;
@@ -158,12 +230,14 @@ int syscall_handler(struct regs* reg) {
 //            break;
 //        case SYSCALL_WAIT4:
 //            break;
-//        case SYSCALL_GETCWD:
-//            break;
+        case SYSCALL_GETCWD:
+            value = scwd(reg->rdi);
+            break;
 //        case SYSCALL_GETDENTS:
 //            break;
-//        case SYSCALL_CHDIR:
-//            break;
+        case SYSCALL_CHDIR:
+            value = schdir(reg->rdi);
+            break;
         default:
             kprintf("got a syscall : %d\n",syscallNo);
 

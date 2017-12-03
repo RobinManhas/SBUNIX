@@ -27,25 +27,6 @@ char* cmd_array[5];
 
 int processCommand(char* str);
 
-char* trimString(char* str){
-    if (!str)
-        return '\0';
-    if(strlen(str)<1) return '\0';
-    while(*str == ' ')
-        str++;
-
-    if(*str == '\0')
-        return str;
-
-    char* end = str+strlen(str) - 1;
-    while(*end == ' ' && end > str)
-        end --;
-
-    *(end+1) = '\0';
-
-    return str;
-}
-
 void printCommandPrompt(){
 
     char* tmp = expandPS1();

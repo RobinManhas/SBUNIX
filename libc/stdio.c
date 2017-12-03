@@ -5,7 +5,7 @@
 
 static const int ERROR = -1;
 static int isExecuting = -1;
-static int isPutValExecuting = 0;
+static int isPutValExecuting = -1;
 
 ssize_t sys_write(int fd, const void *buf, ssize_t count) {
 return syscall3(SYSCALL_WRITE, fd, (long)buf, count);
@@ -36,7 +36,7 @@ void putn(long n){
 }
 
 int putVal(const char *s){
-  if(isPutValExecuting){
+  if(isPutValExecuting ==1){
     return -1;
   }
   isPutValExecuting = 1;

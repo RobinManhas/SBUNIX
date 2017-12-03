@@ -6,9 +6,9 @@
 #include <sys/kstring.h>
 #include <sys/kmalloc.h>
 #include <sys/util.h>
-#include <unistd.h>
 #include <dirent.h>
 #include <sys/procmgr.h>
+#include <sys/pmm.h>
 
 file_table* new_file_table(char* name, char type,uint64_t size, uint64_t first ,uint64_t end, file_table *parent_node,uint64_t inode) {
 
@@ -44,7 +44,7 @@ file_table* get_parent_folder(char* name, unsigned int len){
     while(name[len] != '/') {
         len--;
         if(len == 0)
-            return NULL;
+            return tarfs[0];
     }
     char* parent_name = kmalloc(); // to be changed;need to provide size
     kstrncpy(parent_name,name,len+1);
@@ -58,7 +58,7 @@ file_table* get_parent_folder(char* name, unsigned int len){
         }
     }
     //kprintf("not found");
-    return NULL;
+    return tarfs[0];
 }
 
 /**
@@ -82,6 +82,7 @@ void init_tarfs(){
     //file_table* current = tarfs;
     int length ;
     int index = 0;
+    tarfs[index++]=new_file_table("/", DIRECTORY, 0, 0, 0, parent,0);
 
 
    while(*pointer < *end_pointer){
@@ -117,12 +118,12 @@ void init_tarfs(){
 
     }
     //for debug purpose only
-//    for(int i =0 ; i <FILES_MAX; i++){
-//        if(NULL == tarfs[i] || strlen(tarfs[i]->name) == 0)
-//            break;
-//        kprintf("%s  %d  %d\n",tarfs[i]->name, tarfs[i]->type, tarfs[i]->noOfChild);
-//
-//    }
+    for(int i =1 ; i <FILES_MAX; i++){
+        if(NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
+            break;
+        kprintf("%s parent:%s\n",tarfs[i]->name, tarfs[i]->child[1]->name);
+
+    }
 
 
 }
@@ -143,7 +144,7 @@ DIR *opendir(const char *name){
             kprintf("directory found\n");
             DIR* dir = (DIR*)kmalloc();
             dir->filenode = tarfs[i];
-            dir->curr = 2;
+            dir->curr = 2; // next child pointer
             return dir;
         }
     }
@@ -152,6 +153,7 @@ DIR *opendir(const char *name){
 
 }
 
+//returns a dirent with the next child info.
 dirent *readdir(DIR *dirp){
     if(NULL == dirp || dirp->filenode->type != DIRECTORY)
         return NULL;
@@ -181,7 +183,7 @@ int open_file(char* file, int flag){ // returns filedescriptor id
     for(int i =0;i<FILES_MAX ; i++) {
         if (NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
             break;
-        if ((kstrcmp(tarfs[i]->name, file) == 0) && tarfs[i]->type == FILE) {
+        if (kstrcmp(tarfs[i]->name, file) == 0) {
             kprintf("file found\n");
             filedesc =(FD*)kmalloc();
             //filedesc->current_process = currentTask;
@@ -249,5 +251,98 @@ file_table* find_file(char* file_name){
         }
     }
     return file;
+
+}
+
+
+
+file_table* getChild(file_table* dir, char* child_name){
+    kprintf("inside getChild : %s\n",child_name);
+    int i,l;
+    char* tmp;
+    char* t;
+    for( i =2; i< FILES_MAX; i++){
+        if(dir->child[i] == NULL || kstrcmp(dir->child[i]->name,"")==0)
+            return NULL;
+        tmp = dir->child[i]->name;
+        l = kstrlen(tmp)-1;
+        if(dir->child[i]->type == DIRECTORY)
+             t = tmp+l-1;
+        else
+            t = tmp+l;
+        while( *t != '/') {
+
+            if(t==tmp)
+                break;
+            t--;
+        }
+        if(*t == '/')
+            t++;
+        kprintf("child: %s\n",t);
+        if(kstrcmp(child_name,t) == 0){
+            return dir->child[i];
+        }
+
+
+    }
+    return NULL;
+}
+
+file_table* find_file_using_relative_path(char* p_path){
+    //already absolute
+    if(p_path[0] == '/') {
+        return find_file(++p_path);
+    }
+    //char ab_path[100];
+    int l = kstrlen(p_path);
+    kprintf("inside path %s: \n", p_path);
+    char path[100];
+    kmemcpy((void*)path,(void*)p_path,l);
+    if(path[l-1]!= '/'){
+        path[l++]='/';
+        path[l]='\0';
+    }
+
+    file_table* curr_dir = getCurrentTask()->curr_dir;
+    char tmp[20];
+    memset(tmp,0,20);
+    int i =0;
+    int j =0;
+
+    while(i < l){
+        while(i <l && path[i]!='/' ){
+            tmp[j++]=path[i++];
+
+        }
+        kprintf("out of while tmp:%s \n",tmp);
+        if(path[i] == '/'){
+            if(kstrcmp(tmp,"")==0) {
+                kprintf("ERROR:incorrect path\n");
+                return NULL;
+            }
+            else if(kstrcmp(tmp,".")==0){
+                //do nothing ??
+                i++;//to increment '/'
+            }
+            else if(kstrcmp(tmp,"..")==0){
+                curr_dir = curr_dir->child[1];//point to parent
+                kprintf("curr_dir %s\n",curr_dir->name);
+                i++;
+            }
+            else{
+                tmp[j++] = path[i++];
+                curr_dir = getChild(curr_dir,tmp);
+                if(curr_dir == NULL){
+                    kprintf("ERROR:incorrect path\n");
+                    return NULL;
+
+                }
+            }
+        }
+        memset(tmp,0,20);
+        j=0;
+
+    }
+    return curr_dir;
 
 }

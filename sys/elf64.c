@@ -10,6 +10,7 @@
 #include <sys/mm.h>
 #include <sys/elf64.h>
 #include <sys/procmgr.h>
+#include <sys/kstring.h>
 
 
 //void* get_elf_binary(char* binary_name) {
@@ -135,7 +136,8 @@ int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[],c
         task = getFreeTask();
         createUserProcess(task);
     }
-
+    int l = kstrlen(binary_name);
+    kmemcpy(task->name, binary_name, l);
     return load_elf_binary(elf_header,task,file,argv,envp);
     //return 1;
 }

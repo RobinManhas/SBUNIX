@@ -12,7 +12,18 @@
 //for munmap
 //vm_area_struct *vma_free_list = NULL;
 
+void print_vma_boundaries(mm_struct* mm){
+//    if(mm == NULL){
+//        kprintf("ERROR: MM in null");
+//        return;
+//    }
+//    vm_area_struct *vma= mm->vma_list;
+//    while(vma){
+//    kprintf("vma bounds:from: %x  to: %x\n",vma->vm_start,vma->vm_end);
+//        vma=vma->vm_next;
+//    }
 
+}
 vm_area_struct* find_vma(mm_struct* mm, uint64_t addr){
     vm_area_struct *vma = NULL;
     if (mm) {
@@ -29,6 +40,11 @@ vm_area_struct* find_vma(mm_struct* mm, uint64_t addr){
         if (vma)
             mm->vma_cache = vma;
     }
+    if(vma == NULL){
+        kprintf("vma not found for: %x\n",addr);
+        print_vma_boundaries(mm);
+    }
+
     return vma;
 }
 
@@ -216,7 +232,6 @@ uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags,
         new_vm = allocate_vma(addr, addr + len, flags, file,offset);
         new_vm->vm_mm = task->mm;
 
-        kprintf("vma start %p, end %p fd %p\n", new_vm->vm_start, new_vm->vm_end, new_vm->file);
         vm_area_struct* curr = task->mm->vma_list;
         if(curr == NULL){
             task->mm->vma_list = new_vm;
@@ -256,7 +271,6 @@ uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags,
 uint64_t allocate_heap(mm_struct* mm) {
     // at heap at last
     uint64_t start_addr = add_vma_at_last(mm, 1, PTE_W, NULL, 0, 0)->vm_start;
-
     mm->start_brk = start_addr;
     mm->brk = start_addr;
     return start_addr;
@@ -283,6 +297,9 @@ uint64_t allocate_stack(task_struct* task,char *argv[], char *envp[]) {
     while (pointer->vm_next != NULL)
         pointer = pointer->vm_next;
     pointer->vm_next = stack;
+
+    print_vma_boundaries(task->mm);
+
 
     allocate_single_page(task,MM_STACK_START);
     task->mm->start_stack = (uint64_t)MM_STACK_START;
@@ -324,7 +341,7 @@ uint64_t allocate_stack(task_struct* task,char *argv[], char *envp[]) {
     for (i = envp_count-1; i >= 0; i--) {
         stack_top--;
         *stack_top = (uint64_t)env_tmp[i];
-        kprintf("env pointer:%p value: %s\n", stack_top, *stack_top);
+       // kprintf("env pointer:%p value: %s\n", stack_top, *stack_top);
     }
 
     stack_top--;
@@ -333,7 +350,7 @@ uint64_t allocate_stack(task_struct* task,char *argv[], char *envp[]) {
     for (i = argc_count-1; i >= 0; i--) {
         stack_top--;
         *stack_top = (uint64_t)arg_tmp[i];
-        kprintf("arg pointer: %p value: %s\n", stack_top, *stack_top);
+        //kprintf("arg pointer: %p value: %s\n", stack_top, *stack_top);
     }
     stack_top--;
     *stack_top = (uint64_t)argc_count;

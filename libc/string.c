@@ -39,7 +39,7 @@ char *strncpy(char *dest, const char *src, unsigned int n){
 	}
 	dest[i]='\0';
 	return dest;
-	
+
 }
 int strncmp(const char *s1, const char *s2, unsigned int n){
 	unsigned int _s1_len;
@@ -145,5 +145,24 @@ char *strtok_r(char *str, const char *delim , char **saveptr){
     }
     *saveptr = perm;
     return str;
+}
+
+char* trimString(char* str){
+	if (!str)
+		return '\0';
+	if(strlen(str)<1) return '\0';
+	while(*str == ' ')
+		str++;
+
+	if(*str == '\0')
+		return str;
+
+	char* end = str+strlen(str) - 1;
+	while(*end == ' ' && end > str)
+		end --;
+
+	*(end+1) = '\0';
+
+	return str;
 }
 

@@ -10,6 +10,12 @@ extern char _binary_tarfs_end;
 #define FILE '0'
 #define FILES_MAX 100
 
+
+#define O_RDONLY 0x0000
+#define O_WRONLY 0x0001
+#define O_RDWR 0x0002
+#define O_CREAT 0x0100
+
 struct posix_header_ustar {
   char name[100];
   char mode[8];
@@ -65,5 +71,7 @@ struct fd {
 file_table* get_parent_folder(char* name, unsigned int len);
 file_table* find_file(char* file_name);
 void init_tarfs();
+file_table* find_file_using_relative_path(char* path);
+int open_file(char* file, int flag);
 
 #endif

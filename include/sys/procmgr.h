@@ -9,6 +9,7 @@
 
 #include <sys/defs.h>
 #include <sys/tarfs.h>
+#include <dirent.h>
 
 
 
@@ -52,7 +53,8 @@ typedef struct task_struct{
     struct task_struct* parent;
     struct task_struct* child_list;
     uint8_t no_of_children;
-    char* name;
+    char name[50];
+    file_table* curr_dir;
 } task_struct;
 
 //task_struct* CURRENT_TASK;
@@ -124,7 +126,6 @@ void destroy_task(task_struct *task);
 void removeTaskFromRunList(task_struct *task);
 void moveTaskToZombie(task_struct *task);
 task_struct* getCurrentTask();
-pid_t sys_fork();
 //task_struct* currentTask;
 
 #endif //OS_PROCESSM_H

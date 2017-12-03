@@ -85,7 +85,7 @@ void createUserProcess_temp(task_struct *user_task){
     user_task->mm = (mm_struct*)userPage;
     user_task->mm->v_addr_pointer = userbase;
     user_task->mm->vma_cache = NULL;
-
+	user_task->curr_dir = tarfs[0];
     // map kernel
     kernPtr = getKernelPML4();
     userPtr[511] = kernPtr[511];
@@ -348,7 +348,7 @@ void createKernelTask(task_struct *task, void (*func)(void)){
     task->stack[510] = (uint64_t)func;
     task->rsp = (uint64_t)&task->stack[510];
     task->user_rip = (uint64_t)func;
-    task->cr3 = (uint64_t)getKernelPML4();
+    task->cr3 = (uint64_t)kmalloc();
     task->no_of_children = 0;
     task->next = NULL;
     task->nextChild = NULL;
@@ -426,6 +426,8 @@ void createUserProcess(task_struct *user_task){
     user_task->mm = (mm_struct*)userPage;
     user_task->mm->v_addr_pointer = userbase;
     user_task->mm->vma_cache = NULL;
+    user_task->curr_dir = tarfs[0];
+
 
     // map kernel
     kernPtr = getKernelPML4();
@@ -481,55 +483,6 @@ void switch_to_user_mode(task_struct *oldTask, task_struct *user_task)
 }
 
 
-pid_t sys_fork() {
-    task_struct* parent = getCurrentTask();
-    task_struct* child = getFreeTask();
-    createUserProcess(child);
-    child->init = parent->init;
-    child->user_rip = parent->user_rip;
-    child->rsp = parent->rsp;
-
-
-    //copy the file descriptor list and increment reference count
-    int i = 0;
-    while( i < MAX_FD && parent->fd[i] != NULL) {
-        FD* fd = (FD*) kmalloc_size(sizeof(FD));
-        fd->perm = parent->fd[i]->perm;
-        fd->filenode =  parent->fd[i]->filenode;
-        fd->current_pointer = parent->fd[i]->current_pointer;
-        fd->ref_count = ++parent->fd[i]->ref_count;
-        i++;
-    }
-
-    if(copy_mm(parent,child) == -1){
-        kprintf("error while copying task");
-        return -1;
-    }
-
-    child->parent  = parent;
-    child->ppid = parent->pid;
-
-    if(parent->child_list == NULL)
-        parent->child_list = child;
-    else {
-        child->nextChild = parent->child_list;
-        parent->child_list = child;
-    }
-    parent->no_of_children++;
-
-
-    //copy kernel stack;
-    uint64_t rsp ;
-    __asm__ __volatile__ ("movq %%rsp, %0;":"=r"(rsp));
-    //aligning down
-    rsp = (rsp>>12)<<12;
-    kmemcpy(child->stack, (uint64_t *)rsp, PAGE_SIZE);
-//    child->kernInitRSP = &child->stack[499];
-//    //schedule the next process; parent will only run after child
-//    schedule();
-
-    return child->pid;
-}
 
 // use next child link instead of next
 void removeChildFromParent(task_struct *parent, task_struct*child){

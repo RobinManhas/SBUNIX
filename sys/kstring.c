@@ -61,3 +61,15 @@ char *kstrncpy(char *dest, const char *src, unsigned int n){
     return dest;
 
 }
+
+char* kstrcat(char *dest,const char *src){
+	unsigned int d;
+	unsigned int s=0;
+	for(d=0;dest[d]!='\0';d++);
+	for(s=0;src[s]!='\0';s++){
+		dest[d+s] = src[s];
+	}
+
+	dest[d+s]='\0';
+	return dest;
+}

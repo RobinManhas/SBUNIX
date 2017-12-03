@@ -12,6 +12,7 @@
 #include <sys/procmgr.h>
 #include <sys/common.h>
 #include <sys/mm.h>
+#include <sys/kstring.h>
 
 #define INITIAL_STACK_SIZE 4096
 uint8_t initial_stack[INITIAL_STACK_SIZE]__attribute__((aligned(16)));
@@ -55,7 +56,7 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     __asm__ ("sti"); //enable interrupts
 
     kernel_idle_task = getFreeTask();
-    kernel_idle_task->name ="Idle_task";
+    kmemcpy(kernel_idle_task->name,"Idle_task",9);
     createKernelInitProcess(kernel_idle_task, startTask);
 
     //task1 = getFreeTask();
