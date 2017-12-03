@@ -164,38 +164,35 @@ int open_file(char* file, int flag){ // returns filedescriptor id
 uint64_t read_file(int fdNo, uint64_t buf,int size) {
     task_struct *currentTask = getCurrentTask();
     FD *filedesc = currentTask->fd[fdNo];
-    //if(filedesc != NULL && filedesc->perm != O_WRONLY){
-    uint64_t read_current = filedesc->current_pointer;
-    if (filedesc->filenode->type == FILE) {
+    if(filedesc != NULL && filedesc->perm != O_WRONLY) {
+        uint64_t read_current = filedesc->current_pointer;
+        if (filedesc->filenode->type == FILE) {
 
-        uint64_t offset = filedesc->filenode->start+ sizeof(struct posix_header_ustar)+read_current;
-        uint64_t file_size = filedesc->filenode->size;
+            uint64_t offset = filedesc->filenode->start + sizeof(struct posix_header_ustar) + read_current;
+            uint64_t file_size = filedesc->filenode->size;
 
-        if (file_size < read_current) {
-            return -1;
+            if (file_size < read_current) {
+                return -1;
+            } else if (file_size == read_current) {
+                return 0;
+            } else if (file_size - read_current < size) {
+                size = file_size - read_current;
+
+            }
+
+            kmemcpy((void *) buf, (void *) offset, size);
+            filedesc->current_pointer += size;
+            return size;
+        } else if (read_current >= 2 && filedesc->filenode->noOfChild > read_current) {
+            char *name = get_name(filedesc->filenode->child[read_current]);
+            size = kstrlen(name);
+            kmemcpy((void *) buf, (void *) name, size);
+            filedesc->current_pointer++;
+            return size;
+
         }
-        else if(file_size == read_current){
-            return 0;
-        }
-        else if(file_size - read_current < size){
-            size = file_size-read_current;
-
-        }
-
-        kmemcpy((void *) buf, (void *) offset, size);
-        filedesc->current_pointer += size;
-        return size;
-    } else if (read_current >= 2 && filedesc->filenode->noOfChild > read_current) {
-        char *name = get_name(filedesc->filenode->child[read_current]);
-        size = kstrlen(name);
-        kmemcpy((void *) buf, (void *) name, size);
-        filedesc->current_pointer++;
-        return size;
-
     }
-    return 1;
-    //}
-    //return  -1;
+    return  -1;
 }
 
 
