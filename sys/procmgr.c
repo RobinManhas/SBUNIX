@@ -379,11 +379,13 @@ void schedule(){
             //kprintf("switching to user task:changing cr3 \n");
             setCR3((uint64_t *) currentTask->cr3);
         }
+
+        if(currentTask->type == TASK_USER)
+        {
+            set_tss_rsp((uint64_t *) (ALIGN_UP(currentTask->rsp, PAGE_SIZE) - 16));
+            kernel_rsp = ALIGN_UP(currentTask->rsp, PAGE_SIZE) - 16;
+        }
         switch_to(prevTask, currentTask);
-        set_tss_rsp((uint64_t *) (ALIGN_UP(currentTask->rsp, PAGE_SIZE) - 16));
-        kernel_rsp = ALIGN_UP(currentTask->rsp, PAGE_SIZE) - 16;
-
-
 
     }
 
