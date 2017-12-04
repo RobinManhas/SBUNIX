@@ -170,13 +170,14 @@ pid_t sfork() {
     child->rsp = (uint64_t)&child->stack[510];
     child->rsp = ALIGN_UP(child->rsp,PAGE_SIZE)-152;
     *(uint64_t *)(child->rsp) = (uint64_t)forkChild;
+    int child_pid = child->pid;
 
 //    //schedule the next process to front; parent will only run after child
-    removeTaskFromRunList(child);
-    addTaskToReady(child,1);
+//    removeTaskFromRunList(child);
+//    addTaskToReady(child,0);
     schedule();
 
-    return child->pid;
+    return child_pid;
 }
 
 int schdir(uint64_t path) {
