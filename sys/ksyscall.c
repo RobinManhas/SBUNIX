@@ -136,6 +136,7 @@ pid_t sfork() {
         fd->filenode =  parent->fd[i]->filenode;
         fd->current_pointer = parent->fd[i]->current_pointer;
         fd->ref_count = ++parent->fd[i]->ref_count;
+        fd->fileOps = parent->fd[i]->fileOps;
         child->fd[i]=fd;
         i++;
     }

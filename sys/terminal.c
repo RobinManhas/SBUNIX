@@ -74,12 +74,14 @@ struct fileOps terminalOps_OUT = {
 FD* create_terminal_IN(){
     FD* filedesc = (FD*)kmalloc();
     filedesc->fileOps=&terminalOps_IN;
+    filedesc->ref_count= 1;
     return filedesc;
 }
 
 FD* create_terminal_OUT(){
     FD* filedesc = (FD*)kmalloc();
     filedesc->fileOps=&terminalOps_OUT;
+    filedesc->ref_count= 1;
     return filedesc;
 }
 
