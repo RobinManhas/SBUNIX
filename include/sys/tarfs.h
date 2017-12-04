@@ -69,7 +69,7 @@ struct fd {
 };
 
 file_table* get_parent_folder(char* name, unsigned int len);
-file_table* find_file(char* file_name);
+file_table* find_tar(char *file_name);
 void init_tarfs();
 file_table* find_file_using_relative_path(char* path);
 int open_file(char* file, int flag);

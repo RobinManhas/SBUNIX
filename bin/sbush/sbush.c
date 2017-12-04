@@ -280,6 +280,7 @@ int processCommand(char* str){
         char* trunk = strtok(str,"\n");
         strtok(trunk," ");
         trunk = strtok(NULL," ");
+        trunk = trimString(trunk);
         int result = chdir(trunk);
         if(result <0){
             puts("Error: Invalid path");

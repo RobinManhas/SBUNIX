@@ -175,13 +175,13 @@ pid_t sfork() {
 }
 
 int schdir(uint64_t path) {
-   file_table* dir = find_file_using_relative_path((char*)path);
-    if(dir->type == FILE){
-        kprintf("ERROR: not a directory");
+    file_table* dir = find_file_using_relative_path((char*)path);
+   if(dir == NULL ||dir->type == FILE){
         return -1;
     }
+    //kprintf("relative path: %s\n",dir->name);
     getCurrentTask()->curr_dir = dir;
-    kprintf("path changed to: %s\n", getCurrentTask()->curr_dir->name);
+    //kprintf("path changed to: %s\n", getCurrentTask()->curr_dir->name);
     return 1;
 }
 int scwd(uint64_t path){

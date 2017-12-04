@@ -186,7 +186,8 @@ uint64_t read_file(int fdNo, uint64_t buf,int size) {
         } else if (read_current >= 2 && filedesc->filenode->noOfChild > read_current) {
             char *name = get_name(filedesc->filenode->child[read_current]);
             size = kstrlen(name);
-            kmemcpy((void *) buf, (void *) name, size);
+            kmemcpy((void *) buf, (void *) name, size+1);
+
             filedesc->current_pointer++;
             return size;
 
@@ -212,14 +213,14 @@ uint64_t write_file(char* s,uint64_t write_len){
     return -1;
 }
 
-file_table* find_file(char* file_name){
+file_table* find_tar(char *file_name){
     file_table* file = NULL;
     for(int i =0;i<FILES_MAX ; i++) {
         if (NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
             break;
         //kprintf("file :%s\n", tarfs[i]->name);
 
-        if ((kstrcmp(tarfs[i]->name, file_name) == 0) && tarfs[i]->type == FILE) {
+        if (kstrcmp(tarfs[i]->name, file_name) == 0){
             //kprintf("file found:");
             file = tarfs[i];
             break;
@@ -233,10 +234,12 @@ file_table* find_file(char* file_name){
 char* get_name(file_table* child){
     if(child == NULL || child->name == NULL)
         return NULL;
-    int l;
-    char* t, *tmp;
-    tmp = child->name;
-    l = kstrlen(tmp)-1;
+    int l = kstrlen(child->name);
+    char* t;
+    char tmp[l+1];
+    kmemcpy(tmp, child->name,l+1);
+
+    l = l-1;
     if(child->type == DIRECTORY){
         t = tmp+l-1;
         tmp[l]='\0';
@@ -290,27 +293,30 @@ file_table* get_child(file_table *dir, char *child_name){
 }
 
 file_table* find_file_using_relative_path(char* p_path){
-    //already absolute
-    if(p_path[0] == '/') {
-        return find_file(++p_path);
-    }
-    //char ab_path[100];
+
     int l = kstrlen(p_path);
-    //kprintf("inside path %s: \n", p_path);
     char path[100];
-    kmemcpy((void*)path,(void*)p_path,l);
+    memset((void*)path,0,100);
+    kmemcpy((void*)path,(void*)p_path,l+1);
     if(path[l-1]!= '/'){
         path[l++]='/';
-        path[l]='\0';
+    }
+    path[l]='\0';
+
+    //already absolute
+    if(path[0] == '/') {
+        return find_tar(path+1);
     }
 
     file_table* curr_dir = getCurrentTask()->curr_dir;
     char tmp[20];
-    memset(tmp,0,20);
+
     int i =0;
-    int j =0;
+    int j;
 
     while(i < l){
+        memset(tmp,0,20);
+        j =0;
         while(i <l && path[i]!='/' ){
             tmp[j++]=path[i++];
 
@@ -318,7 +324,6 @@ file_table* find_file_using_relative_path(char* p_path){
         //kprintf("out of while tmp:%s \n",tmp);
         if(path[i] == '/'){
             if(kstrcmp(tmp,"")==0) {
-                kprintf("ERROR:incorrect path\n");
                 return NULL;
             }
             else if(kstrcmp(tmp,".")==0){
@@ -327,6 +332,10 @@ file_table* find_file_using_relative_path(char* p_path){
             }
             else if(kstrcmp(tmp,"..")==0){
                 curr_dir = curr_dir->child[1];//point to parent
+                if(curr_dir == NULL){
+                    kprintf("ERROR:incorrect path; ..\n");
+                    return NULL;
+                }
                 //kprintf("curr_dir %s\n",curr_dir->name);
                 i++;
             }
@@ -334,14 +343,11 @@ file_table* find_file_using_relative_path(char* p_path){
                 tmp[j++] = path[i++];
                 curr_dir = get_child(curr_dir, tmp);
                 if(curr_dir == NULL){
-                    kprintf("ERROR:incorrect path\n");
                     return NULL;
 
                 }
             }
         }
-        memset(tmp,0,20);
-        j=0;
 
     }
     return curr_dir;
