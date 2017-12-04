@@ -131,7 +131,7 @@ void createKernelTask(task_struct *task, void (*start)(void));
 void switch_to_user_mode(task_struct *oldTask, task_struct *user_task);
 void schedule();
 task_struct* getFreeTask();
-void addTaskToReady(task_struct *readyTask);
+void addTaskToReady(task_struct *readyTask, uint8_t addToFront);
 void addTaskToBlocked(task_struct *blockedTask);
 void addTaskToZombie(task_struct *zombieTask);
 void removeTaskFromBlocked(task_struct* task);

@@ -95,7 +95,7 @@ void add_buffer(char c){
 
             removeTaskFromBlocked(task_assigned_to_terminal);
             task_assigned_to_terminal->state = TASK_STATE_RUNNING;
-            addTaskToReady(task_assigned_to_terminal);
+            addTaskToReady(task_assigned_to_terminal,0);
             task_assigned_to_terminal = NULL;
             schedule();
 

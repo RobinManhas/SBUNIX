@@ -121,7 +121,7 @@ void createUserProcess(task_struct *user_task){
 //    uint64_t kernPage = (((uint64_t)&userFunc) & ADDRESS_SCHEME);
 //    kmemcpy((void*)userPage,(void*)kernPage ,PAGE_SIZE);
 
-    addTaskToReady(user_task);
+    addTaskToReady(user_task,0);
 }
 void func1()
 {
@@ -165,7 +165,7 @@ void func2()
 
 }
 
-void addTaskToReady(task_struct *readyTask){
+void addTaskToReady(task_struct *readyTask, uint8_t addToFront){
     if(readyTask == NULL){
         kprintf("Error: invalid task in add to ready, returning\n");
         return;
@@ -178,6 +178,14 @@ void addTaskToReady(task_struct *readyTask){
     }
     else
     {
+
+        if(addToFront){
+
+            // add to front {gReadyList NULL checked before, here it has a value}
+            readyTask->next = gReadyList;
+            gReadyList = readyTask;
+            return;
+        }
         //RM: add to end of ready list
         task_struct *iter = gReadyList;
         if(iter == readyTask){ // checks being added as a process got pushed to list multiple times
@@ -311,7 +319,7 @@ void schedule(){
         // add prevTask task switched to end of ready list
         switch (prevTask->state) {
             case TASK_STATE_RUNNING: {
-                addTaskToReady(prevTask);
+                addTaskToReady(prevTask,0);
                 break;
             }
             case TASK_STATE_BLOCKED: {
@@ -398,7 +406,7 @@ void createKernelInitProcess(task_struct *ktask, task_struct *startFuncTask){
     ktask->next = NULL;
     ktask->nextChild = NULL;
     currentTask = startFuncTask;
-    addTaskToReady(ktask);
+    addTaskToReady(ktask,0);
 }
 
 void createKernelTask(task_struct *task, void (*func)(void)){
@@ -414,7 +422,7 @@ void createKernelTask(task_struct *task, void (*func)(void)){
     task->nextChild = NULL;
     task->type = TASK_KERNEL;
     task->state = TASK_STATE_RUNNING;
-    addTaskToReady(task);
+    addTaskToReady(task,0);
 }
 
 
@@ -616,11 +624,11 @@ void reduceSleepTime(){
         if(sleepListPtr->sleepTime == 0) {
             if(prevptr==NULL){
                 gSleepList = sleepListPtr->next;
-                addTaskToReady(sleepListPtr);
+                addTaskToReady(sleepListPtr,0);
                 sleepListPtr = gSleepList;
             }else{
                 prevptr->next = sleepListPtr->next;
-                addTaskToReady(sleepListPtr);
+                addTaskToReady(sleepListPtr,0);
                 sleepListPtr = prevptr->next;
             }
             continue;

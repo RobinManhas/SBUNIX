@@ -168,7 +168,9 @@ pid_t sfork() {
     child->rsp = ALIGN_UP(child->rsp,PAGE_SIZE)-152;
     *(uint64_t *)(child->rsp) = (uint64_t)forkChild;
 
-//    //schedule the next process; parent will only run after child
+//    //schedule the next process to front; parent will only run after child
+    removeTaskFromRunList(child);
+    addTaskToReady(child,1);
     schedule();
 
     return child->pid;
