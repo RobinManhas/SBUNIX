@@ -26,9 +26,15 @@ syscall_entry:
 
     movq %rsp, %rdi
     callq syscall_handler
+    jmp jmpSeq
 
 
+.global forkChild
+forkChild:
+    xorq %rax,%rax   //clear rax register for child
 
+.global jmpSeq
+jmpSeq:
     popq %r15
     popq %r14
     popq %r13

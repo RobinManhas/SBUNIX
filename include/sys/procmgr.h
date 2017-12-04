@@ -12,6 +12,8 @@
 #include <dirent.h>
 
 
+#define ALIGN_MASK(x, mask) (((x) + (mask)) & ~(mask))
+#define ALIGN_UP(ptr, amt) ALIGN_MASK(ptr,(((__typeof__(ptr))(amt) - 1)))
 
 typedef struct vm_area_struct vm_area_struct;
 typedef struct mm_struct mm_struct;

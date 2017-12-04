@@ -51,7 +51,7 @@ uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags);
 uint64_t returnVirAdd(uint64_t add, short addType, short removeFlags);
 void map_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t flags);
 uint64_t* getKernelPML4();
-void map_user_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t** pml_ptr);
+void map_user_virt_phys_addr(uint64_t vaddr, uint64_t paddr, uint64_t** pml_ptr, int reset_flag);
 uint64_t getPTEntry(uint64_t vaddr);
 uint64_t setPTEntry(uint64_t vaddr, uint64_t paddr);
 

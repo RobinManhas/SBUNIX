@@ -16,6 +16,7 @@
 
 
 extern void syscall_entry();
+extern void forkChild();
 uint64_t user_rsp;
 uint64_t kernel_rsp;
 task_struct* CURRENT_TASK;
@@ -123,7 +124,8 @@ pid_t sfork() {
     createUserProcess(child);
     child->init = parent->init;
     child->user_rip = parent->user_rip;
-    child->rsp = parent->rsp;
+    child->user_rsp = parent->user_rsp;
+    //child->rsp = parent->rsp;
 
 
     //copy the file descriptor list and increment reference count
@@ -134,6 +136,7 @@ pid_t sfork() {
         fd->filenode =  parent->fd[i]->filenode;
         fd->current_pointer = parent->fd[i]->current_pointer;
         fd->ref_count = ++parent->fd[i]->ref_count;
+        child->fd[i]=fd;
         i++;
     }
 
@@ -160,9 +163,13 @@ pid_t sfork() {
     //aligning down
     rsp = (rsp>>12)<<12;
     kmemcpy(child->stack, (uint64_t *)rsp, PAGE_SIZE);
-//    child->kernInitRSP = &child->stack[499];
+    kprintf("scheduling child\n");
+    //16-128-8
+    child->rsp = ALIGN_UP(child->rsp,PAGE_SIZE)-152;
+    *(uint64_t *)(child->rsp) = (uint64_t)forkChild;
+
 //    //schedule the next process; parent will only run after child
-//    schedule();
+    schedule();
 
     return child->pid;
 }

@@ -185,7 +185,7 @@ void handle_page_fault(struct regs* reg){
                 new_page = allocatePage();
                 new_vir = current_task->mm->v_addr_pointer;
                 current_task->mm->v_addr_pointer += 0x1000;
-                map_user_virt_phys_addr(new_vir,new_page,&pml4_pointer);
+                map_user_virt_phys_addr(new_vir,new_page,&pml4_pointer,1);
 
                 //copy contents from old page to new page
                 kmemcpy((uint64_t *)new_vir,(uint64_t *)faulty_addr,PAGE_SIZE);

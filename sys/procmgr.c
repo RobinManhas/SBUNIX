@@ -14,8 +14,7 @@
 #include <sys/mm.h>
 #include <sys/terminal.h>
 
-#define ALIGN_MASK(x, mask) (((x) + (mask)) & ~(mask))
-#define ALIGN_UP(ptr, amt) ALIGN_MASK(ptr,(((__typeof__(ptr))(amt) - 1)))
+
 
 
 uint16_t processID = 0; // to keep track of the allocated process ID's to task struct
@@ -62,6 +61,7 @@ void initialiseUserProcess(task_struct *user_task){
     user_task->no_of_children = 0;
     user_task->next = NULL;
     user_task->nextChild = NULL;
+    user_task->cr3 = (uint64_t)kmalloc();
 
     user_task->fd[0]=create_terminal_IN();
     FD* filedec = create_terminal_OUT();
@@ -74,14 +74,14 @@ void initialiseUserProcess(task_struct *user_task){
     userPtr[PML4_REC_SLOT] |= (PTE_U_W_P);
 
     map_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),PTE_U_W_P);
-    map_user_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),&userPtr);
+    map_user_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),&userPtr,1);
     userbase+=0x1000;
 
 
 
     // map stack
     map_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),PTE_U_W_P);
-    map_user_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),&userPtr);
+    map_user_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),&userPtr,1);
     user_task->stack = (uint64_t*)userbase;
     userbase+=0x1000;
 
@@ -90,7 +90,7 @@ void initialiseUserProcess(task_struct *user_task){
 
     uint64_t userPage = (uint64_t)kmalloc();
     map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);
-    map_user_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),&userPtr);
+    map_user_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),&userPtr,1);
     userbase+=0x1000;
 
     user_task->mm = (mm_struct*)userPage;
@@ -104,9 +104,10 @@ void initialiseUserProcess(task_struct *user_task){
 }
 void createUserProcess(task_struct *user_task){
     user_task->state = TASK_STATE_RUNNING;
-    user_task->cr3 = (uint64_t)kmalloc();
+//    user_task->cr3 = (uint64_t)kmalloc();
     user_task->stack = kmalloc();
 
+    user_task->rsp = (uint64_t)&user_task->stack[510];
     initialiseUserProcess(user_task);
 
     //Need to check why we need this
@@ -139,6 +140,7 @@ void func1()
 //    init_timer();
 //    init_keyboard();
 //    __asm__ ("sti");
+    kprintf("got fucn1\n");
     initialiseUserProcess(getCurrentTask());
     char * argv[]={"/bin/sbush","/temp", NULL};
     char * envp[]={"PATH=/bin:", "HOME=/root", "USER=root", NULL};
@@ -261,6 +263,7 @@ void addTaskToSleep(task_struct *sleepTask){
 
 void switch_to(task_struct *current, task_struct *next)
 {
+
     __asm__ __volatile__("pushq %rax");
     __asm__ __volatile__("pushq %rbx");
     __asm__ __volatile__("pushq %rcx");
@@ -296,47 +299,39 @@ void switch_to(task_struct *current, task_struct *next)
     }
 }
 
-void schedule()
-{
-    if(currentTask != NULL /*gReadyList != NULL*/){
+void schedule(){
+    if(currentTask != NULL /*gReadyList != NULL*/) {
         prevTask = currentTask;
         currentTask = gReadyList;
-        if(currentTask == NULL)
+        if (currentTask == NULL)
             currentTask = kernel_idle_task; // TODO: currently does not switch properly
         else
             gReadyList = gReadyList->next;
 
         // add prevTask task switched to end of ready list
-        switch(prevTask->state)
-        {
-            case TASK_STATE_RUNNING:
-            {
+        switch (prevTask->state) {
+            case TASK_STATE_RUNNING: {
                 addTaskToReady(prevTask);
                 break;
             }
-            case TASK_STATE_BLOCKED:
-            {
+            case TASK_STATE_BLOCKED: {
                 addTaskToBlocked(prevTask);
                 break;
             }
-            case TASK_STATE_ZOMBIE:
-            {
+            case TASK_STATE_ZOMBIE: {
                 addTaskToZombie(prevTask);
                 break;
             }
-            case TASK_STATE_SLEEP:
-            {
+            case TASK_STATE_SLEEP: {
                 addTaskToSleep(prevTask);
                 break;
             }
             case TASK_STATE_IDLE:
-            case TASK_STATE_KILLED:
-            {
+            case TASK_STATE_KILLED: {
                 // don't add idle task or killed task to any queue.
                 break;
             }
-            default:
-            {
+            default: {
                 kprintf("unhandled task state in scheduler\n");
                 break;
             }
@@ -346,9 +341,17 @@ void schedule()
 //            switch_to(prev,current);
 //        else if(current->type == TASK_USER)
 //            switch_to_user_mode(prev,current);
-        switch_to(prevTask,currentTask);
-        set_tss_rsp((uint64_t *)(ALIGN_UP(currentTask->rsp,PAGE_SIZE)-16));
-        kernel_rsp = ALIGN_UP(currentTask->rsp,PAGE_SIZE)-16;
+
+
+        if (prevTask != currentTask) {
+            //kprintf("switching to user task:changing cr3 \n");
+            setCR3((uint64_t *) currentTask->cr3);
+        }
+        switch_to(prevTask, currentTask);
+        set_tss_rsp((uint64_t *) (ALIGN_UP(currentTask->rsp, PAGE_SIZE) - 16));
+        kernel_rsp = ALIGN_UP(currentTask->rsp, PAGE_SIZE) - 16;
+
+
 
     }
 
@@ -375,7 +378,7 @@ void createKernelInitProcess(task_struct *ktask, task_struct *startFuncTask){
     startFuncTask->pid = -1;
     startFuncTask->stack = kmalloc();
     startFuncTask->rsp = (uint64_t)&startFuncTask->stack[510];
-    startFuncTask->cr3 = (uint64_t)getKernelPML4();
+    startFuncTask->cr3 = (uint64_t )getKernelPML4();
     startFuncTask->type = TASK_KERNEL;
     startFuncTask->state = TASK_STATE_IDLE;
     startFuncTask->no_of_children = 0;
@@ -387,7 +390,7 @@ void createKernelInitProcess(task_struct *ktask, task_struct *startFuncTask){
     ktask->init = 1;
     ktask->stack[510] = (uint64_t)runner;
     ktask->rsp = (uint64_t)&ktask->stack[510];
-    ktask->cr3 = (uint64_t)getKernelPML4();
+    ktask->cr3 = (uint64_t )getKernelPML4();
     ktask->user_rip = (uint64_t) &runner;
     ktask->type = TASK_KERNEL;
     ktask->state = TASK_STATE_RUNNING;
@@ -405,7 +408,7 @@ void createKernelTask(task_struct *task, void (*func)(void)){
     task->stack[510] = (uint64_t)func;
     task->rsp = (uint64_t)&task->stack[510];
     task->user_rip = (uint64_t)func;
-    task->cr3 = (uint64_t)kmalloc();
+    task->cr3 = (uint64_t )getKernelPML4();
     task->no_of_children = 0;
     task->next = NULL;
     task->nextChild = NULL;

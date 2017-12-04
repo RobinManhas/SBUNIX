@@ -104,6 +104,30 @@ vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t fl
     return vma;
 
 }
+int copy_page(uint64_t virtual_addr, uint64_t** child_pml4_pointer){
+    uint64_t page_phy_add = getPTEntry(virtual_addr);
+    if (!page_phy_add){
+        kprintf("Error: physical page entry not found for : %x\n",virtual_addr);
+        return 0;
+    }
+
+    if (page_phy_add & PTE_P) {
+        //removing write flag
+        page_phy_add = page_phy_add & (~PTE_W);
+        //setting cow bits
+        page_phy_add = page_phy_add | PTE_COW;
+        //incrementing reference count
+        Page* page = get_page(page_phy_add);
+        if(page)
+            page->sRefCount++;
+
+        setPTEntry(virtual_addr,page_phy_add);
+        map_user_virt_phys_addr(virtual_addr, page_phy_add, child_pml4_pointer,0);
+        __asm__ __volatile__ ("invlpg (%0)" ::"r" (virtual_addr) : "memory");
+    }
+    return 1;
+
+}
 
 int copy_mm(task_struct* parent_task, task_struct* child_task) {
 
@@ -118,7 +142,7 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
     //uint64_t* parent_cr3   = (uint64_t *)parent_task->cr3;
     //uint64_t* child_cr3    = (uint64_t *)child_task->cr3;
     //uint64_t * parent_pml4_pointer = (uint64_t*)parent_task->cr3;
-    //uint64_t * child_pml4_pointer = (uint64_t*)child_task->cr3;
+    uint64_t * child_pml4_pointer = (uint64_t*)child_task->cr3;
 
     kmemcpy((void *) child_task->mm, (void *) parent_task->mm, sizeof(mm_struct));
 
@@ -146,57 +170,18 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
             child_vm_pointer->vm_next = new_vma;
             child_vm_pointer = child_vm_pointer->vm_next;
         }
-
-        uint64_t page_phy_add;
         if(parent_vm_pointer->type == VMA_TYPE_STACK){
             while (start < end) {
-                page_phy_add = getPTEntry(end);
-                if (!page_phy_add){
-                    // this check acts (hopefully) as the breakpoint for copying auto-growing stack between
-                    // our currently allocated ranges 0x555555554000  to: 0x7ffffffffff8
-                    kprintf("Error: physical page entry not found: %x\n",end);
+                if(!copy_page(end,&child_pml4_pointer))
                     break;
-                }
-                if (page_phy_add & PTE_P) {
-                    //removing write flag
-                    page_phy_add = page_phy_add & (~PTE_W);
-                    //setting cow bits
-                    page_phy_add = page_phy_add | PTE_COW;
-                    //incrementing reference count
-                    Page* page = get_page(page_phy_add);
-                    if(page)
-                        page->sRefCount++;
-
-                    setPTEntry(end,page_phy_add);
-
-                }
                 end = end - PAGE_SIZE;
             }
         }
         else{
             while (start < end) {
-
-                page_phy_add = getPTEntry(start);
-                if (!page_phy_add){
-                    kprintf("Error: physical page entry not found: %x\n",start);
+                if(!copy_page(start,&child_pml4_pointer))
                     break;
-                }
-
-                if (page_phy_add & PTE_P) {
-                    //removing write flag
-                    page_phy_add = page_phy_add & (~PTE_W);
-                    //setting cow bits
-                    page_phy_add = page_phy_add | PTE_COW;
-                    //incrementing reference count
-                    Page* page = get_page(page_phy_add);
-                    if(page)
-                        page->sRefCount++;
-
-                    setPTEntry(start,page_phy_add);
-
-                }
                 start = start + PAGE_SIZE;
-
             }
         }
 
@@ -398,7 +383,7 @@ void allocate_single_page(task_struct* task, uint64_t addr){
     uint64_t * task_cr3 = (uint64_t*)task->cr3;
     uint64_t phy_page = allocatePage();
     uint64_t vir_page_addr_to_allocate = (addr>>12)<<12;
-    map_user_virt_phys_addr(vir_page_addr_to_allocate, phy_page, &task_cr3);
+    map_user_virt_phys_addr(vir_page_addr_to_allocate, phy_page, &task_cr3,1);
 
 }
 
@@ -421,7 +406,7 @@ void allocate_pages_to_vma(vm_area_struct* vma,uint64_t** pml_ptr){
     while(no_of_pages>=1 && start<end) {
 
         phy_new = allocatePage();
-        map_user_virt_phys_addr(start,phy_new,pml_ptr);
+        map_user_virt_phys_addr(start,phy_new,pml_ptr,1);
 
         if(file != NULL && vma->file_offset < vma->vm_end){
             //copy data from file starting from offset
@@ -483,7 +468,7 @@ uint64_t get_new_cr3_for_user_process(task_struct* task){
     uint64_t viPage = returnVirAdd(phyPage,addType,1);
     uint64_t *userPtr = (uint64_t*)task->cr3;
 
-    map_user_virt_phys_addr(viPage, ((uint64_t)phyPage & ADDRESS_SCHEME), &userPtr);
+    map_user_virt_phys_addr(viPage, ((uint64_t)phyPage & ADDRESS_SCHEME), &userPtr,1);
 
 
     return viPage;
