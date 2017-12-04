@@ -12,6 +12,7 @@ int full_flag =0;
 char buffer[BUFFER_SIZE];
 int buf_pointer=0;
 int buffer_length=0;
+int totalchar = 0;
 task_struct* task_assigned_to_terminal = NULL;
 
 uint64_t read_terminal(int fdNo, uint64_t buf,int size){
@@ -88,11 +89,23 @@ FD* create_terminal_OUT(){
 
 void add_buffer(char c){
     //print on screen
-    kputch(c);
-    if(task_assigned_to_terminal != NULL) {
-        if (c == '\b') {
-            buf_pointer--;
+    if(totalchar>0 && c=='\b'){
+        kputch(c);
+        totalchar--;
+    }
+    else if(c != '\b') {
+        if (c == '\n') {
+            totalchar = -1;
+        }
+        kputch(c);
+        totalchar++;
+    }
 
+    if(task_assigned_to_terminal != NULL) {
+        if (c == '\b' ) {
+            if(buf_pointer>0){
+                buf_pointer--;
+            }
         }else if (c == '\n' || buf_pointer+1 == buffer_length) {
             full_flag = 1;
 
