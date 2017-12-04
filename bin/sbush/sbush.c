@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <dirent.h>
 
 
 #define MAX_READ_BYTES 100
@@ -34,7 +34,23 @@ void printCommandPrompt(){
     /*for(int i=0;tmp[i]!='\0';i++) // Can't use puts as it adds newline by default
         putchar(tmp[i]);*/
 }
+void ls(){
+    char curDir[100];
+    dirent *dp ;
 
+    getdir(&curDir,100);
+
+    DIR *dir;
+    dir = opendir(curDir);
+    dp =readdir(dir);
+    while(dp != NULL){
+        putVal(dp->d_name);
+        putVal("    ");
+        dp =readdir(dir);
+    }
+    putVal("\n");
+    closedir(dir);
+}
 void setPS1(char* str){
 
     if(str==NULL || strlen(str) < 1){
@@ -290,6 +306,8 @@ int processCommand(char* str){
         //printf(">> 2. chdir returned: %d\n",chdir(trunk));
         //printf(">> 3. pwd now : %s\n",getcwd(curDir, sizeof(curDir)));
 
+    }else if(strncmp(str,"ls",2) == 0){
+        ls();
     }
     else if(strncmp(str,"export PATH=",11) == 0)
     {
@@ -337,9 +355,9 @@ int main(int argc, char *argv[], char *envp[]) {
 //    strcat(LIB_PATH,"/");
     //strncpy(argvalues,argvalues,strlen(argvalues)-5);
    // strcat(LIB_PATH,argvalues);
-    int value = 10;
-    char* msg = "In sbushhhh";
-    puts(msg);
+    //int value = 10;
+//    char* msg = "In sbushhhh";
+//    puts(msg);
 
     expandedPrompt = (char*)malloc(MAX_READ_BYTES);
 
@@ -352,36 +370,35 @@ int main(int argc, char *argv[], char *envp[]) {
     puts(PS1Value);
 //    char* str;
     isConsoleInput = 1;
-//    str = (char*)malloc(MAX_READ_BYTES);
+    char* str = (char*)malloc(MAX_READ_BYTES);
     printCommandPrompt();
-//    while(gets(str) != NULL)
-//    {
-//        puts(str);
-//        if(processCommand(str)== -1){
-//            break;
-//        }
-//        printCommandPrompt();
-//
-//    }
+    while(gets(str) != NULL)
+    {
+        if(processCommand(str)== -1){
+            break;
+        }
+        printCommandPrompt();
+
+    }
 // To understand parent/ child forking, keep for future use
-	puts("before fork");
-	int id = fork();
-	if(id == 0){
-		puts("inside child fork");
-		exit(1);
-	}
-	else
-		puts("inside parent fork");
-
-    value = 30;
-
-    if(value == 30) // changing a local variable 'value', ideally must result in page fault as COW set
-        puts("value");
-
-	if(id == 0){
-		puts("child still active");
-	}
-	puts("after fork");
+//	puts("before fork");
+//	int id = fork();
+//	if(id == 0){
+//		puts("inside child fork");
+//		exit(1);
+//	}
+//	else
+//		puts("inside parent fork");
+//
+//    value = 30;
+//
+//    if(value == 30) // changing a local variable 'value', ideally must result in page fault as COW set
+//        puts("value");
+//
+//	if(id == 0){
+//		puts("child still active");
+//	}
+//	puts("after fork");
 
     //free(str); // TODO RM: Make sure this is dealloc to avoid memleaks (check other leaks)
     return 0;
