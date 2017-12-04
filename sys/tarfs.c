@@ -293,6 +293,9 @@ file_table* get_child(file_table *dir, char *child_name){
 }
 
 file_table* find_file_using_relative_path(char* p_path){
+    if(p_path != NULL && kstrcmp(p_path,"/")==0){
+        return tarfs[0];
+    }
 
     int l = kstrlen(p_path);
     char path[100];
@@ -333,7 +336,6 @@ file_table* find_file_using_relative_path(char* p_path){
             else if(kstrcmp(tmp,"..")==0){
                 curr_dir = curr_dir->child[1];//point to parent
                 if(curr_dir == NULL){
-                    kprintf("ERROR:incorrect path; ..\n");
                     return NULL;
                 }
                 //kprintf("curr_dir %s\n",curr_dir->name);
