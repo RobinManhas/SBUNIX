@@ -122,9 +122,9 @@ pid_t sfork() {
     task_struct* parent = getCurrentTask();
     task_struct* child = getFreeTask();
     createUserProcess(child);
-    child->init = parent->init;
+    child->init = 1;
     child->user_rip = parent->user_rip;
-    child->user_rsp = parent->user_rsp;
+    //child->user_rsp = parent->user_rsp;
     //child->rsp = parent->rsp;
 
 
@@ -165,6 +165,8 @@ pid_t sfork() {
     kmemcpy(child->stack, (uint64_t *)rsp, PAGE_SIZE);
     kprintf("scheduling child\n");
     //16-128-8
+
+    child->rsp = (uint64_t)&child->stack[510];
     child->rsp = ALIGN_UP(child->rsp,PAGE_SIZE)-152;
     *(uint64_t *)(child->rsp) = (uint64_t)forkChild;
 

@@ -206,6 +206,7 @@ void handle_page_fault(struct regs* reg){
             }
 
             setPTEntry(faulty_addr,phy_addr);
+            __asm__ __volatile__ ("invlpg (%0)" ::"r" (faulty_addr) : "memory");
         }else{
             kprintf("reason for page fault is unknown \n");
         }

@@ -73,17 +73,17 @@ void initialiseUserProcess(task_struct *user_task){
     userPtr[PML4_REC_SLOT] = returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1);
     userPtr[PML4_REC_SLOT] |= (PTE_U_W_P);
 
-    map_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),PTE_U_W_P);
-    map_user_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),&userPtr,1);
-    userbase+=0x1000;
+//    map_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),PTE_U_W_P);
+//    map_user_virt_phys_addr(userbase,returnPhyAdd(user_task->cr3,KERNBASE_OFFSET,1),&userPtr,1);
+//    userbase+=0x1000;
 
 
 
     // map stack
-    map_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),PTE_U_W_P);
-    map_user_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),&userPtr,1);
-    user_task->stack = (uint64_t*)userbase;
-    userbase+=0x1000;
+//    map_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),PTE_U_W_P);
+//    map_user_virt_phys_addr(userbase,returnPhyAdd((uint64_t)user_task->stack,KERNBASE_OFFSET,1),&userPtr,1);
+//    user_task->stack = (uint64_t*)userbase;
+//    userbase+=0x1000;
 
 
     kprintf("kernel start add %x\n",user_task->rsp);
