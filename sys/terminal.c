@@ -90,7 +90,10 @@ void add_buffer(char c){
     //print on screen
     kputch(c);
     if(task_assigned_to_terminal != NULL) {
-        if (c == '\n' || buf_pointer+1 == buffer_length) {
+        if (c == '\b') {
+            buf_pointer--;
+
+        }else if (c == '\n' || buf_pointer+1 == buffer_length) {
             full_flag = 1;
 
             buffer[buf_pointer++] = c;
@@ -100,9 +103,6 @@ void add_buffer(char c){
             addTaskToReady(task_assigned_to_terminal,0);
             task_assigned_to_terminal = NULL;
             schedule();
-
-        } else if (c == '\b') {
-            buf_pointer--;
 
         } else
             buffer[buf_pointer++] = c;
