@@ -206,6 +206,60 @@ int ssleep(uint64_t sec){
     return 1;
 }
 
+
+
+
+
+uint64_t swaitpid(uint64_t p_pid, uint64_t status_p, uint64_t options) {
+    task_struct *cur_task = getCurrentTask();
+    int *status = (int *) status_p;
+
+    //if status pointer is not null; set the status
+    if (cur_task->no_of_children == 0) {
+        if (status) *status = -1;
+        return -1;
+    }
+
+    //wait for any child
+    uint64_t pid = 0;
+    // If pid>0, wait for the specific child
+    if (pid > 0) {
+        pid = p_pid;
+    }
+
+    while (1) {
+        if (pid > 0) {
+            int childPresent = 0;
+            for (task_struct *task = cur_task->child_list; task != NULL; task = task->nextChild) {
+                if (task->pid == pid) {
+                    childPresent = 1;
+                    if (task->state == TASK_STATE_KILLED && task->state == TASK_STATE_ZOMBIE) {
+                        //child to wait on is killed
+                        if (status) *status = 0;
+                        return pid;
+                    }
+                }
+            }
+            if (!childPresent) {
+                if (status) *status = -1;
+                return -1;
+            }
+        }
+
+        cur_task->state = TASK_STATE_WAIT;
+        schedule();
+        //wait done
+        if (pid == 0)
+            break;
+
+
+    }
+    if (status) *status = 0;
+    return pid;
+
+}
+
+
 int syscall_handler(struct regs* reg) {
     int value = -1;
     int syscallNo = reg->rax;
@@ -236,9 +290,9 @@ int syscall_handler(struct regs* reg) {
         case SYSCALL_DUP2:
             value = sdup2(reg->rdi, reg->rsi);
             break;
-//        case SYSCALL_GETPID:
-//            value = sgetpid();
-//            break;
+        case SYSCALL_GETPID:
+            value = sgetpid();
+            break;
         case SYSCALL_FORK:
             value = sfork();
             break;
@@ -247,14 +301,13 @@ int syscall_handler(struct regs* reg) {
             break;
         case SYSCALL_EXIT:
             killTask(getCurrentTask());
-//            break;
-//        case SYSCALL_WAIT4:
-//            break;
+            break;
+        case SYSCALL_WAIT4:
+            swaitpid(reg->rdi,reg->rsi,reg->rdx);
+            break;
         case SYSCALL_GETCWD:
             value = scwd(reg->rdi);
             break;
-//        case SYSCALL_GETDENTS:
-//            break;
         case SYSCALL_CHDIR:
             value = schdir(reg->rdi);
             break;

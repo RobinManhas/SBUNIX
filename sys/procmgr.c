@@ -24,6 +24,7 @@ task_struct* gReadyList = NULL;
 task_struct* gBlockedList = NULL;
 task_struct* gZombieList = NULL;
 task_struct* gSleepList = NULL;
+task_struct* waitList= NULL;
 
 task_struct *currentTask=NULL, *prevTask=NULL;
 
@@ -269,6 +270,25 @@ void addTaskToSleep(task_struct *sleepTask){
     }
 }
 
+void addTaskToWait(task_struct *task){
+    if(task == NULL){
+        kprintf("Error: invalid task in add to wait, returning\n");
+        return;
+    }
+
+    task->next = NULL;
+    if(waitList == NULL) {
+        waitList = task;
+    }
+    else {
+        task_struct *iter = waitList;
+        while(iter->next != NULL)
+            iter = iter->next;
+
+        iter->next = task;
+    }
+}
+
 void switch_to(task_struct *current, task_struct *next)
 {
 
@@ -337,6 +357,10 @@ void schedule(){
             case TASK_STATE_IDLE:
             case TASK_STATE_KILLED: {
                 // don't add idle task or killed task to any queue.
+                break;
+            }
+            case TASK_STATE_WAIT:{
+                addTaskToWait(prevTask);
                 break;
             }
             default: {
@@ -573,6 +597,11 @@ void destroy_task(task_struct *task){
     // remove task from parent
     if(task->parent){
         removeChildFromParent(task->parent,task);
+
+        if(task->parent->state == TASK_STATE_WAIT) {
+            task->parent->state = TASK_STATE_RUNNING;
+            addTaskToReady(task->parent,0);
+        }
     }
 }
 
