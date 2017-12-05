@@ -108,6 +108,7 @@ int copy_page(uint64_t virtual_addr, uint64_t** child_pml4_pointer){
     uint64_t page_phy_add = getPTEntry(virtual_addr);
     if (!page_phy_add){
         kprintf("Error: physical page entry not found for : %x\n",virtual_addr);
+
         return 0;
     }
 
@@ -183,8 +184,8 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
         }
         else{
             while (start < end) {
-                if(!copy_page(start,&child_pml4_pointer))
-                    continue;
+                copy_page(start,&child_pml4_pointer);
+                    //continue;
                 start = start + PAGE_SIZE;
             }
         }

@@ -118,7 +118,7 @@ void init_irq()
     idt_set_gate(31, (long)isr0, 0x08, ring0Attr);
     idt_set_gate(128, (long)syscall, 0x08, ring3Attr);
 
-    outb(0x21,0xFD);   // to disable irq lines : 0xFD=11111101 enable only keyboard(0 to enable)
+    outb(0x21,0xFC);   // to disable irq lines : 0xFD=11111101 enable only keyboard(0 to enable)
 }
 
 

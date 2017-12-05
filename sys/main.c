@@ -53,6 +53,7 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     init_irq();
     init_keyboard();
     init_tarfs();
+    init_timer();
     syscalls_init();
     __asm__ ("sti"); //enable interrupts
 

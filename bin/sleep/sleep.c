@@ -18,7 +18,7 @@ int main(int argc, char *argv[], char *envp[]){
         }
         if(ret == 0)
         ret = syscall1(SYSCALL_SLEEP, n);
-        puts("I am awake\n");
+        puts("I am sleeping\n");
     }
     return ret;
 

@@ -141,11 +141,10 @@ void func1()
 //    init_timer();
 //    init_keyboard();
 //    __asm__ ("sti");
-    kprintf("got fucn1\n");
     initialiseUserProcess(getCurrentTask());
-    char * argv[]={"/bin/sbush","/temp", NULL};
+    char * argv[]={"bin/init", NULL};
     char * envp[]={"PATH=/bin:", "HOME=/root", "USER=root", NULL};
-    load_elf_binary_by_name(getCurrentTask(),"bin/sbush",argv,envp);
+    load_elf_binary_by_name(getCurrentTask(),"bin/init",argv,envp);
     switch_to_user_mode(NULL,getCurrentTask());
     while(1);
 
