@@ -143,7 +143,7 @@ void addToDirtyPageList(Page* page){ // page address must be virtual
     page->pNext = pDirtyPageList;
     pDirtyPageList = page;
     ++totalDirtyPages;
-   // kprintf("dirty page added: %x\n",pDirtyPageList);
+    //kprintf("dirty page added: %x\n",pDirtyPageList->uAddress);
 }
 
 void addToFreePageList(Page *page){
@@ -186,10 +186,10 @@ void removePageFromDirtyList(Page *page){
 
     while(pageIter){
         if(pageIter->uAddress != page->uAddress){
+            prevPage = pageIter;
             if(usingVAddr)
                 pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
             else{
-                prevPage = pageIter;
                 pageIter = pageIter->pNext;
             }
             continue;
@@ -221,6 +221,13 @@ void removePageFromDirtyList(Page *page){
 
 void updateCOWInfo(uint64_t vadd, uint64_t phyAdd){
     Page* pageIter = NULL;
+
+    if(vadd == 0 || phyAdd == 0)
+    {
+        kprintf("Error: address is 0 in updateCOWInfo\n");
+        return;
+    }
+
     pageIter = get_page(phyAdd);
     // reset COW bits if ref count is 1 and COW bits are set
     if(pageIter->sRefCount == 1 && !(phyAdd & PTE_W) && (phyAdd & PTE_COW))   {
@@ -233,6 +240,12 @@ void updateCOWInfo(uint64_t vadd, uint64_t phyAdd){
 void deallocatePage(uint64_t virtualAddress){ // TODO: code not verified, check vaddr assignments when updating pointers
     uint8_t usingVAddr = 0;
     uint64_t phyAdd = 0,phyAddWithBits=0, alignedVAddress = 0;
+
+    if(virtualAddress == 0)
+    {
+        //kprintf("Error: virtual address is 0\n");
+        return;
+    }
 
     phyAddWithBits = getPTEntry(virtualAddress);
 
@@ -253,16 +266,13 @@ void deallocatePage(uint64_t virtualAddress){ // TODO: code not verified, check 
     pageIter = get_page(phyAdd);
 
     if(pageIter == NULL){
-        kprintf("Error: no page descriptor found for %x\n",virtualAddress);
+        kprintf("Error: no page found for v: %x, p: %x\n",virtualAddress,phyAdd);
         return;
     }
 
     //kprintf("got page: %x, uadd: %x, ref: %d\n",pageIter,pageIter->uAddress,pageIter->sRefCount);
 
     alignedVAddress = virtualAddress & ADDRESS_SCHEME; // RM: align down the received virtual address
-    uint64_t* alignPtr = (uint64_t*)alignedVAddress;
-    alignPtr[0] = 30;
-    //kprintf("align add: %d\n",alignPtr[0]);
     if(0 == (--pageIter->sRefCount)){
        // kprintf("removing page from dirty: %x\n",pageIter);
         // clean page
@@ -286,6 +296,12 @@ void deallocatePage(uint64_t virtualAddress){ // TODO: code not verified, check 
 
 Page* get_page(uint64_t physicalAddress){
     uint8_t usingVAddr = 0;
+
+    if(physicalAddress == 0)
+    {
+        kprintf("Error: physical address is 0\n");
+        return NULL;
+    }
     uint64_t recvPhyAdd = physicalAddress & ADDRESS_SCHEME;
     Page* pageIter = pDirtyPageList;
     if(pageIter == NULL)
@@ -296,11 +312,13 @@ Page* get_page(uint64_t physicalAddress){
 
     while(pageIter){
         if(pageIter->uAddress != recvPhyAdd){
+
             if(usingVAddr)
                 pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
             else
                 pageIter = pageIter->pNext;
             continue;
+
         }
         else{
             return pageIter;

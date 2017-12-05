@@ -206,6 +206,11 @@ void setCR3(uint64_t* pmlAdd){
 
 uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
 {
+    if(add == 0)
+    {
+        kprintf("returnPhyAdd vadd is zero\n");
+        return add;
+    }
     switch (addType){
         case KERNBASE_OFFSET:
         {
@@ -251,6 +256,11 @@ uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
 
 uint64_t returnVirAdd(uint64_t add, short addType, short removeFlags)
 {
+    if(add == 0)
+    {
+        kprintf("returnVirAdd padd is zero\n");
+        return add;
+    }
     switch (addType){
         case KERNBASE_OFFSET:
         {

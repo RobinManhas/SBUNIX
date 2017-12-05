@@ -196,45 +196,6 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
     return 1;
 }
 
-void free_all_vma_pages(task_struct *task){
-
-    if(task == NULL)
-        return;
-
-    // set cr3 of the task which is being freed (required in deallocPage in pmm)
-    uint64_t oldCR3 = getCR3();
-    setCR3((uint64_t*)task->cr3);
-
-    vm_area_struct *vm_ptr = task->mm->vma_list;
-
-    while (vm_ptr) {
-        uint64_t start = vm_ptr->vm_start;
-        uint64_t end = vm_ptr->vm_end;
-
-        if(vm_ptr->type == VMA_TYPE_STACK){
-            while (start < end) {
-                if(getPTEntry(end) == 0)
-                    break;
-
-                deallocatePage(end);
-                end = end - PAGE_SIZE;
-            }
-        }
-        else{
-            while (start < end) {
-                if(getPTEntry(end) == 0)
-                    continue;
-                deallocatePage(start);
-                start = start + PAGE_SIZE;
-            }
-        }
-
-        vm_ptr = vm_ptr->vm_next;
-    }
-
-    setCR3((uint64_t*)oldCR3);
-}
-
 // Child would have reduced the ref count of page in dirty page descriptor list.
 // In this method, we check if the page descriptor has ref count as 1, we update page table with COW unset and writable.
 void updateParentCOWInfo(task_struct *parent){
@@ -275,6 +236,45 @@ void updateParentCOWInfo(task_struct *parent){
     }
 
     // also helps in flushing the tlb entries so that new permission flags take effect
+    setCR3((uint64_t*)oldCR3);
+}
+
+void free_all_vma_pages(task_struct *task){
+
+    if(task == NULL)
+        return;
+
+    // set cr3 of the task which is being freed (required in deallocPage in pmm)
+    uint64_t oldCR3 = getCR3();
+    setCR3((uint64_t*)task->cr3);
+
+    vm_area_struct *vm_ptr = task->mm->vma_list;
+
+    while (vm_ptr) {
+        uint64_t start = vm_ptr->vm_start;
+        uint64_t end = vm_ptr->vm_end;
+
+        if(vm_ptr->type == VMA_TYPE_STACK){
+            while (start < end) {
+                if(getPTEntry(end) == 0)
+                    break;
+
+                deallocatePage(end);
+                end = end - PAGE_SIZE;
+            }
+        }
+        else{
+            while (start < end) {
+                if(getPTEntry(start) == 0)
+                    continue;
+                deallocatePage(start);
+                start = start + PAGE_SIZE;
+            }
+        }
+
+        vm_ptr = vm_ptr->vm_next;
+    }
+
     setCR3((uint64_t*)oldCR3);
 }
 
