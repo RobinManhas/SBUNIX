@@ -182,16 +182,18 @@ int getch(){
 }
 
 char *gets(char* s) {
-  char read;
+  int read = sys_read(0,s,MAX_READ_BYTES);
+  s[read]='\0';
   //str =s;
-  for( int count=0; ; count++){
-    read = getch();
-    if ( read == -1 || read == '\n'){
-      s[count]='\0';
-      break;
-    }
-    s[count]= read;
-  }
+//  for( int count=0; ; count++){
+//    read = getch();
+//    if ( read == -1 || read == '\n'){
+//      s[count]='\0';
+//      break;
+//    }
+//    s[count]= read;
+//  }
+
   return s;
 }
 
