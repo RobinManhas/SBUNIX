@@ -8,8 +8,7 @@
 #define MAX_PIPES_SUPPORTED 10
 
 //Need to remove comment
-//static char* LIB_PATH ;
-static char* INTERPRETER ;// could be replaced by some utility like getfullpath
+static char* INTERPRETER ;
 static char* PS1Value;
 static int isConsoleInput =1;
 static char* expandedPrompt;
@@ -24,31 +23,13 @@ void setPS1(char* str);
 void forkProcessing(char * path[], char * env[], int isBackgroundProcess);
 char* cmd_array[5];
 
-int processCommand(char* str);
+int  processCommand(char* str, int isBackgroundProcess);
 
 void printCommandPrompt(){
 
     char* tmp = expandPS1();
     putVal(tmp);
-    /*for(int i=0;tmp[i]!='\0';i++) // Can't use puts as it adds newline by default
-        putchar(tmp[i]);*/
-}
-void ls(){
-    char curDir[100];
-    dirent *dp ;
 
-    getdir(&curDir,100);
-
-    DIR *dir;
-    dir = opendir(curDir);
-    dp =readdir(dir);
-    while(dp != NULL){
-        putVal(dp->d_name);
-        putVal("    ");
-        dp =readdir(dir);
-    }
-    putVal("\n");
-    closedir(dir);
 }
 void setPS1(char* str){
 
@@ -57,28 +38,18 @@ void setPS1(char* str){
         return;
     }
     if(str[0] == '"'){
-        //printf("starts with quote\n" );
         str = str+1;
-        //printf("%s\n", str);
     }
-    //printf(" end symbol%s", &str[strlen(str)-1] );
     if(str[strlen(str)-1]=='"'){
-        //printf("ends with quote\n" );
         str[strlen(str)-1] = '\0';
-        //printf("%s\n", str);
     }
     strcpy(PS1Value,str);
 }
 
 char* expandPS1(){
-    //printf("inside expand");
-
     int count = 0, index =0;
-    //printf("%s\t", PS1Value);
     for(index = 0 ; PS1Value[index] != '\0' ; ){
-        //printf("inside for");
         if(PS1Value[index] == 92){
-            //printf("inside if");
             char* replacementString = (char*)malloc(MAX_READ_BYTES);
             switch(PS1Value[index+1]){
                 case 'h': strcpy(replacementString,"hostname");
@@ -99,8 +70,6 @@ char* expandPS1(){
             index = index+2;
         }
         else{
-            //char* tmp = &PS1Value[index];
-            //strcpy(expandedPrompt,tmp);
             expandedPrompt[count++]= PS1Value[index++];
         }
     }
@@ -244,42 +213,34 @@ int setPathVariable(char* str)
 }
 
 void forkProcessing(char * path[], char * env[], int isBackgroundProcess){
-   // puts("inside forkProcessing");
-    if(path==NULL){
+   if(path==NULL){
         return;
     }
-    //puts(path[0]);
     pid_t childPID = fork();
 
     if(childPID == -1){
         puts("Error: could not fork");
-        //if(isConsoleInput) printCommandPrompt();
         exit(1);
     }
     if(childPID == 0){ //child body
-        //int execlp(const char *file, const char *arg, ...); the last argument must be NULL
-        //puts("inside child");
-        //char *args[]={file,NULL};
         childPID = getpid();
         execve(path[0], path, environ);
-        //puts("Error: command not found");
+        puts("Error: command not found");
         exit(0);
     }
     //parent body
     if(isBackgroundProcess != 1){
 
-       // puts("wait pid\n");
         //waitpid(childPID,NULL);
-        //puts("child is dead\n");
     }
     return;
 
 }
 
 
-int processCommand(char* str){
+int processCommand(char* str, int isBackgroundProcess){
     // built-in: exit
-    if(str[0]=='\n'){
+    if(str[0]=='\0' ){
         return 0;
     }
     if((strncmp(str,"quit",4) == 0)||(strncmp(str,"exit",4) == 0)||
@@ -289,8 +250,7 @@ int processCommand(char* str){
     }
     else if(strchr(str,'|')!=NULL){
         //printf("found pipe \n");
-        char* trunk = strtok(str,"\n");
-        handlePipe(trunk);
+        handlePipe(str);
         //if(isConsoleInput) printCommandPrompt();
         return 0;
     }
@@ -298,27 +258,20 @@ int processCommand(char* str){
     if(strncmp(str,"cd",2) == 0)
     {
         //char curDir[MAX_READ_BYTES];
-        char* trunk = strtok(str,"\n");
-        strtok(trunk," ");
-        trunk = strtok(NULL," ");
-        trunk = trimString(trunk);
-        int result = chdir(trunk);
+        strtok(str," ");
+        str = strtok(NULL," ");
+        str = trimString(str);
+        int result = chdir(str);
         if(result <0){
             puts("Error: Invalid path");
         }
-        // 0 success, -1 invalid path
-        //printf(">> 1. pwd before : %s\n",getcwd(curDir, sizeof(curDir)));
-        //printf(">> 2. chdir returned: %d\n",chdir(trunk));
-        //printf(">> 3. pwd now : %s\n",getcwd(curDir, sizeof(curDir)));
-
     }
     else if(strncmp(str,"export PATH=",11) == 0)
     {
         setPathVariable(str);
-        //printf("set path: %s\n", getenv("PATH"));
     }
     else if(strncmp(str,"./",2) == 0){
-            char* filename = strtok(str,"\n")+2;
+            char* filename = str+2;
             executeFile(filename);
 
     }
@@ -328,8 +281,7 @@ int processCommand(char* str){
             puts("invalid input for PS1");
             return 0;
         }
-        char* input = strtok(str,"\n");
-        char* ps1 = strtok(input,"=");
+        char* ps1 = strtok(str,"=");
         char* ps1Value = strtok(NULL,"=");
         if(ps1 == NULL ||ps1Value ==NULL){
             puts("invalid input for PS1");
@@ -340,10 +292,7 @@ int processCommand(char* str){
 
     }
     else{ // check for binary
-        //puts("binary");
         char* trunk = strtok(str,"\n");
-        //readFile(trunk);
-        //puts(trunk);
         forkProcessing(prepareCharArray(trunk),NULL,0);
     }
 
@@ -352,14 +301,6 @@ int processCommand(char* str){
 
 
 int main(int argc, char *argv[], char *envp[]) {
-//    putchar(envp[0][0]);
-//    long addrArg = (long)argv;
-    //   char* argvalues = (char*)addrArg;
-//    LIB_PATH = (char*)malloc(MAX_READ_BYTES);
-//    getdir(LIB_PATH,MAX_READ_BYTES);
-//    strcat(LIB_PATH,"/");
-//    strncpy(argvalues,argvalues,strlen(argvalues)-5);
-//    strcat(LIB_PATH,argvalues);
 
     expandedPrompt = (char*)malloc(MAX_READ_BYTES);
 
@@ -369,8 +310,6 @@ int main(int argc, char *argv[], char *envp[]) {
     PS1Value = (char*)malloc(MAX_READ_BYTES);
     strcpy(PS1Value,"sbush:\\w> ");
 
-    //puts(PS1Value);
-//    char* str;
     isConsoleInput = 1;
     char* str = (char*)malloc(MAX_READ_BYTES);
     printCommandPrompt();
@@ -398,12 +337,22 @@ int main(int argc, char *argv[], char *envp[]) {
 //
 //    //free(str); // TODO RM: Make sure this is dealloc to avoid memleaks (check other leaks)
 
-
-    while(gets(str) != NULL)
-    {
-
-        if(processCommand(str)== -1){
-            break;
+    int isBackgroundProcess = 0;
+    int length =0;
+    while(gets(str) != NULL) {
+        isBackgroundProcess =0;
+        str = trimString(str);
+        if(str[0]!='\n'){
+            str = strtok(str,"\n");
+            str = trimString(str);
+            length = strlen(str);
+            if(str[length-1]=='&'){
+                isBackgroundProcess =1;
+                str[length-1]='\0';
+            }
+            if(processCommand(str,isBackgroundProcess)== -1){
+                break;
+            }
         }
         printCommandPrompt();
 
@@ -452,7 +401,7 @@ void executeFile(char* filename){
         else if(token == NULL || strncmp(token,"#",1) == 0 || (strncmp(token , " ",strlen(token)) ==0 )){
             continue;
         }
-        processCommand(token);
+        processCommand(token,0);
     }
     isConsoleInput = 1;
     close(file);
@@ -513,14 +462,8 @@ char** prepareCharArray(char* cmd){
         strcpy(cmd_array[i],token);
         token = strtok_r(NULL," ",&saveptr1);
         i++;
-
     }
     cmd_array[i]=(char *)malloc(1);
     cmd_array[i] = NULL;
-    //strcpy(cmd_array[i],&a);
-
-    //cmd_array[0]=filePath;
-    //free(filePath);
-    //execvp(*cmd_array,cmd_array);
     return cmd_array;
 }
