@@ -5,6 +5,7 @@
 
 static const int EOF = -1;
 
+#define MAX_READ_BYTES 100
 int putchar(int c);
 void putn(long n);
 int puts(const char *s);

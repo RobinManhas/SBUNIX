@@ -4,7 +4,7 @@
 #include <dirent.h>
 
 
-#define MAX_READ_BYTES 100
+
 #define MAX_PIPES_SUPPORTED 10
 
 //Need to remove comment
@@ -370,27 +370,26 @@ int main(int argc, char *argv[], char *envp[]) {
     char* str = (char*)malloc(MAX_READ_BYTES);
     printCommandPrompt();
 
-    int value =10;
- //To understand parent/ child forking, keep for future use
-	puts("before fork");
-	int id = fork();
-	if(id == 0){
-		puts("inside child fork");
-		exit(1);
-	}
-	else
-		puts("inside parent fork");
-
-    value = 30;
-
-    if(value == 30) // changing a local variable 'value', ideally must result in page fault as COW set
-        puts("value");
-
-	if(id == 0){
-		puts("child still active");
-	}
-	puts("after fork");
-    printCommandPrompt();
+//    int value =10;
+// //To understand parent/ child forking, keep for future use
+//	puts("before fork");
+//	int id = fork();
+//	if(id == 0){
+//		puts("inside child fork");
+//		exit(1);
+//	}
+//	else
+//		puts("inside parent fork");
+//
+//    value = 30;
+//
+//    if(value == 30) // changing a local variable 'value', ideally must result in page fault as COW set
+//        puts("value");
+//
+//	if(id == 0){
+//		puts("child still active");
+//	}
+//	puts("after fork");
 //
 //    //free(str); // TODO RM: Make sure this is dealloc to avoid memleaks (check other leaks)
 
@@ -452,14 +451,21 @@ void executeFile(char* filename){
 }
 char* findFileinPath(char* file){
     char* full_path = malloc(100);
+    int fd;
     if(file[0] == '/'){
         strcpy(full_path,file+1);
-        return full_path;
+        fd = fileOpen(full_path, O_RDONLY);
+        if(fd >= 0) {
+            //file exists
+            close(fd);
+            return full_path;
+        }else
+            return NULL;
     }
     char* paths = getenv("PATH");
     char* saveptr1;
     char *token=strtok_r(paths,":",&saveptr1);
-    int fd;
+
     while(token!=NULL){
         strcpy(full_path,token+1);
         strcat(full_path,"/");
@@ -468,6 +474,8 @@ char* findFileinPath(char* file){
         if(fd >= 0) {
             //file exists
             close(fd);
+            putn(fd);
+            puts("file opened");
             return full_path;
         }
         token = strtok_r(NULL,":",&saveptr1);
@@ -500,7 +508,7 @@ char** prepareCharArray(char* cmd){
 
     }
     cmd_array[i]=(char *)malloc(1);
-    cmd_array[i][0] = '\0';
+    cmd_array[i] = NULL;
     //strcpy(cmd_array[i],&a);
 
     //cmd_array[0]=filePath;
