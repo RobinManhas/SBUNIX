@@ -79,10 +79,11 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
     uint64_t newPhysFree = (uint64_t) (*physfree) + (totalSizeUsed);
 
     uint64_t ptr = ((newPhysFree + PAGE_SIZE) & 0xfffffffffffff000); // flush flags
-    kprintf("First ptr %x\n", ptr);
+
     Page *pre = NULL;
     maxPhyRegion = smapGlobal[1].base + smapGlobal[1].length;
     for (; ptr < (maxPhyRegion); ptr += PAGE_SIZE) {
+
         pageUpdateList->uAddress = ptr;
         pageUpdateList->sRefCount = 0;
         pageUpdateList->pNext = NULL;
@@ -91,7 +92,10 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
         }
         pre = pageUpdateList;
         memset((void*)pageUpdateList->uAddress, 0, PAGE_SIZE);
-        pageUpdateList += sizeof(Page);
+        pageUpdateList += 1;
+
+        if((uint64_t)pageUpdateList > newPhysFree)
+            kprintf("exceeded: %x, ptr:%x, size:%x \n",pageUpdateList,newPhysFree, sizeof(Page));
     }
 
     (*physfree) = (void*)newPhysFree;
@@ -312,13 +316,18 @@ Page* get_page(uint64_t physicalAddress){
 
     while(pageIter){
         if(pageIter->uAddress != recvPhyAdd){
-
-            if(usingVAddr)
-                pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
+            if(pageIter->pNext){
+                if(usingVAddr)
+                    pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
+                else
+                    pageIter = pageIter->pNext;
+                continue;
+            }
             else
-                pageIter = pageIter->pNext;
-            continue;
-
+            {
+                //kprintf("Error: page: %x not found\n",physicalAddress);
+                return NULL;
+            }
         }
         else{
             return pageIter;
