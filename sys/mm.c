@@ -171,18 +171,19 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
             child_vm_pointer->vm_next = new_vma;
             child_vm_pointer = child_vm_pointer->vm_next;
         }
-        if(parent_vm_pointer->type == VMA_TYPE_STACK){
+        if(parent_vm_pointer->type == VMA_TYPE_STACK) {
             while (start < end) {
-                if(!copy_page(end,&child_pml4_pointer)) {
+                if (!copy_page(end, &child_pml4_pointer)) {
                     //allocate one extra page for uninitialised variables; workaround as if now
                     allocate_single_page(getCurrentTask(), end);
-                    copy_page(end,&child_pml4_pointer);
+                    copy_page(end, &child_pml4_pointer);
                     break;
                 }
-            }
+
 
                 end = end - PAGE_SIZE;
             }
+        }
         else{
             while (start < end) {
                 if(!copy_page(start,&child_pml4_pointer))
