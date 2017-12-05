@@ -1,29 +1,34 @@
 #include <stdio.h>
-
+#include <string.h>
+#include <unistd.h>
 #define BUF_SIZE 1024
 
-int catFile(char *file){
-  int fd,ret;
+int catFile(char *file) {
+    int fd, ret;
 
-  fd  = fileOpen(file, O_RDONLY);
+    char fileData[BUF_SIZE];
 
+    getdir(fileData,MAX_READ_BYTES);
+    //puts(fileData);
+    strcat(fileData,file);
+    fd = fileOpen(fileData, O_RDONLY);
+    memset((void *)fileData,0,BUF_SIZE);
 
-  char fileData[BUF_SIZE];
-  do {
-    ret = sys_read(fd, fileData, BUF_SIZE);
-    if(ret>0){
-      sys_write(1,fileData,ret);
-    }
-  }while(ret>0);
-  putchar('\n');
-  close(fd);
+    do {
+        ret = sys_read(fd, fileData, BUF_SIZE);
+        if (ret > 0) {
+            sys_write(1, fileData, ret);
+        }
+    } while (ret > 0);
+    putchar('\n');
+    close(fd);
 
-  return 0;
+    return 0;
 }
 
 int main(int argc, char *argv[], char *envp[]){
-  if(argc >= 2 && argv[1]) {
-      catFile(argv[1]);
+  if(argc > 2 && argv[1]) {
+      catFile(argv[2]);
   }
   return 0;
 }

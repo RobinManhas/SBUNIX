@@ -4,7 +4,7 @@
 int main(int argc, char *argv[], char *envp[]){
     int ret = -1;
     if(argc>2) {
-        char *s = argv[1];
+        char *s = argv[2];
         int n = 0;
         ret = 0;
         while (*s) {
@@ -18,6 +18,7 @@ int main(int argc, char *argv[], char *envp[]){
         }
         if(ret == 0)
         ret = syscall1(SYSCALL_SLEEP, n);
+        puts("I am awake\n");
     }
     return ret;
 

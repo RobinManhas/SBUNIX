@@ -166,3 +166,13 @@ char* trimString(char* str){
 	return str;
 }
 
+void* memset(void* ptr, int val, unsigned int len){
+	unsigned char *p = ptr;
+	while(len > 0)
+	{
+		*p = val;
+		p++;
+		len--;
+	}
+	return(p);
+}

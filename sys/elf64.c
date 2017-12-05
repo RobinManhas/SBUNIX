@@ -4,59 +4,12 @@
 #include <sys/elf64.h>
 #include <sys/tarfs.h>
 #include <sys/kprintf.h>
-#include <sys/kmalloc.h>
-#include <sys/util.h>
 #include <sys/procmgr.h>
 #include <sys/mm.h>
-#include <sys/elf64.h>
-#include <sys/procmgr.h>
 #include <sys/kstring.h>
+#include <sys/pmm.h>
 
 
-//void* get_elf_binary(char* binary_name) {
-//    kprintf("start\n");
-//    if(NULL == binary_name)
-//        return NULL;
-//
-//    struct posix_header_ustar* start = (struct posix_header_ustar*)&_binary_tarfs_start;
-//    struct posix_header_ustar* end = (struct posix_header_ustar*)&_binary_tarfs_end;
-//
-//    uint64_t* pointer = (uint64_t*)start;
-//    uint64_t* end_pointer = (uint64_t*)end;
-//    uint64_t size =0;
-//    uint64_t header_size = sizeof(struct posix_header_ustar);
-//    uint64_t tmp = 0;
-//
-//    //uint64_t *end = (uint64_t *)start;
-//    //while(*end || *(end+1) || *(end+2)){
-//    while(*pointer < *end_pointer){
-//        start = (struct posix_header_ustar*)(&_binary_tarfs_start+ tmp);
-//        pointer = (uint64_t *)start;
-//        kprintf("loop: %s\n",start->name);
-//        if(strcmp(start->name,"") == 0){
-//            break;
-//        }
-//        if(strcmp(start->name,binary_name) == 0) {
-//            kprintf("found: %s\n",binary_name);
-//            return (void*)start;
-//        }
-//
-//        else{
-//            size = octalToDecimal(stoi(start->size));
-//
-//            if(size% header_size != 0){
-//                tmp += (size  + (header_size - size %header_size)+ header_size);
-//            }
-//            else
-//                tmp += (size + header_size);
-//
-//
-//        }
-//
-//    }
-//    kprintf("not found\n");
-//    return NULL;
-//}
 //loads segments from elf binary image
 int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file, char *argv[],char * envp[]){
 
@@ -136,6 +89,9 @@ int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[],c
         task = getFreeTask();
         createUserProcess(task);
     }
+    //clear exisiting mm
+    memset(task->mm,0, sizeof(mm_struct));
+
     int l = kstrlen(binary_name);
     kmemcpy(task->name, binary_name, l);
     return load_elf_binary(elf_header,task,file,argv,envp);

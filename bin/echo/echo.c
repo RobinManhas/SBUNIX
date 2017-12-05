@@ -2,10 +2,10 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[], char *envp[]){
-    puts("echo inside");
     for(int i=2 ; i < argc; i++) {
-        puts(argv[i]);
+        putVal(argv[i]);
         if(i!=argc-1)
-            puts(" ");
+            putVal(" ");
     }
+    puts(" ");
 }

@@ -142,6 +142,7 @@ void moveTaskToZombie(task_struct *task);
 task_struct* getCurrentTask();
 void reduceSleepTime();
 uint8_t  get_ps(char *buf, uint8_t length);
+void addTaskToSleep(task_struct *sleepTask);
 //task_struct* currentTask;
 
 #endif //OS_PROCESSM_H

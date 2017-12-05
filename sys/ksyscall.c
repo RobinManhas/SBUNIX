@@ -114,7 +114,7 @@ uint64_t sdup2(uint64_t oldfd , uint64_t newfd){
 
 int s_exev(uint64_t binary_name, uint64_t argv,uint64_t envp){
     //clear exisiting mm
-    memset(getCurrentTask()->mm,0, sizeof(mm_struct));
+    //memset(getCurrentTask()->mm,0, sizeof(mm_struct));
     load_elf_binary_by_name(getCurrentTask(),(char *)binary_name,(char **)argv,(char **)envp);
     switch_to_user_mode(NULL,getCurrentTask());
     return 1;
@@ -208,10 +208,12 @@ int sopen(uint64_t path, uint64_t flags){
 
 }
 
-int ssleep(uint64_t sec){
-    getCurrentTask()->sleepTime = sec*1000;
-    getCurrentTask()->state = TASK_STATE_SLEEP;
-    schedule();
+int ssleep(uint64_t sec) {
+    getCurrentTask()->parent->sleepTime = sec * 1000;
+    getCurrentTask()->parent->state = TASK_STATE_SLEEP;
+    removeTaskFromRunList(getCurrentTask()->parent);
+    addTaskToSleep(getCurrentTask()->parent);
+//    schedule();
     return 1;
 }
 

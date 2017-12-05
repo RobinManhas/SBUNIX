@@ -12,5 +12,6 @@ char *strtok_r(char *str, const char *delim , char **saveptr);
 unsigned int strlen(const char *s);
 char *strchr(const char *s, int c);
 char* trimString(char* str);
+void* memset(void* ptr, int val, unsigned int len);
 
 #endif
