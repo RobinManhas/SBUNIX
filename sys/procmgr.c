@@ -16,7 +16,7 @@
 
 
 
-
+#define MAX_PROCESS 100
 uint16_t processID = 0; // to keep track of the allocated process ID's to task struct
 extern uint64_t kernel_rsp;
 extern task_struct *kernel_idle_task; // this store the idle task struct. this task is run when no other active task are available.
@@ -28,7 +28,7 @@ task_struct* waitList= NULL;
 
 task_struct *currentTask=NULL, *prevTask=NULL;
 
-task_struct* tasks_list[100];
+task_struct* tasks_list[MAX_PROCESS];
 
 task_struct* getCurrentTask(){
     return currentTask;
@@ -696,4 +696,36 @@ void removeTaskFromSleep(task_struct* task){
         sleepListPtr = sleepListPtr->next;
     }
 
+}
+
+uint8_t  get_ps(char *buf, uint8_t length) {
+    if(buf == NULL || length == 0)
+        return -1;
+    task_struct *task;
+    uint8_t size_written = 0;
+    uint8_t name_len=0;
+    uint8_t id_len = 0;
+    char s_id[10];
+
+    //starting from 1, as 0 is always kernel process
+    for(int i =1; i <MAX_PROCESS;i++) {
+        task = tasks_list[i];
+        if(task == NULL)
+            break;
+        if(task->type == TASK_USER && task->state != TASK_STATE_KILLED){
+            name_len = kstrlen(task->name);
+            id_len = ktostring(s_id,task->pid);
+            if(size_written+ name_len +id_len +2 > length)
+                return size_written;
+            kstrcat(buf,s_id);
+            kstrcat(buf,":");
+            kstrcat(buf,task->name);
+            kstrcat(buf,":");
+
+            size_written += id_len+name_len+2;
+
+        }
+
+    }
+    return size_written;
 }

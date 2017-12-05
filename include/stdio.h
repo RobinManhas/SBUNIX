@@ -28,5 +28,6 @@ int sys_fstat(int fd ,void* file);
 int sys_lseek(int fd, int offset, int position);
 
 int dup2(int fd, int newfd);
+int sys_ps( void *buf, int count);
 
 #endif

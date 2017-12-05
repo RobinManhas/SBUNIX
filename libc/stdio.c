@@ -9,6 +9,10 @@ static const int ERROR = -1;
 static int isExecuting = -1;
 static int isPutValExecuting = -1;
 
+int sys_ps( void *buf, int count) {
+  return syscall2(SYSCALL_PS, (long)buf, count);
+}
+
 ssize_t sys_write(int fd, const void *buf, ssize_t count) {
 return syscall3(SYSCALL_WRITE, fd, (long)buf, count);
 }

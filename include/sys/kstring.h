@@ -10,5 +10,6 @@ char *kstrncpy(char *dest, const char *src, unsigned int n);
 long kstoi(const char *s);
 void* kmemcpy( void* dest, const void* src, unsigned long count);
 char* kstrcat(char *dest,const char *src);
+int ktostring(char buf[], int num);
 
 #endif

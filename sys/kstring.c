@@ -73,3 +73,20 @@ char* kstrcat(char *dest,const char *src){
 	dest[d+s]='\0';
 	return dest;
 }
+
+int ktostring(char buf[], int num){
+	int i, rem, len = 0, n;
+
+	n = num;
+	while (n != 0) {
+		len++;
+		n /= 10;
+	}
+	for (i = 0; i < len; i++) {
+		rem = num % 10;
+		num = num / 10;
+		buf[len - (i + 1)] = rem + '0';
+	}
+	buf[len] = '\0';
+	return len;
+}

@@ -214,7 +214,9 @@ int ssleep(uint64_t sec){
     return 1;
 }
 
-
+int  sps(uint64_t buf, uint64_t length){
+    return get_ps((char *)buf, (uint8_t) length);
+}
 
 
 
@@ -311,7 +313,7 @@ int syscall_handler(struct regs* reg) {
             killTask(getCurrentTask());
             break;
         case SYSCALL_WAIT4:
-            swaitpid(reg->rdi,reg->rsi,reg->rdx);
+            value = swaitpid(reg->rdi,reg->rsi,reg->rdx);
             break;
         case SYSCALL_GETCWD:
             value = scwd(reg->rdi);
@@ -320,7 +322,10 @@ int syscall_handler(struct regs* reg) {
             value = schdir(reg->rdi);
             break;
         case SYSCALL_SLEEP:
-            ssleep(reg->rdi);
+            value = ssleep(reg->rdi);
+            break;
+        case SYSCALL_PS:
+            value = sps(reg->rdi,reg->rsi);
             break;
         default:
             kprintf("got a syscall : %d\n",syscallNo);
