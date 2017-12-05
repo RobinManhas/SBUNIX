@@ -16,7 +16,7 @@
 
 
 
-#define MAX_PROCESS 100
+#define MAX_PROCESS 1000
 uint16_t processID = 0; // to keep track of the allocated process ID's to task struct
 extern uint64_t kernel_rsp;
 extern task_struct *kernel_idle_task; // this store the idle task struct. this task is run when no other active task are available.

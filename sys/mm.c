@@ -225,8 +225,10 @@ void updateParentCOWInfo(task_struct *parent){
         else{
             while (start < end) {
                 uint64_t phyAdd = getPTEntry(start);
-                if(phyAdd == 0)
+                if(phyAdd == 0){
+                    start = start + PAGE_SIZE;
                     continue;
+                }
 
                 updateCOWInfo(start,phyAdd);
                 start = start + PAGE_SIZE;
@@ -266,8 +268,11 @@ void free_all_vma_pages(task_struct *task){
         }
         else{
             while (start < end) {
-                if(getPTEntry(start) == 0)
+                if(getPTEntry(start) == 0){
+                    start = start + PAGE_SIZE;
                     continue;
+                }
+
                 deallocatePage(start);
                 start = start + PAGE_SIZE;
             }
