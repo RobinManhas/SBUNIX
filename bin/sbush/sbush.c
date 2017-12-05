@@ -258,17 +258,19 @@ void forkProcessing(char * path[], char * env[], int isBackgroundProcess){
     }
     if(childPID == 0){ //child body
         //int execlp(const char *file, const char *arg, ...); the last argument must be NULL
-        puts("inside child");
+        //puts("inside child");
         //char *args[]={file,NULL};
         childPID = getpid();
         execve(path[0], path, environ);
-        puts("Error: command not found");
+        //puts("Error: command not found");
         exit(0);
     }
     //parent body
     if(isBackgroundProcess != 1){
 
-        waitpid(childPID,NULL);
+       // puts("wait pid\n");
+        //waitpid(childPID,NULL);
+        //puts("child is dead\n");
     }
     return;
 
@@ -277,6 +279,9 @@ void forkProcessing(char * path[], char * env[], int isBackgroundProcess){
 
 int processCommand(char* str){
     // built-in: exit
+    if(str[0]=='\n'){
+        return 0;
+    }
     if((strncmp(str,"quit",4) == 0)||(strncmp(str,"exit",4) == 0)||
        (strncmp(str,"q",1) == 0) || (strncmp(str,"^C",1) == 0))
     {
@@ -359,7 +364,7 @@ int main(int argc, char *argv[], char *envp[]) {
     expandedPrompt = (char*)malloc(MAX_READ_BYTES);
 
     INTERPRETER = (char*)malloc(MAX_READ_BYTES);
-    strcpy(INTERPRETER,"rootfs/bin/sbush") ;
+    strcpy(INTERPRETER,"/bin/sbush") ;
 
     PS1Value = (char*)malloc(MAX_READ_BYTES);
     strcpy(PS1Value,"sbush:\\w> ");
@@ -396,6 +401,7 @@ int main(int argc, char *argv[], char *envp[]) {
 
     while(gets(str) != NULL)
     {
+
         if(processCommand(str)== -1){
             break;
         }
@@ -411,7 +417,10 @@ void executeFile(char* filename){
     char* str;
     char* token;
     int startOfFile = 1;
-    file = fileOpen(filename,O_RDONLY);
+    char fileData[MAX_READ_BYTES];
+    getdir(fileData,MAX_READ_BYTES);
+    strcat(fileData,filename);
+    file = fileOpen(fileData,O_RDONLY);
     if(file<0){
         puts("Cannot open file");
         return;
@@ -474,8 +483,7 @@ char* findFileinPath(char* file){
         if(fd >= 0) {
             //file exists
             close(fd);
-            putn(fd);
-            puts("file opened");
+            //putn(fd);
             return full_path;
         }
         token = strtok_r(NULL,":",&saveptr1);
@@ -491,7 +499,7 @@ char** prepareCharArray(char* cmd){
     char* saveptr1;
     char *token=strtok_r(cmd," ",&saveptr1);
 
-    char * filePath = (char *)malloc(100);
+    char * filePath;
     filePath = findFileinPath(token);
     if(filePath == NULL){
         puts("ERROR: File not found");
