@@ -3,6 +3,8 @@
 
 #include <sys/defs.h>
 
+
+extern char **environ;
 int main(int argc, char *argv[], char *envp[]);
 void exit(int status);
 

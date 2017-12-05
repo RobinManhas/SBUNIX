@@ -110,15 +110,15 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file,
 int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[],char * envp[]){
     //kprintf("inside load_elf_binary_by_name\n");
     file_table* file = find_tar(binary_name);
+
+    /* TODO: check in environ also*/
     if(file == NULL || file->type != FILE){
         kprintf("file not found\n");
         return -1;
     }
+
     void* tmp = (void*)file->start;
-    if(file->type != FILE){
-        kprintf("Not a file; exit\n");
-        return -1;
-    }
+
     Elf64_Ehdr *elf_header = (Elf64_Ehdr*)(tmp+ sizeof(struct posix_header_ustar));
 
     //if file is not executable then return

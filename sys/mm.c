@@ -13,15 +13,15 @@
 //vm_area_struct *vma_free_list = NULL;
 
 void print_vma_boundaries(mm_struct* mm){
-//    if(mm == NULL){
-//        kprintf("ERROR: MM in null");
-//        return;
-//    }
-//    vm_area_struct *vma= mm->vma_list;
-//    while(vma){
-//    kprintf("vma bounds:from: %x  to: %x\n",vma->vm_start,vma->vm_end);
-//        vma=vma->vm_next;
-//    }
+    if(mm == NULL){
+        kprintf("ERROR: MM in null");
+        return;
+    }
+    vm_area_struct *vma= mm->vma_list;
+    while(vma){
+    kprintf("vma bounds:from: %x  to: %x\n",vma->vm_start,vma->vm_end);
+        vma=vma->vm_next;
+    }
 
 }
 vm_area_struct* find_vma(mm_struct* mm, uint64_t addr){
@@ -139,6 +139,7 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
         kprintf("no vma in parent");
         return -1;
     }
+    //print_vma_boundaries(parent_task->mm);
     //uint64_t* parent_cr3   = (uint64_t *)parent_task->cr3;
     //uint64_t* child_cr3    = (uint64_t *)child_task->cr3;
     //uint64_t * parent_pml4_pointer = (uint64_t*)parent_task->cr3;
@@ -172,11 +173,16 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
         }
         if(parent_vm_pointer->type == VMA_TYPE_STACK){
             while (start < end) {
-                if(!copy_page(end,&child_pml4_pointer))
+                if(!copy_page(end,&child_pml4_pointer)) {
+                    //allocate one extra page for uninitialised variables; workaround as if now
+                    allocate_single_page(getCurrentTask(), end);
+                    copy_page(end,&child_pml4_pointer);
                     break;
+                }
+            }
+
                 end = end - PAGE_SIZE;
             }
-        }
         else{
             while (start < end) {
                 if(!copy_page(start,&child_pml4_pointer))
@@ -312,7 +318,7 @@ uint64_t allocate_stack(task_struct* task,char *argv[], char *envp[]) {
         pointer = pointer->vm_next;
     pointer->vm_next = stack;
 
-    print_vma_boundaries(task->mm);
+    //print_vma_boundaries(task->mm);
 
 
     allocate_single_page(task,MM_STACK_START);

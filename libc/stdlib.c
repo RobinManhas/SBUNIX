@@ -4,13 +4,14 @@
 #include <syscalls.h>
 #include <unistd.h>
 
-static char *environ[10];
+
 struct mem_block {
   size_t size;
   struct mem_block *next;
   int isfree;
 };
 struct mem_block *start_mem = NULL;
+
 
 char *getenv(const char *name){
   short keyExists = 1;

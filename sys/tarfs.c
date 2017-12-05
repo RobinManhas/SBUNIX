@@ -292,10 +292,12 @@ file_table* get_child(file_table *dir, char *child_name){
     return NULL;
 }
 
-file_table* find_file_using_relative_path(char* p_path){
+file_table* find_file_using_relative_path(char* p_path,file_table* curr_dir){
     if(p_path != NULL && kstrcmp(p_path,"/")==0){
         return tarfs[0];
     }
+    if(!curr_dir)
+        curr_dir=tarfs[0];
 
     int l = kstrlen(p_path);
     char path[100];
@@ -311,7 +313,7 @@ file_table* find_file_using_relative_path(char* p_path){
         return find_tar(path+1);
     }
 
-    file_table* curr_dir = getCurrentTask()->curr_dir;
+
     char tmp[20];
 
     int i =0;

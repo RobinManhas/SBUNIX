@@ -116,6 +116,7 @@ int s_exev(uint64_t binary_name, uint64_t argv,uint64_t envp){
     //clear exisiting mm
     memset(getCurrentTask()->mm,0, sizeof(mm_struct));
     load_elf_binary_by_name(getCurrentTask(),(char *)binary_name,(char **)argv,(char **)envp);
+    switch_to_user_mode(NULL,getCurrentTask());
     return 1;
 }
 pid_t sfork() {
@@ -148,6 +149,7 @@ pid_t sfork() {
 
     child->parent  = parent;
     child->ppid = parent->pid;
+    child->curr_dir = parent->curr_dir;
 
     if(parent->child_list == NULL)
         parent->child_list = child;
@@ -181,7 +183,7 @@ pid_t sfork() {
 }
 
 int schdir(uint64_t path) {
-    file_table* dir = find_file_using_relative_path((char*)path);
+    file_table* dir = find_file_using_relative_path((char*)path,getCurrentTask()->curr_dir);
    if(dir == NULL ||dir->type == FILE){
         return -1;
     }

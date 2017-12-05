@@ -8,7 +8,7 @@
 #define MAX_PIPES_SUPPORTED 10
 
 //Need to remove comment
-static char* LIB_PATH ;
+//static char* LIB_PATH ;
 static char* INTERPRETER ;// could be replaced by some utility like getfullpath
 static char* PS1Value;
 static int isConsoleInput =1;
@@ -22,7 +22,6 @@ void executeFile( char* filename);
 int setPathVariable(char* str);
 void setPS1(char* str);
 void forkProcessing(char * path[], char * env[], int isBackgroundProcess);
-char** prepareCharArray(char* cmd);
 char* cmd_array[5];
 
 int processCommand(char* str);
@@ -245,10 +244,11 @@ int setPathVariable(char* str)
 }
 
 void forkProcessing(char * path[], char * env[], int isBackgroundProcess){
+   // puts("inside forkProcessing");
     if(path==NULL){
         return;
     }
-
+    puts(path[0]);
     pid_t childPID = fork();
 
     if(childPID == -1){
@@ -261,7 +261,7 @@ void forkProcessing(char * path[], char * env[], int isBackgroundProcess){
         //puts("inside child");
         //char *args[]={file,NULL};
         childPID = getpid();
-        execve(path[0], path, env);
+        execve(path[0], path, environ);
         puts("Error: command not found");
         exit(0);
     }
@@ -306,8 +306,6 @@ int processCommand(char* str){
         //printf(">> 2. chdir returned: %d\n",chdir(trunk));
         //printf(">> 3. pwd now : %s\n",getcwd(curDir, sizeof(curDir)));
 
-    }else if(strncmp(str,"ls",2) == 0){
-        ls();
     }
     else if(strncmp(str,"export PATH=",11) == 0)
     {
@@ -337,8 +335,10 @@ int processCommand(char* str){
 
     }
     else{ // check for binary
+        //puts("binary");
         char* trunk = strtok(str,"\n");
         //readFile(trunk);
+        //puts(trunk);
         forkProcessing(prepareCharArray(trunk),NULL,0);
     }
 
@@ -347,17 +347,14 @@ int processCommand(char* str){
 
 
 int main(int argc, char *argv[], char *envp[]) {
-    //putchar(envp[0][0]);
-   // long addrArg = (long)argv;
-    //char* argvalues = (char*)addrArg;
+//    putchar(envp[0][0]);
+//    long addrArg = (long)argv;
+ //   char* argvalues = (char*)addrArg;
 //    LIB_PATH = (char*)malloc(MAX_READ_BYTES);
 //    getdir(LIB_PATH,MAX_READ_BYTES);
 //    strcat(LIB_PATH,"/");
-    //strncpy(argvalues,argvalues,strlen(argvalues)-5);
-   // strcat(LIB_PATH,argvalues);
-    //int value = 10;
-//    char* msg = "In sbushhhh";
-//    puts(msg);
+//    strncpy(argvalues,argvalues,strlen(argvalues)-5);
+//    strcat(LIB_PATH,argvalues);
 
     expandedPrompt = (char*)malloc(MAX_READ_BYTES);
 
@@ -372,15 +369,9 @@ int main(int argc, char *argv[], char *envp[]) {
     isConsoleInput = 1;
     char* str = (char*)malloc(MAX_READ_BYTES);
     printCommandPrompt();
-    while(gets(str) != NULL)
-    {
-        if(processCommand(str)== -1){
-            break;
-        }
-        printCommandPrompt();
 
-    }
-// To understand parent/ child forking, keep for future use
+//    int value =10;
+// //To understand parent/ child forking, keep for future use
 //	puts("before fork");
 //	int id = fork();
 //	if(id == 0){
@@ -399,8 +390,18 @@ int main(int argc, char *argv[], char *envp[]) {
 //		puts("child still active");
 //	}
 //	puts("after fork");
+//
+//    //free(str); // TODO RM: Make sure this is dealloc to avoid memleaks (check other leaks)
 
-    //free(str); // TODO RM: Make sure this is dealloc to avoid memleaks (check other leaks)
+
+    while(gets(str) != NULL)
+    {
+        if(processCommand(str)== -1){
+            break;
+        }
+        printCommandPrompt();
+
+    }
     return 0;
 }
 //Check this function
@@ -448,20 +449,48 @@ void executeFile(char* filename){
     close(file);
 
 }
+char* findFileinPath(char* file){
+    char* full_path = malloc(100);
+    if(file[0] == '/'){
+        strcpy(full_path,file+1);
+        return full_path;
+    }
+    char* paths = getenv("PATH");
+    char* saveptr1;
+    char *token=strtok_r(paths,":",&saveptr1);
+    int fd;
+    while(token!=NULL){
+        strcpy(full_path,token+1);
+        strcat(full_path,"/");
+        strcat(full_path,file);
+        fd = fileOpen(full_path, O_RDONLY);
+        if(fd >= 0) {
+            //file exists
+            close(fd);
+            return full_path;
+        }
+        token = strtok_r(NULL,":",&saveptr1);
+    }
+    return NULL;
+
+}
 
 char** prepareCharArray(char* cmd){
-    if(cmd == NULL)
-    {
+    if(cmd == NULL) {
         return NULL;
     }
     char* saveptr1;
-    int i =1;
-    //char a = '\0';
     char *token=strtok_r(cmd," ",&saveptr1);
-    char * filePath = (char *)malloc(strlen(token)+strlen(LIB_PATH));
-    strcpy(filePath,LIB_PATH);
-    strcat(filePath,token);
-    cmd_array[0] = (char *)malloc(40);
+
+    char * filePath = (char *)malloc(100);
+    filePath = findFileinPath(token);
+    if(filePath == NULL){
+        puts("ERROR: File not found");
+        return NULL;
+    }
+    cmd_array[0] = (char *)malloc(100);
+    strcpy(cmd_array[0],filePath);
+    int i =1;
     while(token!=NULL){
         cmd_array[i] = (char *)malloc(MAX_READ_BYTES);
         strcpy(cmd_array[i],token);
@@ -471,8 +500,8 @@ char** prepareCharArray(char* cmd){
     }
 
     //strcpy(cmd_array[i],&a);
-    //strcpy(cmd_array[0],filePath);
-    cmd_array[0]=filePath;
+
+    //cmd_array[0]=filePath;
     //free(filePath);
     //execvp(*cmd_array,cmd_array);
     return cmd_array;
