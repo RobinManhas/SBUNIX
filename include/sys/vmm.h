@@ -18,7 +18,7 @@
 #define PTE_U		0x004	// User
 #define PTE_W_P     0x003  // premission for Supervisor, write and present
 #define PTE_U_W_P   0x007    // premission for User, write and present
-#define PTE_COW     0x800 //Copy on Write
+#define PTE_COW     0x0000000000000800 //Copy on Write
 #define ADDRESS_SCHEME		0xFFFFFFFFFFFFF000
 #define KERNBASE_OFFSET 0  // address that was/needs offset by KERNBASE
 #define VMAP_BASE_ADD 1 // address that was/needs offset by VMAP_BASE

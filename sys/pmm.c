@@ -11,6 +11,8 @@
 // Normal pages get mapped as KERNBASE
 
 static int totalPageCount;
+int totalFreePages;
+int totalDirtyPages;
 static struct smap_t smapGlobal[2];
 uint64_t maxPhyRegion;
 
@@ -23,6 +25,10 @@ void* memset(void* ptr, int val, unsigned int len){
         len--;
     }
     return(p);
+}
+
+void printPageCountStats(){
+    kprintf("free pages: %d, dirty pages: %d\n",totalFreePages,totalDirtyPages);
 }
 
 /*void *memcpy(void *dest, const void *src, uint64_t n)
@@ -91,6 +97,8 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
     (*physfree) = (void*)newPhysFree;
     pDirtyPageList = NULL;
 
+    totalFreePages = ((smapGlobal[1].base + smapGlobal[1].length) - (uint64_t) *physfree) / PAGE_SIZE;
+    totalDirtyPages = 0;
     kprintf("new physfree: %x, max: %x\n", *physfree,maxPhyRegion);
     return maxPhyRegion;
 }
@@ -126,88 +134,159 @@ uint64_t allocatePage(){
         kprintf("Error: Out of physical pages..\n");
     }
 
+    --totalFreePages;
     return ret;
 }
 
 
-void addToDirtyPageList(Page* page){
+void addToDirtyPageList(Page* page){ // page address must be virtual
     page->pNext = pDirtyPageList;
     pDirtyPageList = page;
+    ++totalDirtyPages;
    // kprintf("dirty page added: %x\n",pDirtyPageList);
 }
 
-void deallocatePage(uint64_t add){ // TODO: code not verified, check vaddr assignments when updating pointers
+void addToFreePageList(Page *page){
     uint8_t usingVAddr = 0;
-    uint64_t phyAdd = add & ADDRESS_SCHEME;
-    if(add > KERNBASE)
-        phyAdd = returnPhyAdd(add,KERNBASE_OFFSET,1);
 
-    Page* pageIter = pDirtyPageList;
-    Page* prevPage = NULL;
+    if(page == NULL)
+        return;
+    
+    if((uint64_t)pFreeList > KERNBASE)
+        usingVAddr = 1;
 
-    if(pageIter == NULL)
+    page->sRefCount = 0; // ideally not required but re-setting everything here.
+    if(usingVAddr){
+        page->pNext = (Page*)returnPhyAdd((uint64_t)pFreeList,KERNBASE_OFFSET,0);
+    }
+    else{
+        page->pNext = pFreeList;
+    }
+
+    if(usingVAddr){
+        pFreeList = (Page*)returnVirAdd((uint64_t)page,KERNBASE_OFFSET,0);
+    }
+    else{
+        pFreeList = page;
+    }
+
+    ++totalFreePages;
+//    kprintf("page added free list: %x, uadd: %x, ref: %d\n",page,page->uAddress,page->sRefCount);
+//    kprintf("inserted from dirty to free: %x, uadd: %x\n",pFreeList,pFreeList->uAddress);
+}
+
+void removePageFromDirtyList(Page *page){
+    uint8_t usingVAddr = 0;
+    Page* pageIter = pDirtyPageList, *prevPage=NULL;
+    if(page == NULL)
         return;
 
     if((uint64_t)pDirtyPageList > KERNBASE)
         usingVAddr = 1;
-    //kprintf("deal add:%x , v:%x, p:%x\n",pageIter->uAddress,add,phyAdd);
+
     while(pageIter){
-        if(pageIter->uAddress != phyAdd){
-            prevPage = pageIter;
+        if(pageIter->uAddress != page->uAddress){
             if(usingVAddr)
                 pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
-            else
+            else{
+                prevPage = pageIter;
                 pageIter = pageIter->pNext;
+            }
             continue;
         }
         else{
+            //kprintf("page found in dirty list: %x, uadd: %x, ref: %d\n",page,page->uAddress,page->sRefCount);
+            --totalDirtyPages;
+            if(prevPage == NULL){ // at root
+                if(usingVAddr)
+                    pDirtyPageList = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
+                else
+                    pDirtyPageList = pageIter->pNext;
+
+            }
+            else{ // not root
+                if(usingVAddr)
+                    prevPage->pNext = (void*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
+                else
+                    prevPage->pNext = pageIter->pNext;
+
+                pageIter->pNext = NULL;
+            }
             break;
         }
+
     }
 
+}
+
+void updateCOWInfo(uint64_t vadd, uint64_t phyAdd){
+    Page* pageIter = NULL;
+    pageIter = get_page(phyAdd);
+    // reset COW bits if ref count is 1 and COW bits are set
+    if(pageIter->sRefCount == 1 && !(phyAdd & PTE_W) && (phyAdd & PTE_COW))   {
+        phyAdd = phyAdd | PTE_W;
+        phyAdd = phyAdd &(~PTE_COW);
+        setPTEntry(vadd,phyAdd);
+    }
+}
+
+void deallocatePage(uint64_t virtualAddress){ // TODO: code not verified, check vaddr assignments when updating pointers
+    uint8_t usingVAddr = 0;
+    uint64_t phyAdd = 0,phyAddWithBits=0, alignedVAddress = 0;
+
+    phyAddWithBits = getPTEntry(virtualAddress);
+
+    if(phyAddWithBits == 0){
+        kprintf("no physical address found for %x\n",virtualAddress);
+        return;
+    }
+
+    phyAdd = phyAddWithBits & ADDRESS_SCHEME;
+
+    //kprintf("dealloc v: %x, p: %x\n",virtualAddress,phyAdd);
+
+    if((uint64_t)pDirtyPageList > KERNBASE)
+        usingVAddr = 1;
+
+    Page* pageIter = NULL;
+
+    pageIter = get_page(phyAdd);
+
+    if(pageIter == NULL){
+        kprintf("Error: no page descriptor found for %x\n",virtualAddress);
+        return;
+    }
+
+    //kprintf("got page: %x, uadd: %x, ref: %d\n",pageIter,pageIter->uAddress,pageIter->sRefCount);
+
+    alignedVAddress = virtualAddress & ADDRESS_SCHEME; // RM: align down the received virtual address
+    uint64_t* alignPtr = (uint64_t*)alignedVAddress;
+    alignPtr[0] = 30;
+    //kprintf("align add: %d\n",alignPtr[0]);
     if(0 == (--pageIter->sRefCount)){
        // kprintf("removing page from dirty: %x\n",pageIter);
         // clean page
         if(usingVAddr)
-            memset((void*)returnVirAdd((uint64_t)pageIter->uAddress,KERNBASE_OFFSET,1),0,PAGE_SIZE);
+            memset((void*)alignedVAddress,0,PAGE_SIZE);
         else
             memset((void*)pageIter->uAddress,0,PAGE_SIZE);
 
+        //kprintf("after mem set align add: %d\n",alignPtr[0]);
         // remove from dirty list
-        if(prevPage == NULL){ // at root
-            if(usingVAddr)
-                pDirtyPageList = (void*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,1);
-            else
-                pDirtyPageList = pageIter->pNext;
-
-        }
-        else{ // not root
-            if(usingVAddr)
-                prevPage->pNext = (void*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,1);
-            else
-                prevPage->pNext = pageIter->pNext;
-
-        }
-
-        pageIter->pNext = NULL;
+        removePageFromDirtyList(pageIter);
 
         // add to free list
-        pageIter->sRefCount = 0; // ideally not required but re-setting everything here.
-        if(add > KERNBASE){
-            pageIter->pNext = (Page*)returnPhyAdd((uint64_t)pFreeList,KERNBASE_OFFSET,0);
-        }
-        else{
-            pageIter->pNext = pFreeList;
-        }
+        addToFreePageList(pageIter);
+    }
 
-        pFreeList = pageIter;
-       // kprintf("inserted from dirty to free: %x\n",pFreeList);
+    if(pageIter->sRefCount == 1){
+        updateCOWInfo(virtualAddress,phyAddWithBits);
     }
 }
 
-Page* get_page(uint64_t addr){
+Page* get_page(uint64_t physicalAddress){
     uint8_t usingVAddr = 0;
-    uint64_t recvAdd = addr & ADDRESS_SCHEME;
+    uint64_t recvPhyAdd = physicalAddress & ADDRESS_SCHEME;
     Page* pageIter = pDirtyPageList;
     if(pageIter == NULL)
         return NULL;
@@ -216,7 +295,7 @@ Page* get_page(uint64_t addr){
         usingVAddr = 1;
 
     while(pageIter){
-        if(pageIter->uAddress != recvAdd){
+        if(pageIter->uAddress != recvPhyAdd){
             if(usingVAddr)
                 pageIter = (Page*)returnVirAdd((uint64_t)pageIter->pNext,KERNBASE_OFFSET,0);
             else

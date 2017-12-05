@@ -120,6 +120,8 @@ int s_exev(uint64_t binary_name, uint64_t argv,uint64_t envp){
     return 1;
 }
 pid_t sfork() {
+    kprintf("at fork");
+    printPageCountStats();
     task_struct* parent = getCurrentTask();
     task_struct* child = getFreeTask();
     createUserProcess(child);
@@ -146,6 +148,9 @@ pid_t sfork() {
         kprintf("error while copying task");
         return -1;
     }
+
+    kprintf("at fork after copy mm");
+    printPageCountStats();
 
     child->parent  = parent;
     child->ppid = parent->pid;

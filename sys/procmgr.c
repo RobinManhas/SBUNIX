@@ -589,7 +589,12 @@ void moveTaskToZombie(task_struct *task){
 }
 
 void destroy_task(task_struct *task){
-    // TODO: no code to clear mm struct yet
+    // freeing pages allocated to child
+    free_all_vma_pages(task);
+
+    // traverse parent page tables and update permissions
+    if(task->parent != NULL)
+        updateParentCOWInfo(task->parent);
 
     // if children, add them to init task
     if(task->child_list){
@@ -617,7 +622,9 @@ void killTask(task_struct *task){
         return;
     }
 
+    kprintf("before kill task:");printPageCountStats(); // printed in single line on terminal
     destroy_task(task);
+    kprintf("after kill task:");printPageCountStats();
     // make currentTask active as zombie, add to zombie taken care in schedule
     if(task == currentTask){
         task->state = TASK_STATE_KILLED;

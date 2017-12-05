@@ -216,7 +216,7 @@ void handle_page_fault(struct regs* reg){
         vm_area_struct* vma = find_vma(current_task->mm,faulty_addr);
         if(vma == NULL){
             kprintf("ERROR: page fault address is out of bound");
-            __asm__ volatile("hlt");;
+            __asm__ volatile("hlt");
         }
         //allocate all pages to vma if file is present
         if(vma->file != NULL)

@@ -27,11 +27,12 @@ void* memset(void* ptr, int val, unsigned int len);
 uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree);
 int pageListInit();
 uint64_t allocatePage();
-void deallocatePage(uint64_t page);
+void deallocatePage(uint64_t virtualAddress);
 void addToDirtyPageList(Page* page);
-
-
-Page* get_page(uint64_t addr);
+void addToFreePageList(Page *page);
+void printPageCountStats();
+Page* get_page(uint64_t physicalAddress);
+void updateCOWInfo(uint64_t vadd, uint64_t phyAdd);
 
 
 

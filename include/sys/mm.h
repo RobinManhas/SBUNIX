@@ -18,6 +18,8 @@ void allocate_pages_to_vma(vm_area_struct* vma,uint64_t** pml_ptr);
 
 int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[], char * envp[]);
 int copy_mm(task_struct* parent_task, task_struct* child_task);
+void free_all_vma_pages(task_struct *task);
+void updateParentCOWInfo(task_struct *parent);
 vm_area_struct* find_vma(mm_struct* mm, uint64_t addr);
 uint64_t allocate_heap(mm_struct* mm);
 uint64_t allocate_stack(task_struct* task, char *argv[], char *envp[]);

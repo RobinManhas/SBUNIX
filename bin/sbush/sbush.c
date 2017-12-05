@@ -347,14 +347,17 @@ int processCommand(char* str){
 
 
 int main(int argc, char *argv[], char *envp[]) {
-//    putchar(envp[0][0]);
-//    long addrArg = (long)argv;
- //   char* argvalues = (char*)addrArg;
+    //putchar(envp[0][0]);
+    // long addrArg = (long)argv;
+    //char* argvalues = (char*)addrArg;
 //    LIB_PATH = (char*)malloc(MAX_READ_BYTES);
 //    getdir(LIB_PATH,MAX_READ_BYTES);
 //    strcat(LIB_PATH,"/");
-//    strncpy(argvalues,argvalues,strlen(argvalues)-5);
-//    strcat(LIB_PATH,argvalues);
+    //strncpy(argvalues,argvalues,strlen(argvalues)-5);
+    // strcat(LIB_PATH,argvalues);
+    int value = 10;
+//    char* msg = "In sbushhhh";
+//    puts(msg);
 
     expandedPrompt = (char*)malloc(MAX_READ_BYTES);
 
@@ -364,44 +367,56 @@ int main(int argc, char *argv[], char *envp[]) {
     PS1Value = (char*)malloc(MAX_READ_BYTES);
     strcpy(PS1Value,"sbush:\\w> ");
 
-    //puts(PS1Value);
+    puts(PS1Value);
 //    char* str;
     isConsoleInput = 1;
-    char* str = (char*)malloc(MAX_READ_BYTES);
-    printCommandPrompt();
-
-//    int value =10;
-// //To understand parent/ child forking, keep for future use
-//	puts("before fork");
-//	int id = fork();
-//	if(id == 0){
-//		puts("inside child fork");
-//		exit(1);
-//	}
-//	else
-//		puts("inside parent fork");
+//    char* str = (char*)malloc(MAX_READ_BYTES);
+//    printCommandPrompt();
+//    while(gets(str) != NULL)
+//    {
+//        if(processCommand(str)== -1){
+//            break;
+//        }
+//        printCommandPrompt();
 //
-//    value = 30;
-//
-//    if(value == 30) // changing a local variable 'value', ideally must result in page fault as COW set
-//        puts("value");
-//
-//	if(id == 0){
-//		puts("child still active");
-//	}
-//	puts("after fork");
-//
-//    //free(str); // TODO RM: Make sure this is dealloc to avoid memleaks (check other leaks)
-
-
-    while(gets(str) != NULL)
-    {
-        if(processCommand(str)== -1){
-            break;
-        }
-        printCommandPrompt();
-
+//    }
+// To understand parent/ child forking, keep for future use
+    puts("before fork");
+    int id = fork();
+    if(id == 0){
+        puts("inside child fork");
+        exit(1);
     }
+    else
+        puts("inside parent fork");
+
+    value = 30;
+
+    if(value == 30) // changing a local variable 'value', ideally must result in page fault as COW set
+        puts("value");
+
+    if(id == 0){
+        puts("child still active");
+    }
+    puts("after fork");
+
+    printCommandPrompt();
+//    while(gets(str) != NULL)
+//    {
+//        if(processCommand(str)== -1){
+//            break;
+//        }
+//        printCommandPrompt();
+//
+//    }
+
+    value = 41;
+
+    if(value == 41) // changing a local variable 'value', ideally must result in page fault as COW set
+        puts("value changed again");
+
+    while (1);
+    //free(str); // TODO RM: Make sure this is dealloc to avoid memleaks (check other leaks)
     return 0;
 }
 //Check this function

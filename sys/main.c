@@ -59,17 +59,6 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     kmemcpy(kernel_idle_task->name,"Idle_task",9);
     createKernelInitProcess(kernel_idle_task, startTask);
 
-    //task1 = getFreeTask();
-    //createKernelTask(task1,func1);
-
-//    task2 = getFreeTask();
-//    createKernelTask(task2,func2);
-
-//    uint64_t addr = (uint64_t)kmalloc();
-//    uint64_t ret = getPTEntry(addr);
-//    setPTEntry(addr,0x9000);
-//    ret = getPTEntry(addr);
-
     user_task = getFreeTask();
     createKernelTask(user_task,func1);
 
@@ -78,19 +67,11 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     kprintf("In main: init IDT and IRQ success, calling schedule\n");
     schedule();
 
-    // do not exit start thread
-//    while(1){
-//        schedule();
-//        __asm__ __volatile__("hlt;");
-//    }
-
-
-//    init_idt();
-//    init_irq();
-    //init_timer();
-
-//    __asm__ ("sti");
-//    init_pci();
+//    kprintf("free list: %x,%x \n",pFreeList,pFreeList->uAddress);
+//    uint64_t address = (uint64_t)kmalloc();
+//    kprintf("free list after malloc: %x,%x \n",pFreeList,pFreeList->uAddress);
+//    deallocatePage(address);
+//    kprintf("free list after dealloc: %x,%x \n",pFreeList,pFreeList->uAddress);
 
     while(1);
 }
