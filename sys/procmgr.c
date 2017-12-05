@@ -701,6 +701,8 @@ void removeTaskFromSleep(task_struct* task){
 uint8_t  get_ps(char *buf, uint8_t length) {
     if(buf == NULL || length == 0)
         return -1;
+
+    memset(buf,0,length);
     task_struct *task;
     uint8_t size_written = 0;
     uint8_t name_len=0;

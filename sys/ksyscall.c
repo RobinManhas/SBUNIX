@@ -127,6 +127,7 @@ pid_t sfork() {
     createUserProcess(child);
     child->init = 1;
     child->user_rip = parent->user_rip;
+    child->curr_dir = parent->curr_dir;
     //child->user_rsp = parent->user_rsp;
     //child->rsp = parent->rsp;
 
