@@ -149,7 +149,7 @@ pid_t sfork() {
 
     child->parent  = parent;
     child->ppid = parent->pid;
-    child->curr_dir = parent->curr_dir;
+    //child->curr_dir = parent->curr_dir;
 
     if(parent->child_list == NULL)
         parent->child_list = child;
@@ -166,7 +166,7 @@ pid_t sfork() {
     //aligning down
     rsp = (rsp>>12)<<12;
     kmemcpy(child->stack, (uint64_t *)rsp, PAGE_SIZE);
-    kprintf("scheduling child\n");
+    //kprintf("kscheduling child\n");
     //16-128-8
 
     child->rsp = (uint64_t)&child->stack[510];

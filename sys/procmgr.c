@@ -87,7 +87,7 @@ void initialiseUserProcess(task_struct *user_task){
 //    userbase+=0x1000;
 
 
-    kprintf("kernel start add %x\n",user_task->rsp);
+    //kprintf("kernel start add %x\n",user_task->rsp);
 
     uint64_t userPage = (uint64_t)kmalloc();
     map_virt_phys_addr(userbase,returnPhyAdd(userPage,KERNBASE_OFFSET,1),PTE_U_W_P);

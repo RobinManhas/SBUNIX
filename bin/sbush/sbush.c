@@ -248,7 +248,7 @@ void forkProcessing(char * path[], char * env[], int isBackgroundProcess){
     if(path==NULL){
         return;
     }
-    puts(path[0]);
+    //puts(path[0]);
     pid_t childPID = fork();
 
     if(childPID == -1){
@@ -258,7 +258,7 @@ void forkProcessing(char * path[], char * env[], int isBackgroundProcess){
     }
     if(childPID == 0){ //child body
         //int execlp(const char *file, const char *arg, ...); the last argument must be NULL
-        //puts("inside child");
+        puts("inside child");
         //char *args[]={file,NULL};
         childPID = getpid();
         execve(path[0], path, environ);
@@ -364,7 +364,7 @@ int main(int argc, char *argv[], char *envp[]) {
     PS1Value = (char*)malloc(MAX_READ_BYTES);
     strcpy(PS1Value,"sbush:\\w> ");
 
-    puts(PS1Value);
+    //puts(PS1Value);
 //    char* str;
     isConsoleInput = 1;
     char* str = (char*)malloc(MAX_READ_BYTES);
@@ -498,7 +498,8 @@ char** prepareCharArray(char* cmd){
         i++;
 
     }
-
+    cmd_array[i]=(char *)malloc(1);
+    cmd_array[i][0] = '\0';
     //strcpy(cmd_array[i],&a);
 
     //cmd_array[0]=filePath;

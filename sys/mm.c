@@ -13,15 +13,15 @@
 //vm_area_struct *vma_free_list = NULL;
 
 void print_vma_boundaries(mm_struct* mm){
-    if(mm == NULL){
-        kprintf("ERROR: MM in null");
-        return;
-    }
-    vm_area_struct *vma= mm->vma_list;
-    while(vma){
-    kprintf("vma bounds:from: %x  to: %x\n",vma->vm_start,vma->vm_end);
-        vma=vma->vm_next;
-    }
+//    if(mm == NULL){
+//        kprintf("ERROR: MM in null");
+//        return;
+//    }
+//    vm_area_struct *vma= mm->vma_list;
+//    while(vma){
+//    kprintf("vma bounds:from: %x  to: %x\n",vma->vm_start,vma->vm_end);
+//        vma=vma->vm_next;
+//    }
 
 }
 vm_area_struct* find_vma(mm_struct* mm, uint64_t addr){
@@ -175,8 +175,8 @@ int copy_mm(task_struct* parent_task, task_struct* child_task) {
             while (start < end) {
                 if (!copy_page(end, &child_pml4_pointer)) {
                     //allocate one extra page for uninitialised variables; workaround as if now
-                    allocate_single_page(getCurrentTask(), end);
-                    copy_page(end, &child_pml4_pointer);
+//                    allocate_single_page(getCurrentTask(), end);
+//                    copy_page(end, &child_pml4_pointer);
                     break;
                 }
 
