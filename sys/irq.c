@@ -209,20 +209,26 @@ void handle_page_fault(struct regs* reg){
             __asm__ __volatile__ ("invlpg (%0)" ::"r" (faulty_addr) : "memory");
         }else{
             kprintf("reason for page fault is unknown \n");
+            killTask(current_task);
         }
 
     }else {
         //page not present
-        vm_area_struct* vma = find_vma(current_task->mm,faulty_addr);
-        if(vma == NULL){
-            kprintf("ERROR: page fault address is out of bound");
-            __asm__ volatile("hlt");
+        if(current_task->mm!=NULL) {
+            vm_area_struct *vma = find_vma(current_task->mm, faulty_addr);
+            if (vma == NULL) {
+                kprintf("ERROR: page fault address is out of bound");
+                killTask(current_task);
+            }
+            //allocate all pages to vma if file is present
+            if (vma->file != NULL)
+                allocate_pages_to_vma(vma, &pml4_pointer);
+            else
+                allocate_single_page(current_task, faulty_addr);
+        }else{
+            kprintf("ERROR: page fault\n");
+            killTask(current_task);
         }
-        //allocate all pages to vma if file is present
-        if(vma->file != NULL)
-            allocate_pages_to_vma(vma,&pml4_pointer);
-        else
-            allocate_single_page(current_task,faulty_addr);
 
 
     }
