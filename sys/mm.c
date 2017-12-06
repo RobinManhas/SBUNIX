@@ -7,6 +7,7 @@
 #include <sys/mm.h>
 #include <sys/vmm.h>
 #include <sys/pmm.h>
+#include <sys/common.h>
 
 
 //for munmap

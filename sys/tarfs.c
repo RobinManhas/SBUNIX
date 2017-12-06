@@ -8,6 +8,7 @@
 #include <sys/util.h>
 #include <sys/procmgr.h>
 #include <sys/pmm.h>
+#include <sys/common.h>
 
 file_table* new_file_table(char* name, char type,uint64_t size, uint64_t first ,uint64_t end, file_table *parent_node,uint64_t inode) {
 

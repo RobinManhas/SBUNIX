@@ -9,6 +9,7 @@
 #include <sys/procmgr.h>
 #include <sys/pmm.h>
 #include <sys/kstring.h>
+#include <sys/common.h>
 
 
 #define PRES 		0x80

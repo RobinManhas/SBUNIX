@@ -8,6 +8,7 @@
 #include <sys/mm.h>
 #include <sys/kstring.h>
 #include <sys/pmm.h>
+#include <sys/common.h>
 
 
 //loads segments from elf binary image

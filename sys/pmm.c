@@ -5,7 +5,7 @@
 #include <sys/pmm.h>
 #include <sys/kprintf.h>
 #include <sys/vmm.h>
-
+#include <sys/common.h>
 // Important note regarding addressing
 // Page descriptor list gets mapped above KERNBASE in virtual addressing
 // Normal pages get mapped as KERNBASE

@@ -1,5 +1,6 @@
 #include <sys/util.h>
 #include <sys/defs.h>
+#include <sys/common.h>
 
 void outb(unsigned short port, unsigned char val)
 {

@@ -3,7 +3,7 @@
 #include <sys/pci.h>
 #include <sys/defs.h>
 #include <sys/ahci.h>
-
+#include <sys/common.h>
 
 
 // Reference: OSDev

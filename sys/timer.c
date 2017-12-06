@@ -3,6 +3,7 @@
 #include <sys/idt.h>
 #include <sys/util.h>
 #include <sys/procmgr.h>
+#include <sys/common.h>
 
 unsigned int cycle = 0;
 int awakeTime = 0;

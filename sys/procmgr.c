@@ -13,7 +13,7 @@
 #include <sys/util.h>
 #include <sys/mm.h>
 #include <sys/terminal.h>
-
+#include <sys/common.h>
 
 
 #define MAX_PROCESS 1000
