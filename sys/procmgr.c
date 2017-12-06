@@ -715,6 +715,12 @@ int killPID(int pid, int signal){
     if(pid < -1 || pid == 1) // don't kill init task
         return 0;
 
+    if(pid > getMaxPID() - 1)
+    {
+        kprintf(">>> PID does not exist\n");
+        return 0;
+    }
+
     if(signal == SIGKILL || signal == SIGSEGV || signal == SIGINT)
     {
         int i = INIT_TASK_ID + 1;
