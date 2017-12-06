@@ -6,8 +6,12 @@
 #define SBUNIX_COMON_H
 #include<sys/defs.h>
 
-#define DEBUG_LOGS_ENABLE
-#define ERROR_LOGS_ENABLE
+//#define DEBUG_LOGS_ENABLE
+//#define ERROR_LOGS_ENABLE
+
+#define SIGINT    2
+#define SIGKILL   9
+#define SIGSEGV   11
 
 void syscalls_init();
 

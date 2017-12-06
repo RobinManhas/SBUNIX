@@ -13,5 +13,5 @@ unsigned int strlen(const char *s);
 char *strchr(const char *s, int c);
 char* trimString(char* str);
 void* memset(void* ptr, int val, unsigned int len);
-
+long stoi(const char *s);
 #endif

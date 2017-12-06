@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <stdlib.h>
+#include <signal.h>
 
 
 static const int ERROR = -1;
@@ -32,6 +33,10 @@ DIR *opendir(char *name){
   }
   puts("ERROR: cannot open dir");
   return NULL;
+}
+
+int kill(pid_t pid, int sig) {
+  return (int) syscall2(SYSCALL_KILL, (uint64_t)pid, (uint64_t)sig);
 }
 
 

@@ -176,3 +176,12 @@ void* memset(void* ptr, int val, unsigned int len){
 	}
 	return(p);
 }
+
+long stoi(const char *s){
+	long result = 0;
+	while(*s !='\0' && *s>='0' && *s <='9'){
+		result = result*10 + (*s-'0');
+		s++;
+	}
+	return result;
+}

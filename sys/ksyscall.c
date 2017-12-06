@@ -328,6 +328,9 @@ int syscall_handler(struct regs* reg) {
         case SYSCALL_WAIT4:
             value = swaitpid(reg->rdi,reg->rsi,reg->rdx);
             break;
+        case SYSCALL_KILL:
+            value = killPID(reg->rdi,reg->rsi);
+            break;
         case SYSCALL_GETCWD:
             value = scwd(reg->rdi);
             break;

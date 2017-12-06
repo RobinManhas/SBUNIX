@@ -15,6 +15,7 @@
 #define ALIGN_MASK(x, mask) (((x) + (mask)) & ~(mask))
 #define ALIGN_UP(ptr, amt) ALIGN_MASK(ptr,(((__typeof__(ptr))(amt) - 1)))
 #define TIMER_PREEMEPTIVE 100
+#define INIT_TASK_ID 1
 
 typedef struct vm_area_struct vm_area_struct;
 typedef struct mm_struct mm_struct;
@@ -37,17 +38,16 @@ typedef enum task_state {
     TASK_STATE_ZOMBIE = 3,
     TASK_STATE_IDLE = 4,
     TASK_STATE_KILLED = 5,
-    TASK_STATE_KERNEL_RUNNER = 6,
-    TASK_STATE_SLEEP = 7,
-    TASK_STATE_WAIT = 8,
-    TASK_MAX = 9
+    TASK_STATE_SLEEP = 6,
+    TASK_STATE_WAIT = 7,
+    TASK_MAX = 8
 }task_state;
 
 //should not increse 4096 bytes
 typedef struct task_struct{
     uint8_t init; // has val 1 when task is just created. Val made 0 when task about to execute (will have valid regs which can be saved during switch)
-    uint16_t pid;
-    uint16_t ppid; // parent's pid
+    uint32_t pid;
+    uint32_t ppid; // parent's pid
 
     uint64_t rsp;  //kernel rsp
     uint64_t kernInitRSP;
@@ -122,8 +122,10 @@ struct mm_struct {
     uint64_t v_addr_pointer;
 };
 
-uint16_t getFreePID();
+uint32_t getFreePID();
+uint32_t getMaxPID();
 void killTask(task_struct *task);
+int killPID(int pid, int signal);
 void threadInit();
 void switch_to(task_struct *current, task_struct *next);
 void createUserProcess(task_struct *user_task);
@@ -139,6 +141,8 @@ void removeTaskFromBlocked(task_struct* task);
 void removeChildFromParent(task_struct *parent, task_struct*child);
 void destroy_task(task_struct *task);
 void removeTaskFromRunList(task_struct *task);
+void removeTaskFromSleep(task_struct *task);
+void removeTaskFromWait(task_struct* task);
 void moveTaskToZombie(task_struct *task);
 task_struct* getCurrentTask();
 void reduceSleepTime();

@@ -17,7 +17,7 @@
 
 
 #define MAX_PROCESS 1000
-uint16_t processID = 1; // to keep track of the allocated process ID's to task struct
+uint32_t processID = 0; // to keep track of the allocated process ID's to task struct
 extern uint64_t kernel_rsp;
 extern task_struct *kernel_idle_task; // this store the idle task struct. this task is run when no other active task are available.
 task_struct* gReadyList = NULL;
@@ -401,7 +401,7 @@ void schedule(){
             //kprintf("switching to user task:changing cr3 \n");
             setCR3((uint64_t *) currentTask->cr3);
         }
-        if(currentTask->pid == 1){// idle task pid
+        if(currentTask->pid == INIT_TASK_ID){// idle task pid
             removeTaskFromRunList(currentTask);
         }
 
@@ -417,9 +417,14 @@ void schedule(){
 
 }
 
-uint16_t getFreePID()
+uint32_t getFreePID()
 {
     return processID++; // 0 will be our initial kernel task
+}
+
+uint32_t getMaxPID()
+{
+    return processID;
 }
 
 task_struct* getFreeTask()
@@ -621,7 +626,7 @@ void destroy_task(task_struct *task){
     free_all_vma_pages(task);
 
     // traverse parent page tables and update permissions
-    if(task->parent != NULL)
+    if(task->parent != NULL && task->parent->state != TASK_STATE_KILLED)
         updateParentCOWInfo(task->parent);
 
     // if children, add them to init task
@@ -630,7 +635,7 @@ void destroy_task(task_struct *task){
     }
 
     // remove task from parent
-    if(task->parent){
+    if(task->parent && task->parent->state != TASK_STATE_KILLED){
         removeChildFromParent(task->parent,task);
 
         if(task->parent->state == TASK_STATE_WAIT) {
@@ -653,7 +658,11 @@ void destroy_task(task_struct *task){
     deallocatePage((uint64_t)task->fd[1]);
 
     free_page_tables(task);
-    setCR3((uint64_t*)task->parent->cr3);
+    if(task->parent != NULL && task->parent->state != TASK_STATE_KILLED)
+        setCR3((uint64_t*)task->parent->cr3);
+    else
+        setCR3((uint64_t*)tasks_list[INIT_TASK_ID]->cr3);
+
     deallocatePage(task->cr3);
 
     //    kprintf("dealloc mm: %x\n",task->stack);
@@ -662,8 +671,19 @@ void destroy_task(task_struct *task){
 
 void killTask(task_struct *task){
 
-    if(task == NULL || task->state == TASK_STATE_ZOMBIE)
+    if(task == NULL || task->state == TASK_STATE_ZOMBIE ||
+            task->state == TASK_STATE_KILLED || task->pid == INIT_TASK_ID)
         return;
+
+    // remove from active or blocked queue or wait or sleep
+    if(task->state == TASK_STATE_RUNNING)
+        removeTaskFromRunList(task);
+    else if(task->state == TASK_STATE_BLOCKED)
+        removeTaskFromBlocked(task);
+    else if(task->state == TASK_STATE_SLEEP)
+        removeTaskFromSleep(task);
+    else if(task->state == TASK_STATE_WAIT)
+        removeTaskFromWait(task);
 
     // user process can't kill kernel task
     if(task->type == TASK_KERNEL && currentTask->type != TASK_KERNEL) {
@@ -677,11 +697,51 @@ void killTask(task_struct *task){
     kprintf("after kill task:");printPageCountStats();
 #endif
     // make currentTask active as zombie, add to zombie taken care in schedule
+    task->state = TASK_STATE_KILLED;
     if(task == currentTask){
-        task->state = TASK_STATE_KILLED;
         schedule();
     }
 
+}
+
+int killPID(int pid, int signal){
+    int broadcast = 0;
+    if(-1 == pid || 0 == pid) // kill all active tasks
+    {
+        kprintf("killing all tasks in process group, pid: %d\n",pid);
+        broadcast = 1;
+    }
+
+    if(pid < -1 || pid == 1) // don't kill init task
+        return 0;
+
+    if(signal == SIGKILL || signal == SIGSEGV || signal == SIGINT)
+    {
+        int i = INIT_TASK_ID + 1;
+        for(;i<getMaxPID();i++)
+        {
+            task_struct *task = tasks_list[i];
+            if(task == currentTask || task->type == TASK_KERNEL)
+                continue;
+
+            if(broadcast || task->pid == pid){
+                kprintf(">>> killing task: %s, pid: %d, state: %d\n",task->name,task->pid,task->state);
+                killTask(task);
+                if(broadcast == 0)
+                    break;
+            }
+        }
+
+        task_struct *activetask = getCurrentTask();
+        // kill active task
+        if(activetask->pid == pid || broadcast){
+            kprintf(">>> killing active task: %s, pid: %d, state: %d\n",activetask->name,activetask->pid,activetask->state);
+            killTask(activetask);
+        }
+    }
+
+    kprintf(">>> done\n");
+    return 0;
 }
 
 void removeTaskFromBlocked(task_struct* task){
@@ -745,6 +805,27 @@ void removeTaskFromSleep(task_struct* task){
         }
         prevptr = sleepListPtr;
         sleepListPtr = sleepListPtr->next;
+    }
+
+}
+
+void removeTaskFromWait(task_struct* task){
+    if(task == NULL)
+        return;
+
+    task_struct* prevptr = NULL;
+    task_struct *waitListPtr = waitList;
+
+    while(waitListPtr){
+        if(waitListPtr->pid == task->pid) {
+            if(prevptr == NULL)
+                gSleepList = waitListPtr->next;
+            else
+                prevptr->next = waitListPtr->next;
+            return;
+        }
+        prevptr = waitListPtr;
+        waitListPtr = waitListPtr->next;
     }
 
 }
