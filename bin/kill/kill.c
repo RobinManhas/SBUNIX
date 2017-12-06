@@ -9,7 +9,7 @@
 
 
 int main(int argc, char *argv[], char *envp[]){
-    int sig = 9, index = 2,ret=0;
+    int sig = SIGTERM, index = 2,ret=0;
     if(argc > 2 && argv[2]) {
         if(argv[2][0] == '-')
         {

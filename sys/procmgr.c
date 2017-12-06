@@ -20,6 +20,7 @@
 uint32_t processID = 0; // to keep track of the allocated process ID's to task struct
 extern uint64_t kernel_rsp;
 extern task_struct *kernel_idle_task; // this store the idle task struct. this task is run when no other active task are available.
+
 task_struct* gReadyList = NULL;
 task_struct* gBlockedList = NULL;
 task_struct* gZombieList = NULL;
@@ -561,14 +562,16 @@ void addChildrenToInitTask(task_struct *parentTask){
     task_struct* taskChildPtr = parentTask->child_list;
 
     while(taskChildPtr){
-        if(kernel_idle_task->child_list == NULL)
-            kernel_idle_task->child_list = taskChildPtr;
-        else {
-            taskChildPtr->nextChild = kernel_idle_task->child_list;
-            kernel_idle_task->child_list = taskChildPtr;
+        if(taskChildPtr->state != TASK_STATE_KILLED){
+            if(tasks_list[INIT_TASK_ID]->child_list == NULL)
+                tasks_list[INIT_TASK_ID]->child_list = taskChildPtr;
+            else {
+                taskChildPtr->nextChild = tasks_list[INIT_TASK_ID]->child_list;
+                tasks_list[INIT_TASK_ID]->child_list = taskChildPtr;
+            }
+            ++tasks_list[INIT_TASK_ID]->no_of_children;
+            taskChildPtr = taskChildPtr->nextChild;
         }
-        ++kernel_idle_task->no_of_children;
-        taskChildPtr = taskChildPtr->nextChild;
     }
 }
 
@@ -624,14 +627,14 @@ void moveTaskToZombie(task_struct *task){
 void destroy_task(task_struct *task){
     // freeing pages allocated to child
     free_all_vma_pages(task);
-
-    // traverse parent page tables and update permissions
+//
+//    // traverse parent page tables and update permissions
     if(task->parent != NULL && task->parent->state != TASK_STATE_KILLED)
         updateParentCOWInfo(task->parent);
 
     // if children, add them to init task
     if(task->child_list){
-        addChildrenToInitTask(task);
+        //addChildrenToInitTask(task);
     }
 
     // remove task from parent
@@ -644,26 +647,27 @@ void destroy_task(task_struct *task){
         }
     }
 
-    // free contents allocated to this task
-    free_all_vma_list(task);
 #ifdef DEBUG_LOGS_ENABLE
     //kprintf("dealloc mm: %x\n",task->mm);
     //kprintf("dealloc fd0: %x\n",task->fd[0]);
     //kprintf("dealloc fd1: %x\n",task->fd[1]);
 #endif
+
+//    // free contents allocated to this task
+    free_all_vma_list(task);
     deallocatePage((uint64_t)task->mm);
 
     deallocatePage((uint64_t)task->fd[0]);
 
     deallocatePage((uint64_t)task->fd[1]);
 
-    free_page_tables(task);
+//    free_page_tables(task);
     if(task->parent != NULL && task->parent->state != TASK_STATE_KILLED)
         setCR3((uint64_t*)task->parent->cr3);
     else
         setCR3((uint64_t*)tasks_list[INIT_TASK_ID]->cr3);
 
-    deallocatePage(task->cr3);
+//    deallocatePage(task->cr3);
 
     //    kprintf("dealloc mm: %x\n",task->stack);
 //    deallocatePage((uint64_t)task->stack);
@@ -689,6 +693,7 @@ void killTask(task_struct *task){
     if(task->type == TASK_KERNEL && currentTask->type != TASK_KERNEL) {
         return;
     }
+
 #ifdef DEBUG_LOGS_ENABLE
     kprintf("before kill task:");printPageCountStats(); // printed in single line on terminal
 #endif
@@ -721,7 +726,7 @@ int killPID(int pid, int signal){
         return 0;
     }
 
-    if(signal == SIGKILL || signal == SIGSEGV || signal == SIGINT)
+    if(signal == SIGKILL || signal == SIGSEGV || signal == SIGINT || signal == SIGTERM)
     {
         int i = INIT_TASK_ID + 1;
         for(;i<getMaxPID();i++)
@@ -731,7 +736,12 @@ int killPID(int pid, int signal){
                 continue;
 
             if(broadcast || task->pid == pid){
-                kprintf(">>> killing task: %s, pid: %d, state: %d\n",task->name,task->pid,task->state);
+                if(task->state == TASK_STATE_RUNNING)
+                    kprintf(">>> killing active task: %s, pid: %d\n",task->name,task->pid);
+                else if(task->state == TASK_STATE_BLOCKED)
+                    kprintf(">>> killing blocked task: %s, pid: %d\n",task->name,task->pid);
+                else if(task->state == TASK_STATE_KILLED)
+                    kprintf(">>> Ignoring already killed task: %s, pid: %d\n",task->name,task->pid);
                 killTask(task);
                 if(broadcast == 0)
                     break;
@@ -741,7 +751,7 @@ int killPID(int pid, int signal){
         task_struct *activetask = getCurrentTask();
         // kill active task
         if(activetask->pid == pid || broadcast){
-            kprintf(">>> killing active task: %s, pid: %d, state: %d\n",activetask->name,activetask->pid,activetask->state);
+            kprintf(">>> killing current task: %s, pid: %d, state: %d\n",activetask->name,activetask->pid,activetask->state);
             killTask(activetask);
         }
     }

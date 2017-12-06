@@ -22,6 +22,27 @@ int kstrcmp(const char *s1, const char *s2){
 	return *s1 - *s2;
 }
 
+int kstrncmp(const char *s1, const char *s2, unsigned int n){
+	unsigned int _s1_len;
+	unsigned int _s2_len;
+	_s1_len = kstrlen(s1);
+	_s2_len = kstrlen(s2);
+	if(_s1_len >= n && _s2_len >= n){
+		for(unsigned int i=0;i<n;i++){
+			if(s1[i]<s2[i]){
+				return -1;
+			}else if(s1[i]>s2[i]){
+				return 1;
+			}
+		}
+	}else if(_s1_len < _s2_len){
+		return -1;
+	}else if(_s1_len > _s2_len){
+		return 1;
+	}
+	return 0;
+}
+
 
 long kstoi(const char *s){
     long result = 0;

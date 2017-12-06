@@ -12,6 +12,7 @@
 #define SIGINT    2
 #define SIGKILL   9
 #define SIGSEGV   11
+#define SIGTERM   15
 
 void syscalls_init();
 

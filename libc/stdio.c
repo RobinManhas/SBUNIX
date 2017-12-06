@@ -35,11 +35,6 @@ DIR *opendir(char *name){
   return NULL;
 }
 
-int kill(pid_t pid, int sig) {
-  return (int) syscall2(SYSCALL_KILL, (uint64_t)pid, (uint64_t)sig);
-}
-
-
 dirent *readdir(DIR *dirp){
     if(NULL == dirp )
         return NULL;

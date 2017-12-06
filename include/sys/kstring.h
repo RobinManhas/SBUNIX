@@ -2,7 +2,7 @@
 #define _KSTRING_H
 
 int kstrcmp(const char *s1, const char *s2);
-
+int kstrncmp(const char *s1, const char *s2, unsigned int n);
 char* kstrcpy(char *dest, const char *src);
 unsigned int kstrlen(const char *s);
 
