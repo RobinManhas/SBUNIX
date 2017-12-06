@@ -667,9 +667,12 @@ void destroy_task(task_struct *task){
     free_all_vma_list(task);
     deallocatePage((uint64_t)task->mm);
 
-    deallocatePage((uint64_t)task->fd[0]);
+    /*TODO: clear all Fds*/
+    if(--task->fd[0]->ref_count < 1)
+        deallocatePage((uint64_t)task->fd[0]);
 
-    deallocatePage((uint64_t)task->fd[1]);
+    if(--task->fd[1]->ref_count < 1)
+        deallocatePage((uint64_t)task->fd[1]);
 
 //    free_page_tables(task);
     if(task->parent != NULL && task->parent->state != TASK_STATE_KILLED)

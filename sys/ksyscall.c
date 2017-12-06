@@ -141,13 +141,15 @@ pid_t sfork() {
     //copy the file descriptor list and increment reference count
     int i = 0;
     while( i < MAX_FD && parent->fd[i] != NULL) {
-        FD* fd = (FD*) kmalloc_size(sizeof(FD));
-        fd->perm = parent->fd[i]->perm;
-        fd->filenode =  parent->fd[i]->filenode;
-        fd->current_pointer = parent->fd[i]->current_pointer;
-        fd->ref_count = ++parent->fd[i]->ref_count;
-        fd->fileOps = parent->fd[i]->fileOps;
-        child->fd[i]=fd;
+//        FD* fd = (FD*) kmalloc_size(sizeof(FD));
+//        fd->perm = parent->fd[i]->perm;
+//        fd->filenode =  parent->fd[i]->filenode;
+//        fd->current_pointer = parent->fd[i]->current_pointer;
+//        fd->ref_count = ++parent->fd[i]->ref_count;
+//        fd->fileOps = parent->fd[i]->fileOps;
+//        child->fd[i]=fd;
+        parent->fd[i]->ref_count++;
+        child->fd[i]=parent->fd[i];
         i++;
     }
 
