@@ -39,7 +39,8 @@ void runner(){
     while(1) {
         //kprintf("inside idle\n");
         schedule();
-        __asm__ __volatile__ ("hlt");
+       // __asm__ __volatile__ ("hlt");
+        __asm__ __volatile__("sti;");
     }
 }
 
@@ -63,7 +64,7 @@ void initialiseUserProcess(task_struct *user_task){
     user_task->next = NULL;
     user_task->nextChild = NULL;
     user_task->cr3 = (uint64_t)kmalloc();
-    //user_task->preemptiveTime = TIMER_PREEMEPTIVE;
+    user_task->preemptiveTime = TIMER_PREEMEPTIVE;
 
     user_task->fd[0]=create_terminal_IN();
     FD* filedec = create_terminal_OUT();
@@ -398,7 +399,7 @@ void schedule(){
 
         if(currentTask->type == TASK_USER)
         {
-            
+            currentTask->preemptiveTime = TIMER_PREEMEPTIVE;
             set_tss_rsp((uint64_t *) (ALIGN_UP(currentTask->rsp, PAGE_SIZE) - 16));
             kernel_rsp = ALIGN_UP(currentTask->rsp, PAGE_SIZE) - 16;
         }

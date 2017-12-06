@@ -14,6 +14,7 @@
 
 #define ALIGN_MASK(x, mask) (((x) + (mask)) & ~(mask))
 #define ALIGN_UP(ptr, amt) ALIGN_MASK(ptr,(((__typeof__(ptr))(amt) - 1)))
+#define TIMER_PREEMEPTIVE 100
 
 typedef struct vm_area_struct vm_area_struct;
 typedef struct mm_struct mm_struct;
@@ -55,7 +56,7 @@ typedef struct task_struct{
     uint64_t user_rip;
     uint64_t cr3;
     uint64_t* stack;
-
+    int preemptiveTime;
     task_type type;
     task_state state;
     struct task_struct *next;

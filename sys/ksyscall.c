@@ -49,7 +49,7 @@ void syscalls_init() {
     uint64_t val = ((uint64_t)0x1b << 48 |(uint64_t)0x8 << 32);
     wrmsr(MSR_STAR,val);
     wrmsr(MSR_LSTAR, (uint64_t)syscall_entry);
-    //wrmsr(MSR_SYSCALL_MASK, 1<<9); //disable interrupts in syscall mode need to check this code
+    wrmsr(MSR_SYSCALL_MASK, 1<<9); //disable interrupts in syscall mode need to check this code
 }
 
 
@@ -132,6 +132,8 @@ pid_t sfork() {
     child->init = 1;
     child->user_rip = parent->user_rip;
     child->curr_dir = parent->curr_dir;
+    parent->preemptiveTime = parent->preemptiveTime/2;
+    child->preemptiveTime = parent->preemptiveTime;
     //child->user_rsp = parent->user_rsp;
     //child->rsp = parent->rsp;
 
@@ -254,7 +256,7 @@ uint64_t swaitpid(uint64_t p_pid, uint64_t status_p, uint64_t options) {
             for (task_struct *task = cur_task->child_list; task != NULL; task = task->nextChild) {
                 if (task->pid == pid) {
                     childPresent = 1;
-                    if (task->state == TASK_STATE_KILLED && task->state == TASK_STATE_ZOMBIE) {
+                    if (/*task->state == TASK_STATE_KILLED && */task->state == TASK_STATE_ZOMBIE) {
                         //child to wait on is killed
                         if (status) *status = 0;
                         return pid;

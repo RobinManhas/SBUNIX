@@ -1,7 +1,6 @@
 #include <sys/kprintf.h>
 #include <stdarg.h>
 #include <sys/defs.h>
-#include <sys/common.h>
 
 #define LINE_LENGTH 160
 #define MAX_LINES 24 //3680,3840
@@ -149,168 +148,180 @@ void keyboardLocalEcho(char* input)
 
 void kprintf(const char *fmt, ...)
 {
-    if(!fmt || *fmt == '\0'){
-        return;
-    }
-
-
-    char *inputBufPtr, *outputBufPtr;
-    char *retString;
     int retVal;
-    va_list arglist; // RM: va_list not a method but a pre-processor directive, check make
-    va_start(arglist,fmt);
-    intToCharLen = 0;
-    // Robin: enable this code to make kprintf similar to puts (de facto newline after kprintf stream)
-    /*
-    if(charsWritten%LINE_LENGTH != 0)
-    {
-        charsWritten += (LINE_LENGTH - (charsWritten%LINE_LENGTH));
-        checkOverflow(&outputBufPtr);
-    }*/
+void kprintf(const char *fmt, ...){
 
-    for(inputBufPtr = (char*)fmt, outputBufPtr = (char*)videoOutBufAdd+charsWritten; *inputBufPtr;)
-    {
-        // First filter
-        if(*inputBufPtr == '%')
-        {
-            switch(*(inputBufPtr+1)){
-                case 's':
-                {
-                    char *replaceBufPtr;
-                    retString = va_arg(arglist, char *);
-                    for(replaceBufPtr = (char*) retString;*replaceBufPtr;)
-                    {
-                        *outputBufPtr = *replaceBufPtr;
-                        charsWritten += 2;
-                        checkOverflow(&outputBufPtr);
-                        outputBufPtr +=2;
-                        replaceBufPtr +=1;
-                    }
-                    inputBufPtr+=2;
-                    break;
-                }
-                case 'c':
-                {
-                    *outputBufPtr = va_arg(arglist, int);
-                    charsWritten += 2;
-                    checkOverflow(&outputBufPtr);
-                    outputBufPtr +=2;
-                    inputBufPtr+=2;
-                    break;
-                }
-                case 'd':
-                {
-                    char *replaceBufPtr;
-                    retVal = va_arg(arglist, int);
-                    if(retVal == 0)
-                    {
-                        intToCharLen = 0;
-                        intToCharOut[intToCharLen++] = retVal + '0';
-                        intToCharOut[intToCharLen++] ='\0';
-                    }
-                    else
-                    {
-                        intToCharLen = 0;
-                        intToChar(retVal,10);
-                        intToCharOut[intToCharLen++] ='\0';
-                    }
-
-                    for(replaceBufPtr = (char*) intToCharOut;*replaceBufPtr;)
-                    {
-                        *outputBufPtr = *replaceBufPtr;
-                        charsWritten += 2;
-                        checkOverflow(&outputBufPtr);
-                        outputBufPtr +=2;
-                        replaceBufPtr +=1;
-                    }
-                    inputBufPtr+=2;
-                    break;
-                }
-                case 'p':
-                case 'x':
-                {
-                    char *replaceBufPtr;
-                    unsigned long long returnVal;
-                    returnVal = va_arg(arglist, unsigned long long);
-                    if(returnVal == 0)
-                    {
-                        intToCharLen = 0;
-                        intToCharOut[intToCharLen++] = returnVal + '0';
-                        intToCharOut[intToCharLen++] ='\0';
-                    }
-                    else
-                    {
-                        intToCharLen = 0;
-                        hextoChar(returnVal,16);
-                        intToCharOut[intToCharLen++] ='\0';
-                    }
-                    *outputBufPtr = '0';
-                    outputBufPtr += 2;
-                    charsWritten += 2;
-                    checkOverflow(&outputBufPtr);
-                    *outputBufPtr = 'x';
-                    outputBufPtr += 2;
-                    charsWritten += 2;
-                    checkOverflow(&outputBufPtr);
-
-                    for(replaceBufPtr = (char*) intToCharOut;*replaceBufPtr;)
-                    {
-                        *outputBufPtr = *replaceBufPtr;
-                        charsWritten += 2;
-                        checkOverflow(&outputBufPtr);
-                        outputBufPtr +=2;
-                        replaceBufPtr +=1;
-                    }
-                    inputBufPtr+=2;
-                    break;
-                }
-
-                default: // RM: Unhandled, print as is
-                {
-                    *outputBufPtr = *(inputBufPtr+1);
-                    charsWritten += 2;
-                    checkOverflow(&outputBufPtr);
-                    outputBufPtr +=2;
-                    inputBufPtr +=2;
-                    break;
-                }
-
-            }   
-        }
-        else if(*inputBufPtr == '\n')
-        {
-            int forward = charsWritten%LINE_LENGTH;
-            outputBufPtr += (LINE_LENGTH - forward);
-            charsWritten += (LINE_LENGTH - forward);
-            checkOverflow(&outputBufPtr);
-            inputBufPtr += 1;
-        }
-        else if(*inputBufPtr == '\r')
-        {
-            int back = charsWritten%LINE_LENGTH;
-            outputBufPtr -= back;
-            charsWritten -= back;
-            checkOverflow(&outputBufPtr);
-            inputBufPtr += 1;
-        }
-        else
-        {
-            *outputBufPtr = *inputBufPtr;
-            charsWritten += 2;
-            checkOverflow(&outputBufPtr);
-            outputBufPtr +=2;
-            inputBufPtr+=1;
-            //charCount+=1;
-            //if(charCount%159 == 0)
-            //{
-            //  charCount = 0;
-            //  line+=1;
-            //}
-        }
-    }
-    va_end(arglist);
 }
-
+//void kprintf(const char *fmt, ...)
+//{
+//    if(!fmt || *fmt == '\0'){
+//        return;
+//    }
+//
+//
+//    char *inputBufPtr, *outputBufPtr;
+//    char *retString;
+//    int retVal;
+//    va_list arglist; // RM: va_list not a method but a pre-processor directive, check make
+//    va_start(arglist,fmt);
+//    intToCharLen = 0;
+//    // Robin: enable this code to make kprintf similar to puts (de facto newline after kprintf stream)
+//    /*
+//    if(charsWritten%LINE_LENGTH != 0)
+//    {
+//        charsWritten += (LINE_LENGTH - (charsWritten%LINE_LENGTH));
+//        checkOverflow(&outputBufPtr);
+//    }*/
+//
+//    for(inputBufPtr = (char*)fmt, outputBufPtr = (char*)videoOutBufAdd+charsWritten; *inputBufPtr;)
+//    {
+//        // First filter
+//        if(*inputBufPtr == '%')
+//        {
+//            switch(*(inputBufPtr+1)){
+//                case 's':
+//                {
+//                    char *replaceBufPtr;
+//                    retString = va_arg(arglist, char *);
+//                    for(replaceBufPtr = (char*) retString;*replaceBufPtr;)
+//                    {
+//                        *outputBufPtr = *replaceBufPtr;
+//                        charsWritten += 2;
+//                        checkOverflow(&outputBufPtr);
+//                        outputBufPtr +=2;
+//                        replaceBufPtr +=1;
+//                    }
+//                    inputBufPtr+=2;
+//                    break;
+//                }
+//                case 'c':
+//                {
+//                    *outputBufPtr = va_arg(arglist, int);
+//                    charsWritten += 2;
+//                    checkOverflow(&outputBufPtr);
+//                    outputBufPtr +=2;
+//                    inputBufPtr+=2;
+//                    break;
+//                }
+//                case 'd':
+//                {
+//                    char *replaceBufPtr;
+//                    retVal = va_arg(arglist, int);
+//                    if(retVal == 0)
+//                    {
+//                        intToCharLen = 0;
+//                        intToCharOut[intToCharLen++] = retVal + '0';
+//                        intToCharOut[intToCharLen++] ='\0';
+//                    }
+//                    else
+//                    {
+//                        intToCharLen = 0;
+//                        intToChar(retVal,10);
+//                        intToCharOut[intToCharLen++] ='\0';
+//                    }
+//
+//                    for(replaceBufPtr = (char*) intToCharOut;*replaceBufPtr;)
+//                    {
+//                        *outputBufPtr = *replaceBufPtr;
+//                        charsWritten += 2;
+//                        checkOverflow(&outputBufPtr);
+//                        outputBufPtr +=2;
+//                        replaceBufPtr +=1;
+//                    }
+//                    inputBufPtr+=2;
+//                    break;
+//                }
+//                case 'p':
+//                case 'x':
+//                {
+//                    char *replaceBufPtr;
+//                    unsigned long long returnVal;
+//                    returnVal = va_arg(arglist, unsigned long long);
+//                    if(returnVal == 0)
+//                    {
+//                        intToCharLen = 0;
+//                        intToCharOut[intToCharLen++] = returnVal + '0';
+//                        intToCharOut[intToCharLen++] ='\0';
+//                    }
+//                    else
+//                    {
+//                        intToCharLen = 0;
+//                        hextoChar(returnVal,16);
+//                        intToCharOut[intToCharLen++] ='\0';
+//                    }
+//                    *outputBufPtr = '0';
+//                    outputBufPtr += 2;
+//                    charsWritten += 2;
+//                    checkOverflow(&outputBufPtr);
+//                    *outputBufPtr = 'x';
+//                    outputBufPtr += 2;
+//                    charsWritten += 2;
+//                    checkOverflow(&outputBufPtr);
+//
+//                    for(replaceBufPtr = (char*) intToCharOut;*replaceBufPtr;)
+//                    {
+//                        *outputBufPtr = *replaceBufPtr;
+//                        charsWritten += 2;
+//                        checkOverflow(&outputBufPtr);
+//                        outputBufPtr +=2;
+//                        replaceBufPtr +=1;
+//                    }
+//                    inputBufPtr+=2;
+//                    break;
+//                }
+//
+//                default: // RM: Unhandled, print as is
+//                {
+//                    *outputBufPtr = *(inputBufPtr+1);
+//                    charsWritten += 2;
+//                    checkOverflow(&outputBufPtr);
+//                    outputBufPtr +=2;
+//                    inputBufPtr +=2;
+//                    break;
+//                }
+//
+//            }
+//        }
+//        else if(*inputBufPtr == '\n')
+//        {
+//            int forward = charsWritten%LINE_LENGTH;
+//            outputBufPtr += (LINE_LENGTH - forward);
+//            charsWritten += (LINE_LENGTH - forward);
+//            checkOverflow(&outputBufPtr);
+//            inputBufPtr += 1;
+//        }
+//        else if(*inputBufPtr == '\r')
+//        {
+//            int back = charsWritten%LINE_LENGTH;
+//            outputBufPtr -= back;
+//            charsWritten -= back;
+//            checkOverflow(&outputBufPtr);
+//            inputBufPtr += 1;
+//        }
+//        else
+//        {
+//            *outputBufPtr = *inputBufPtr;
+//            charsWritten += 2;
+//            checkOverflow(&outputBufPtr);
+//            outputBufPtr +=2;
+//            inputBufPtr+=1;
+//            //charCount+=1;
+//            //if(charCount%159 == 0)
+//            //{
+//            //  charCount = 0;
+//            //  line+=1;
+//            //}
+//        }
+//    }
+//    va_end(arglist);
+//}
+void move_csr(void) {
+    uint16_t temp = (uint16_t)(charsWritten/2);
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (uint8_t)(temp&0xFF));
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (uint8_t)((temp>>8)&0xFF));
+}
 void kputch(char c) {
     char *outputBufPtr = (char *) videoOutBufAdd + charsWritten;
 
@@ -327,9 +338,10 @@ void kputch(char c) {
             charsWritten -= 2;
             break;
         default:
-            *outputBufPtr = c;
+            *outputBufPtr++ = c;
             charsWritten += 2;
     }
     checkOverflow(&outputBufPtr);
+    move_csr();
 
 }

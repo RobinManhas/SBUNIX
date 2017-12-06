@@ -16,6 +16,13 @@ void timer_handler()
         updateTimeOnScreen(awakeTime);
     }
     reduceSleepTime();
+    task_struct *current = getCurrentTask();
+    if(current!= NULL && current->type == TASK_USER){
+        current->preemptiveTime--;
+        if(current->preemptiveTime<=0){
+            schedule();
+        }
+    }
 
 }
 
