@@ -85,7 +85,9 @@ uint64_t sbrk(uint64_t pointer){
     else{
         vm_area_struct* heap = find_vma(mm, mm->brk);
         if(heap == NULL){
+#ifdef ERROR_LOGS_ENABLE
             kprintf("ERROR: Heap not found in brk\n");
+#endif
             return 0;
         }
         mm->brk =  pointer;
@@ -120,8 +122,10 @@ int s_exev(uint64_t binary_name, uint64_t argv,uint64_t envp){
     return 1;
 }
 pid_t sfork() {
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("at fork");
     printPageCountStats();
+#endif
     task_struct* parent = getCurrentTask();
     task_struct* child = getFreeTask();
     createUserProcess(child);
@@ -146,12 +150,16 @@ pid_t sfork() {
     }
 
     if(copy_mm(parent,child) == -1){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("error while copying task");
+#endif
         return -1;
     }
 
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("at fork after copy mm");
     printPageCountStats();
+#endif
 
     child->parent  = parent;
     child->ppid = parent->pid;
@@ -331,8 +339,10 @@ int syscall_handler(struct regs* reg) {
             value = sps(reg->rdi,reg->rsi);
             break;
         default:
+#ifdef DEBUG_LOGS_ENABLE
             kprintf("got a syscall : %d\n",syscallNo);
-
+#endif
+            break;
     }
     return value;
 }

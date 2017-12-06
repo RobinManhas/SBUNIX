@@ -120,7 +120,9 @@ void init_tarfs(){
     for(int i =1 ; i <FILES_MAX; i++){
         if(NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
             break;
+#ifdef DEBUG_LOGS_ENABLE
         kprintf("%s parent:%s\n",tarfs[i]->name, tarfs[i]->child[1]->name);
+#endif
 
     }
 

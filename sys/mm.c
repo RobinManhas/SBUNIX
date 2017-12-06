@@ -107,8 +107,9 @@ vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t fl
 int copy_page(uint64_t virtual_addr, uint64_t** child_pml4_pointer){
     uint64_t page_phy_add = getPTEntry(virtual_addr);
     if (!page_phy_add){
+#ifdef DEBUG_LOGS_ENABLE
         kprintf("Error: physical page entry not found for : %x\n",virtual_addr);
-
+#endif
         return 0;
     }
 
@@ -524,8 +525,9 @@ uint64_t allocate_stack(task_struct* task,char *argv[], char *envp[]) {
     stack_top--;
     *stack_top = (uint64_t)argc_count;
     // Store the arg count
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("argc pointer %p; value: %d ; user_rsp: %p\n", stack_top, *stack_top, stack_top);
-
+#endif
     // Reset stack pointer
     task->user_rsp = (uint64_t )(stack_top);
 

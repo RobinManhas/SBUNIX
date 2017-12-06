@@ -125,17 +125,22 @@ void init_irq()
 void _irq_handler(struct regs* reg)
 {
     if(reg->int_no==128){
+#ifdef DEBUG_LOGS_ENABLE
         kprintf("syscall interrupt received, %d\n",reg->rax);
+#endif
     }
     else if(reg->int_no==14){
         handle_page_fault(reg);
     }else if(reg->int_no==13){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("got interrupt no %d\n",reg->int_no);
         kprintf("got error no %d\n",reg->err_code);
+#endif
         uint64_t faulty_addr;
         __asm__ __volatile__ ("movq %%cr2, %0;" : "=r"(faulty_addr));
+#ifdef ERROR_LOGS_ENABLE
         kprintf("error:%x\n",faulty_addr);
-
+#endif
         __asm__ volatile("hlt;":::);
     }
     else {
@@ -162,11 +167,11 @@ void _irq_handler(struct regs* reg)
 
 void handle_page_fault(struct regs* reg){
     task_struct* current_task = getCurrentTask();
-    kprintf("inside page fault: ");
     uint64_t faulty_addr;
     __asm__ __volatile__ ("movq %%cr2, %0;" : "=r"(faulty_addr));
-
-    kprintf("error addr:%x\n",faulty_addr);
+#ifdef ERROR_LOGS_ENABLE
+    kprintf("inside page fault,error addr:%x\n",faulty_addr);
+#endif
     uint64_t err_code = reg->err_code;
     uint64_t new_page,new_vir;
     uint64_t * pml4_pointer = (uint64_t*)current_task->cr3;
@@ -208,7 +213,9 @@ void handle_page_fault(struct regs* reg){
             setPTEntry(faulty_addr,phy_addr);
             __asm__ __volatile__ ("invlpg (%0)" ::"r" (faulty_addr) : "memory");
         }else{
+#ifdef DEBUG_LOGS_ENABLE
             kprintf("reason for page fault is unknown \n");
+#endif
             killTask(current_task);
         }
 
@@ -217,7 +224,9 @@ void handle_page_fault(struct regs* reg){
         if(current_task->mm!=NULL) {
             vm_area_struct *vma = find_vma(current_task->mm, faulty_addr);
             if (vma == NULL) {
+#ifdef ERROR_LOGS_ENABLE
                 kprintf("ERROR: page fault address is out of bound");
+#endif
                 killTask(current_task);
             }
             //allocate all pages to vma if file is present
@@ -226,7 +235,9 @@ void handle_page_fault(struct regs* reg){
             else
                 allocate_single_page(current_task, faulty_addr);
         }else{
+#ifdef ERROR_LOGS_ENABLE
             kprintf("ERROR: page fault\n");
+#endif
             killTask(current_task);
         }
 

@@ -154,13 +154,13 @@ void func1()
 
 void func2()
 {
-    kprintf("Thread 2: Entry, task ID: %d\n",currentTask->pid);
+    //kprintf("Thread 2: Entry, task ID: %d\n",currentTask->pid);
     schedule();
-    kprintf("Thread 2: Returning from switch first time\n");
+    //kprintf("Thread 2: Returning from switch first time\n");
     schedule();
-    kprintf("Thread 2: Returning from switch second time\n");
+    //kprintf("Thread 2: Returning from switch second time\n");
     schedule();
-    kprintf("Thread 2: Returning from switch third time\n");
+    //kprintf("Thread 2: Returning from switch third time\n");
     //schedule();
     while(1);
 
@@ -168,7 +168,9 @@ void func2()
 
 void addTaskToReady(task_struct *readyTask, uint8_t addToFront){
     if(readyTask == NULL){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("Error: invalid task in add to ready, returning\n");
+#endif
         return;
     }
 
@@ -208,7 +210,9 @@ void addTaskToReady(task_struct *readyTask, uint8_t addToFront){
 
 void addTaskToBlocked(task_struct *blockedTask){
     if(blockedTask == NULL){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("Error: invalid task in add to blocked, returning\n");
+#endif
         return;
     }
 
@@ -230,7 +234,9 @@ void addTaskToBlocked(task_struct *blockedTask){
 
 void addTaskToZombie(task_struct *zombieTask){
     if(zombieTask == NULL){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("Error: invalid task in add to zombie, returning\n");
+#endif
         return;
     }
 
@@ -251,7 +257,9 @@ void addTaskToZombie(task_struct *zombieTask){
 }
 void addTaskToSleep(task_struct *sleepTask){
     if(sleepTask == NULL){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("Error: invalid task in add to sleep, returning\n");
+#endif
         return;
     }
 
@@ -273,7 +281,9 @@ void addTaskToSleep(task_struct *sleepTask){
 
 void addTaskToWait(task_struct *task){
     if(task == NULL){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("Error: invalid task in add to wait, returning\n");
+#endif
         return;
     }
 
@@ -368,7 +378,9 @@ void schedule(){
                 break;
             }
             default: {
+#ifdef ERROR_LOGS_ENABLE
                 kprintf("unhandled task state in scheduler\n");
+#endif
                 break;
             }
         }
@@ -618,11 +630,15 @@ void destroy_task(task_struct *task){
 
     // free contents allocated to this task
     free_all_vma_list(task);
-    kprintf("dealloc mm: %x\n",task->mm);
+#ifdef DEBUG_LOGS_ENABLE
+    //kprintf("dealloc mm: %x\n",task->mm);
+    //kprintf("dealloc fd0: %x\n",task->fd[0]);
+    //kprintf("dealloc fd1: %x\n",task->fd[1]);
+#endif
     deallocatePage((uint64_t)task->mm);
-    kprintf("dealloc fd0: %x\n",task->fd[0]);
+
     deallocatePage((uint64_t)task->fd[0]);
-    kprintf("dealloc fd1: %x\n",task->fd[1]);
+
     deallocatePage((uint64_t)task->fd[1]);
 
     free_page_tables(task);
@@ -642,10 +658,13 @@ void killTask(task_struct *task){
     if(task->type == TASK_KERNEL && currentTask->type != TASK_KERNEL) {
         return;
     }
-
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("before kill task:");printPageCountStats(); // printed in single line on terminal
+#endif
     destroy_task(task);
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("after kill task:");printPageCountStats();
+#endif
     // make currentTask active as zombie, add to zombie taken care in schedule
     if(task == currentTask){
         task->state = TASK_STATE_KILLED;

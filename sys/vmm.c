@@ -145,8 +145,9 @@ void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree, uint64_t flags)
     for(; paddr <= max_phys; paddr += PAGE_SIZE, vaddr += PAGE_SIZE){
         map_virt_phys_addr(vaddr, paddr,flags);
     }
-
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("page mapping complete, reset vid ptr, free: %x\n",pFreeList);
+#endif
     map_virt_phys_addr((uint64_t)0xffffffff800b8000UL, 0xb8000UL,flags);
     videoOutBufAdd = (uint64_t)0xffffffff800b8000UL;
 
@@ -208,7 +209,9 @@ uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
 {
     if(add == 0)
     {
+#ifdef ERROR_LOGS_ENABLE
         kprintf("returnPhyAdd vadd is zero\n");
+#endif
         return add;
     }
     switch (addType){
@@ -249,8 +252,9 @@ uint64_t returnPhyAdd(uint64_t add, short addType, short removeFlags)
             }
         }
     };
-
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("Error: address type not supported, returning same number\n");
+#endif
     return add;
 }
 
@@ -258,7 +262,9 @@ uint64_t returnVirAdd(uint64_t add, short addType, short removeFlags)
 {
     if(add == 0)
     {
+#ifdef ERROR_LOGS_ENABLE
         kprintf("returnVirAdd padd is zero\n");
+#endif
         return add;
     }
     switch (addType){
@@ -299,8 +305,9 @@ uint64_t returnVirAdd(uint64_t add, short addType, short removeFlags)
             }
         }
     };
-
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("Error: address type not supported, returning same number\n");
+#endif
     if(removeFlags)
         return (add & ADDRESS_SCHEME);
     else

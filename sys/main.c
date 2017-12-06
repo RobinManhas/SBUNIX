@@ -27,7 +27,9 @@ extern void func2();
 void start(uint32_t *modulep, void *physbase, void *physfree)
 {
     clearScreen();
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("old cr3 %x, old physfree: %x\n",getCR3(),physfree);
+#endif
     physfree = (void*)ALIGN_UP((uint64_t)physfree,PAGE_SIZE);
     maxPhyRegion = phyMemInit(modulep,physbase,&physfree);
     pageTablesInit((uint64_t) physbase, (uint64_t) physfree,(uint64_t)KERN_PHYS_BASE,(uint64_t)PTE_W_P);
@@ -39,9 +41,9 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     //mapPhysicalRangeToVirtual((uint64_t)(physfree+ (8*PAGE_SIZE)), physfree,(uint64_t)PTE_W_P);
 
     setCR3(pml_table);
-
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("after cr3 reset, cr3: %x, new physfree: %x\n",getCR3(),physfree);
-
+#endif
 /*********************************************************************************************************
     * Welcome to user land, use any physical address from now on and watch qemu reboot forever.
     * Use returnVirtualAdd() and returnPhyAdd() for ease of conversion.
@@ -65,8 +67,9 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     createKernelTask(user_task,func1);
 
     //load_elf_binary_by_name(NULL,"bin/sbush",argv, envp);
-
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("In main: init IDT and IRQ success, calling schedule\n");
+#endif
     schedule();
 
 //    kprintf("free list: %x,%x \n",pFreeList,pFreeList->uAddress);

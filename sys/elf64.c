@@ -38,7 +38,9 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file,
         }
     }
     if(!is_exe){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("no Loadable section found: exit\n");
+#endif
         return -1;
     }
     //allocate heap
@@ -66,7 +68,9 @@ int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[],c
 
     /* TODO: check in environ also*/
     if(file == NULL || file->type != FILE){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("file not found\n");
+#endif
         return -1;
     }
 
@@ -76,11 +80,15 @@ int load_elf_binary_by_name(task_struct* task, char* binary_name, char *argv[],c
 
     //if file is not executable then return
     if(elf_header == NULL ){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("elf header is null\n");
+#endif
         return -1;
     }
     if (elf_header->e_ident[1] != 'E' || elf_header->e_ident[2] != 'L' || elf_header->e_ident[3] != 'F'){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("not executable\n");
+#endif
         return -1;
     }
 
