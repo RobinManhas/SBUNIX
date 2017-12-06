@@ -57,7 +57,7 @@ void start(uint32_t *modulep, void *physbase, void *physfree)
     init_tarfs();
     init_timer();
     syscalls_init();
-    __asm__ ("sti"); //enable interrupts
+   // __asm__ ("sti"); //enable interrupts
 
     kernel_idle_task = getFreeTask();
     kmemcpy(kernel_idle_task->name,"Idle_task",9);

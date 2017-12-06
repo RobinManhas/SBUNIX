@@ -17,7 +17,7 @@
 
 
 #define MAX_PROCESS 1000
-uint16_t processID = 0; // to keep track of the allocated process ID's to task struct
+uint16_t processID = 1; // to keep track of the allocated process ID's to task struct
 extern uint64_t kernel_rsp;
 extern task_struct *kernel_idle_task; // this store the idle task struct. this task is run when no other active task are available.
 task_struct* gReadyList = NULL;
@@ -39,8 +39,8 @@ void runner(){
     while(1) {
         //kprintf("inside idle\n");
         schedule();
-       // __asm__ __volatile__ ("hlt");
         __asm__ __volatile__("sti;");
+        //__asm__ __volatile__("hlt;");
     }
 }
 
@@ -346,8 +346,13 @@ void schedule(){
     if(currentTask != NULL /*gReadyList != NULL*/) {
         prevTask = currentTask;
         currentTask = gReadyList;
-        if (currentTask == NULL)
+        if (currentTask == NULL) {
+            if(prevTask->state == TASK_STATE_RUNNING){
+                currentTask= prevTask;
+                return;
+            }
             currentTask = kernel_idle_task; // TODO: currently does not switch properly
+        }
         else
             gReadyList = gReadyList->next;
 
@@ -396,6 +401,9 @@ void schedule(){
             //kprintf("switching to user task:changing cr3 \n");
             setCR3((uint64_t *) currentTask->cr3);
         }
+        if(currentTask->pid == 1){// idle task pid
+            removeTaskFromRunList(currentTask);
+        }
 
         if(currentTask->type == TASK_USER)
         {
@@ -436,6 +444,7 @@ void createKernelInitProcess(task_struct *ktask, task_struct *startFuncTask){
     startFuncTask->no_of_children = 0;
     startFuncTask->next = NULL;
     startFuncTask->nextChild = NULL;
+    startFuncTask->preemptiveTime = 0;
 
     // this is our kernel init task, it runs first of all other task, and keeps running when no runnable task exists. it waits on an interrupt
     ktask->stack = kmalloc();
@@ -449,6 +458,7 @@ void createKernelInitProcess(task_struct *ktask, task_struct *startFuncTask){
     ktask->no_of_children = 0;
     ktask->next = NULL;
     ktask->nextChild = NULL;
+    ktask->preemptiveTime = 0;
     currentTask = startFuncTask;
     addTaskToReady(ktask,0);
 }

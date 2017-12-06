@@ -333,7 +333,7 @@ void kputch(char c) {
             charsWritten -= 2;
             break;
         default:
-            *outputBufPtr++ = c;
+            *outputBufPtr = c;
             charsWritten += 2;
     }
     checkOverflow(&outputBufPtr);
