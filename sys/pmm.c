@@ -61,11 +61,15 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
             {
                 // TODO *IMPORTANT*: Currently we store just the last contiguous block in high mem, need to do for all
                 totalPageCount = ((smap->base + smap->length) - (uint64_t) *physfree) / PAGE_SIZE;
+#ifdef DEBUG_LOGS_ENABLE
                 kprintf("Higher mem pages = %d\n", totalPageCount);
+#endif
                 smapGlobal[1].base = smap->base;
                 smapGlobal[1].length = smap->length;
                 smapGlobal[1].type = smap->type;
+#ifdef DEBUG_LOGS_ENABLE
                 kprintf("Available high Physical Memory [%p-%p]\n", smap->base, smap->base + smap->length);
+#endif
                 break;
             }
 
@@ -103,7 +107,9 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
 
     totalFreePages = ((smapGlobal[1].base + smapGlobal[1].length) - (uint64_t) *physfree) / PAGE_SIZE;
     totalDirtyPages = 0;
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("new physfree: %x, max: %x\n", *physfree,maxPhyRegion);
+#endif
     return maxPhyRegion;
 }
 
@@ -135,7 +141,9 @@ uint64_t allocatePage(){
         addToDirtyPageList(page);
     }
     else{
+#ifdef ERROR_LOGS_ENABLE
         kprintf("Error: Out of physical pages..\n");
+#endif
     }
 
     --totalFreePages;
@@ -228,7 +236,9 @@ void updateCOWInfo(uint64_t vadd, uint64_t phyAdd){
 
     if(vadd == 0 || phyAdd == 0)
     {
+#ifdef ERROR_LOGS_ENABLE
         kprintf("Error: address is 0 in updateCOWInfo\n");
+#endif
         return;
     }
 
@@ -254,7 +264,9 @@ void deallocatePage(uint64_t virtualAddress){ // TODO: code not verified, check 
     phyAddWithBits = getPTEntry(virtualAddress);
 
     if(phyAddWithBits == 0){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("no physical address found for %x\n",virtualAddress);
+#endif
         return;
     }
 
@@ -270,7 +282,7 @@ void deallocatePage(uint64_t virtualAddress){ // TODO: code not verified, check 
     pageIter = get_page(phyAdd);
 
     if(pageIter == NULL){
-        kprintf("Error: no page found for v: %x, p: %x\n",virtualAddress,phyAdd);
+        //kprintf("Error: no page found for v: %x, p: %x\n",virtualAddress,phyAdd);
         return;
     }
 
@@ -303,7 +315,9 @@ Page* get_page(uint64_t physicalAddress){
 
     if(physicalAddress == 0)
     {
+#ifdef ERROR_LOGS_ENABLE
         kprintf("Error: physical address is 0\n");
+#endif
         return NULL;
     }
     uint64_t recvPhyAdd = physicalAddress & ADDRESS_SCHEME;

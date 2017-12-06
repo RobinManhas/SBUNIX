@@ -107,8 +107,9 @@ vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t fl
 int copy_page(uint64_t virtual_addr, uint64_t** child_pml4_pointer){
     uint64_t page_phy_add = getPTEntry(virtual_addr);
     if (!page_phy_add){
+#ifdef DEBUG_LOGS_ENABLE
         kprintf("Error: physical page entry not found for : %x\n",virtual_addr);
-
+#endif
         return 0;
     }
 
@@ -239,6 +240,70 @@ void updateParentCOWInfo(task_struct *parent){
     }
 
     // also helps in flushing the tlb entries so that new permission flags take effect
+    setCR3((uint64_t*)oldCR3);
+}
+
+void free_page_tables(task_struct *task){
+    uint64_t *pml=NULL,*pdp=NULL,*pd=NULL;
+    uint64_t *pml_entry=NULL,*pdp_entry=NULL,*pd_entry=NULL;
+
+    // Important checks before PTE set, DO NOT REMOVE.
+    pml = (uint64_t*)M_PML4E((uint64_t)0);
+
+    for(int i=0;i<512;i++) // don't delete kernel
+    {
+        pml_entry = pml + i;
+        //kprintf("going for pmle : %x, i: %d\n",*pml_entry,i);
+        if(*pml_entry & PTE_P)
+        {
+            pdp = (uint64_t*)M_PDPE((uint64_t)0);
+            for(int j=0;j<512;j++) //pdp entries of pd
+            {
+                pdp_entry = pdp+j;
+                if(*pdp_entry & PTE_P){
+                    pd = (uint64_t*)M_PDE((uint64_t)0);
+                    for(int k=0;k<512;k++) // pd entries of pt
+                    {
+                        pd_entry = pd+k;
+                        if(*pd_entry & PTE_P){
+                            uint64_t val = *pd_entry & ADDRESS_SCHEME;
+                            uint64_t vadd = returnVirAdd(val,KERNBASE_OFFSET,1);
+                            //kprintf("deallocating pt, pdp: %x,pd: %x,pt: %x\n",*pml_entry,*pdp_entry,vadd);
+                            deallocatePage((uint64_t)vadd);
+                        }
+                    }
+                    uint64_t val = *pdp_entry & ADDRESS_SCHEME;
+                    uint64_t vadd = returnVirAdd(val,KERNBASE_OFFSET,1);
+                    //kprintf("deallocating pd, pdp: %x,pd: %x,pt: %x\n",*pml_entry,vadd,*pd_entry);
+                    deallocatePage((uint64_t)vadd);
+                }
+
+            }
+            //uint64_t val = *pml_entry & ADDRESS_SCHEME;
+            //uint64_t vadd = returnVirAdd(val,KERNBASE_OFFSET,1);
+            //kprintf("deallocating pd, pdp: %x,pd: %x,pt: %x\n",vadd,*pdp_entry,*pd_entry);
+            //deallocatePage((uint64_t)vadd);
+        }
+
+    }
+}
+
+void free_all_vma_list(task_struct *task){
+    if(task == NULL)
+        return;
+
+    // set cr3 of the task which is being freed (required in deallocPage in pmm)
+    uint64_t oldCR3 = getCR3();
+    setCR3((uint64_t*)task->cr3);
+
+    vm_area_struct *vm_ptr = task->mm->vma_list;
+    vm_area_struct *vm_ptr_head = NULL;
+    while (vm_ptr) {
+        vm_ptr_head = vm_ptr->vm_next;
+        deallocatePage((uint64_t)vm_ptr);
+        vm_ptr = vm_ptr_head;
+    }
+
     setCR3((uint64_t*)oldCR3);
 }
 
@@ -460,8 +525,9 @@ uint64_t allocate_stack(task_struct* task,char *argv[], char *envp[]) {
     stack_top--;
     *stack_top = (uint64_t)argc_count;
     // Store the arg count
+#ifdef DEBUG_LOGS_ENABLE
     kprintf("argc pointer %p; value: %d ; user_rsp: %p\n", stack_top, *stack_top, stack_top);
-
+#endif
     // Reset stack pointer
     task->user_rsp = (uint64_t )(stack_top);
 
