@@ -532,8 +532,6 @@ void switch_to_user_mode(task_struct *oldTask, task_struct *user_task)
     __asm__ volatile("iretq");
 }
 
-
-
 // use next child link instead of next
 void removeChildFromParent(task_struct *parent, task_struct*child){
     task_struct* ptr = parent->child_list;
@@ -555,24 +553,36 @@ void removeChildFromParent(task_struct *parent, task_struct*child){
 
 // add all children of given parent task to init list
 void addChildrenToInitTask(task_struct *parentTask){
+    int childCount = 0;
     if(parentTask == NULL){
         return;
     }
 
-    task_struct* taskChildPtr = parentTask->child_list;
+    task_struct* childListBegin = parentTask->child_list;
+    task_struct* childListEnd = parentTask->child_list;
+    task_struct* childListEndR = parentTask->child_list;
 
-    while(taskChildPtr){
-        if(taskChildPtr->state != TASK_STATE_KILLED){
-            if(tasks_list[INIT_TASK_ID]->child_list == NULL)
-                tasks_list[INIT_TASK_ID]->child_list = taskChildPtr;
-            else {
-                taskChildPtr->nextChild = tasks_list[INIT_TASK_ID]->child_list;
-                tasks_list[INIT_TASK_ID]->child_list = taskChildPtr;
-            }
-            ++tasks_list[INIT_TASK_ID]->no_of_children;
-            taskChildPtr = taskChildPtr->nextChild;
-        }
+    while(childListEndR != NULL)
+    {
+        ++childCount;
+        childListEnd = childListEndR;
+        childListEndR = childListEndR->nextChild;
     }
+
+    if(childCount == 0)
+        return;
+
+    if(tasks_list[INIT_TASK_ID]->child_list == NULL)
+        tasks_list[INIT_TASK_ID]->child_list = childListBegin;
+    else {
+        childListEnd->nextChild = tasks_list[INIT_TASK_ID]->child_list;
+        tasks_list[INIT_TASK_ID]->child_list = childListBegin;
+    }
+
+    parentTask->child_list = NULL;
+    parentTask->no_of_children = 0;
+    tasks_list[INIT_TASK_ID]->no_of_children += childCount;
+
 }
 
 void removeTaskFromRunList(task_struct *task){
@@ -632,11 +642,6 @@ void destroy_task(task_struct *task){
     if(task->parent != NULL && task->parent->state != TASK_STATE_KILLED)
         updateParentCOWInfo(task->parent);
 
-    // if children, add them to init task
-    if(task->child_list){
-        //addChildrenToInitTask(task);
-    }
-
     // remove task from parent
     if(task->parent && task->parent->state != TASK_STATE_KILLED){
         removeChildFromParent(task->parent,task);
@@ -645,6 +650,11 @@ void destroy_task(task_struct *task){
             task->parent->state = TASK_STATE_RUNNING;
             addTaskToReady(task->parent,0);
         }
+    }
+
+    // if children, add them to init task
+    if(task->child_list){
+        addChildrenToInitTask(task);
     }
 
 #ifdef DEBUG_LOGS_ENABLE
