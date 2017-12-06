@@ -292,21 +292,24 @@ void addTaskToWait(task_struct *task){
 
 void switch_to(task_struct *current, task_struct *next)
 {
+    if(current->state != TASK_STATE_KILLED)
+    {
+        __asm__ __volatile__("pushq %rax");
+        __asm__ __volatile__("pushq %rbx");
+        __asm__ __volatile__("pushq %rcx");
+        __asm__ __volatile__("pushq %rdx");
+        __asm__ __volatile__("pushq %rdi");
+        __asm__ __volatile__("pushq %rsi");
+        __asm__ __volatile__("pushq %rbp");
+        __asm__ __volatile__("pushq %r8");
+        __asm__ __volatile__("pushq %r9");
+        __asm__ __volatile__("pushq %r10");
+        __asm__ __volatile__("pushq %r11");
+        __asm__ __volatile__("pushq %r12");
 
-    __asm__ __volatile__("pushq %rax");
-    __asm__ __volatile__("pushq %rbx");
-    __asm__ __volatile__("pushq %rcx");
-    __asm__ __volatile__("pushq %rdx");
-    __asm__ __volatile__("pushq %rdi");
-    __asm__ __volatile__("pushq %rsi");
-    __asm__ __volatile__("pushq %rbp");
-    __asm__ __volatile__("pushq %r8");
-    __asm__ __volatile__("pushq %r9");
-    __asm__ __volatile__("pushq %r10");
-    __asm__ __volatile__("pushq %r11");
-    __asm__ __volatile__("pushq %r12");
+        __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
+    }
 
-    __asm__ __volatile__("movq %%rsp, %0":"=r"(current->rsp));
     __asm__ __volatile__("movq %0, %%rsp":: "r"(next->rsp));
 
     if(next->init == 1){
@@ -612,6 +615,22 @@ void destroy_task(task_struct *task){
             addTaskToReady(task->parent,0);
         }
     }
+
+    // free contents allocated to this task
+    free_all_vma_list(task);
+    kprintf("dealloc mm: %x\n",task->mm);
+    deallocatePage((uint64_t)task->mm);
+    kprintf("dealloc fd0: %x\n",task->fd[0]);
+    deallocatePage((uint64_t)task->fd[0]);
+    kprintf("dealloc fd1: %x\n",task->fd[1]);
+    deallocatePage((uint64_t)task->fd[1]);
+
+    free_page_tables(task);
+    setCR3((uint64_t*)task->parent->cr3);
+    deallocatePage(task->cr3);
+
+    //    kprintf("dealloc mm: %x\n",task->stack);
+//    deallocatePage((uint64_t)task->stack);
 }
 
 void killTask(task_struct *task){

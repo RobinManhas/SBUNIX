@@ -270,7 +270,7 @@ void deallocatePage(uint64_t virtualAddress){ // TODO: code not verified, check 
     pageIter = get_page(phyAdd);
 
     if(pageIter == NULL){
-        kprintf("Error: no page found for v: %x, p: %x\n",virtualAddress,phyAdd);
+        //kprintf("Error: no page found for v: %x, p: %x\n",virtualAddress,phyAdd);
         return;
     }
 
