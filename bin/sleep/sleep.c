@@ -16,9 +16,11 @@ int main(int argc, char *argv[], char *envp[]){
                 break;
             }
         }
-        if(ret == 0)
-        ret = syscall1(SYSCALL_SLEEP, n);
-        puts("I am sleeping\n");
+        if(ret == 0) {
+            //ret = syscall1(SYSCALL_SLEEP, n);
+            ret = sleep(n);
+            puts("I am sleeping\n");
+        }
     }
     return ret;
 

@@ -243,4 +243,7 @@ int waitpid(int pid, int *status){
   return syscall4(SYSCALL_WAIT4,(long)pid,(long)status,0,0);
 }
 
+unsigned int sleep(unsigned int seconds){
+  return syscall1(SYSCALL_SLEEP, seconds);
+}
 
