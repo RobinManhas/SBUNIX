@@ -230,7 +230,7 @@ void forkProcessing(char * path[], char * env[], int isBackgroundProcess){
     //parent body
     if(isBackgroundProcess != 1){
 
-        //waitpid(childPID,NULL);
+        waitpid(childPID,NULL);
     }
     return;
 
@@ -261,7 +261,7 @@ int processCommand(char* str, int isBackgroundProcess){
         str = trimString(str);
         int result = chdir(str);
         if(result <0){
-            puts("Error: Invalid path");
+            puts("No such file or directory");
         }
     }
     else if(strncmp(str,"export PATH=",11) == 0)
@@ -276,13 +276,13 @@ int processCommand(char* str, int isBackgroundProcess){
         //check for PS1
     else if(strncmp(str,"export PS1",10) == 0 || strncmp(str,"PS1",3)==0){
         if(strlen(str) < 5){
-            puts("invalid input for PS1");
+            puts("Invalid input for PS1");
             return 0;
         }
         char* ps1 = strtok(str,"=");
         char* ps1Value = strtok(NULL,"=");
         if(ps1 == NULL ||ps1Value ==NULL){
-            puts("invalid input for PS1");
+            puts("Invalid input for PS1");
             return 0;
         }
         setPS1(trimString(ps1Value));
@@ -290,7 +290,7 @@ int processCommand(char* str, int isBackgroundProcess){
 
     }
     else{ // check for binary
-        forkProcessing(prepareCharArray(str),NULL,0);
+        forkProcessing(prepareCharArray(str),NULL,isBackgroundProcess);
     }
 
     return 0;
@@ -302,7 +302,7 @@ int main(int argc, char *argv[], char *envp[]) {
     expandedPrompt = (char*)malloc(MAX_READ_BYTES);
 
     INTERPRETER = (char*)malloc(MAX_READ_BYTES);
-    strcpy(INTERPRETER,"/bin/sbush") ;
+    strcpy(INTERPRETER,argv[0]) ;
 
     PS1Value = (char*)malloc(MAX_READ_BYTES);
     strcpy(PS1Value,"sbush:\\w> ");
@@ -346,6 +346,7 @@ int main(int argc, char *argv[], char *envp[]) {
             if(str[length-1]=='&'){
                 isBackgroundProcess =1;
                 str[length-1]='\0';
+                str = trimString(str);
             }
             if(processCommand(str,isBackgroundProcess)== -1){
                 break;
@@ -382,8 +383,8 @@ void executeFile(char* filename){
         token = trimString(token);
         if(startOfFile ){
             startOfFile =0;
-            if(strncmp(token,"#!",2) == 0){
-                token = token+2;
+            if(strncmp(token,"#!/",3) == 0){
+                token = token+3;
                 if(strncmp(token, INTERPRETER,strlen(token)) != 0){
                     puts("Interpreter error");
                     return;
@@ -453,7 +454,7 @@ char** prepareCharArray(char* str){
 
     filePath = findFileinPath(token);
     if(filePath == NULL){
-        puts("ERROR: File not found");
+        puts("command not found");
         return NULL;
     }
     cmd_array[0] = (char *)malloc(100);
