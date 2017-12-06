@@ -63,7 +63,7 @@ void initialiseUserProcess(task_struct *user_task){
     user_task->next = NULL;
     user_task->nextChild = NULL;
     user_task->cr3 = (uint64_t)kmalloc();
-    user_task->preemptiveTime = TIMER_PREEMEPTIVE;
+    //user_task->preemptiveTime = TIMER_PREEMEPTIVE;
 
     user_task->fd[0]=create_terminal_IN();
     FD* filedec = create_terminal_OUT();
