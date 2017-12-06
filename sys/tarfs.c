@@ -151,6 +151,7 @@ int open_file(char* file, int flag){ // returns filedescriptor id
                 }
             }
             filedesc->fileOps=&tarfsOps;
+            filedesc->ref_count=1;
             if(filedesc->filenode->type == FILE)
                 filedesc->current_pointer = 0;
             else
@@ -205,7 +206,12 @@ uint64_t read_file(int fdNo, uint64_t buf,int size) {
 int close_file(int fdNo){
     task_struct* currentTask = getCurrentTask();
     if(currentTask->fd[fdNo] != NULL){
-        currentTask->fd[fdNo] = NULL;
+
+        if(--currentTask->fd[fdNo]->ref_count < 1){
+            deallocatePage((uint64_t)currentTask->fd[fdNo]);
+            currentTask->fd[fdNo] = NULL;
+        }
+
         return 1;
     }
     return -1;
