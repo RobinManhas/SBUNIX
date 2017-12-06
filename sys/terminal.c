@@ -17,7 +17,9 @@ task_struct* task_assigned_to_terminal = NULL;
 
 uint64_t read_terminal(int fdNo, uint64_t buf,int size){
     if(task_assigned_to_terminal != NULL){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("Another task is blocked on Terminal\n");
+#endif
         return 0;
     }
     task_assigned_to_terminal = getCurrentTask();
@@ -46,16 +48,22 @@ uint64_t write_terminal(char* s,uint64_t write_len){
     return return_count;
 }
 int close_terminal(int fdNo){
+#ifdef ERROR_LOGS_ENABLE
     kprintf("Cannot close terminal\n");
+#endif
     return -1;
 }
 
 uint64_t dummy_read_file(int fdNo, uint64_t buf,int size){
+#ifdef ERROR_LOGS_ENABLE
     kprintf("Cannot read on stdout\n");
+#endif
     return -1;
 }
 uint64_t dummy_write_file(char* s,uint64_t write_len){
+#ifdef ERROR_LOGS_ENABLE
     kprintf("Cannot write on stdin\n");
+#endif
     return -1;
 }
 

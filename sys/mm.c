@@ -41,7 +41,9 @@ vm_area_struct* find_vma(mm_struct* mm, uint64_t addr){
             mm->vma_cache = vma;
     }
     if(vma == NULL){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("vma not found for: %x\n",addr);
+#endif
         print_vma_boundaries(mm);
     }
 
@@ -52,7 +54,9 @@ vm_area_struct* add_vma_at_last(mm_struct* mm, uint64_t len, uint64_t flags, fil
     /*TODO: define a starting addrress*/
     uint64_t start_addr = mm->v_addr_pointer;
     if (mm == NULL) {
+#ifdef ERROR_LOGS_ENABLE
         kprintf("mm not assigned");
+#endif
         return NULL;
     }
     vm_area_struct *pointer = mm->vma_list;
@@ -107,7 +111,7 @@ vm_area_struct* allocate_vma(uint64_t start_addr, uint64_t end_addr, uint64_t fl
 int copy_page(uint64_t virtual_addr, uint64_t** child_pml4_pointer){
     uint64_t page_phy_add = getPTEntry(virtual_addr);
     if (!page_phy_add){
-#ifdef DEBUG_LOGS_ENABLE
+#ifdef ERROR_LOGS_ENABLE
         kprintf("Error: physical page entry not found for : %x\n",virtual_addr);
 #endif
         return 0;
@@ -134,11 +138,15 @@ int copy_page(uint64_t virtual_addr, uint64_t** child_pml4_pointer){
 int copy_mm(task_struct* parent_task, task_struct* child_task) {
 
     if(parent_task == NULL || child_task == NULL || parent_task->mm == NULL || child_task->mm == NULL){
+#ifdef ERROR_LOGS_ENABLE
         kprintf(" mm not allocated");
+#endif
         return -1;
     }
     if(parent_task->mm->vma_list == NULL){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("no vma in parent");
+#endif
         return -1;
     }
     //print_vma_boundaries(parent_task->mm);

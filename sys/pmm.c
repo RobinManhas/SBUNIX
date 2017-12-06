@@ -97,9 +97,10 @@ uint64_t phyMemInit(uint32_t *modulep, void *physbase, void **physfree) {
         pre = pageUpdateList;
         memset((void*)pageUpdateList->uAddress, 0, PAGE_SIZE);
         pageUpdateList += 1;
-
+#ifdef ERROR_LOGS_ENABLE
         if((uint64_t)pageUpdateList > newPhysFree)
             kprintf("exceeded: %x, ptr:%x, size:%x \n",pageUpdateList,newPhysFree, sizeof(Page));
+#endif
     }
 
     (*physfree) = (void*)newPhysFree;

@@ -15,7 +15,9 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file,
 
     int is_exe = 0;
    if(NULL == elf_header){
+#ifdef ERROR_LOGS_ENABLE
         kprintf("elf_header is null\n");
+#endif
         return 0;
     }
 
