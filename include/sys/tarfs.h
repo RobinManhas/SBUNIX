@@ -3,12 +3,14 @@
 
 #include <sys/defs.h>
 
+
 extern char _binary_tarfs_start;
 extern char _binary_tarfs_end;
 
 #define DIRECTORY '5'
 #define FILE '0'
 #define FILES_MAX 100
+#define MAX_BUFFER 2000
 
 
 #define O_RDONLY 0x0000
@@ -49,24 +51,12 @@ struct file_table{
     uint64_t inode;
 };
 
+
+
+
 file_table* tarfs[FILES_MAX];
 
-struct fileOps {
-    uint64_t (*read_file) (int fdNo, uint64_t buf,int size);
-    uint64_t (*write_file) (char* s,uint64_t write_len);
-    int (*close_file) (int fdNo);
-};
 
-typedef struct fd FD;
-struct fd {
-    //task_struct* current_process;
-    struct fileOps *fileOps;
-    uint64_t perm;
-    uint64_t inode_no;
-    file_table* filenode;
-    uint64_t current_pointer;
-    int ref_count;
-};
 
 file_table* get_parent_folder(char* name, unsigned int len);
 file_table* find_tar(char *file_name);
@@ -74,6 +64,7 @@ void init_tarfs();
 file_table* find_file_using_relative_path(char* p_path,file_table* curr_dir);
 int open_file(char* file, int flag);
 char* get_name(file_table* child);
+
 
 
 #endif

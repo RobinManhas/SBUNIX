@@ -24,6 +24,18 @@ typedef enum task_type {
     TASK_KERNEL = 1,
     TASK_USER = 2
 }task_type;
+typedef struct pipe_table pipe_table;
+typedef struct fd FD;
+struct fd {
+    //task_struct* current_process;
+    struct fileOps *fileOps;
+    uint64_t perm;
+    file_table* filenode;
+    uint64_t current_pointer;
+    int ref_count;
+    pipe_table* pipenode;
+};
+
 
 typedef enum vma_type{
 	VMA_TYPE_STACK = 1,
@@ -74,6 +86,15 @@ typedef struct task_struct{
 //task_struct* CURRENT_TASK;
 
 
+struct pipe_table {
+    uint64_t full;
+    uint64_t read_closed;
+    uint64_t write_closed;
+    uint64_t start;
+    uint64_t end;
+    char buf[MAX_BUFFER];
+    task_struct* task_blocked;
+};
 
 enum vma_flag {
     NONE,  //no permission
@@ -122,6 +143,16 @@ struct mm_struct {
     uint64_t v_addr_pointer;
 };
 
+
+
+struct fileOps {
+	uint64_t (*read_file) (int fdNo, uint64_t buf,int size);
+	uint64_t (*write_file) (int fdNo,char* s,uint64_t write_len);
+	int (*close_file) (int fdNo);
+};
+
+
+
 uint32_t getFreePID();
 uint32_t getMaxPID();
 void killTask(task_struct *task);
@@ -150,6 +181,7 @@ uint8_t  get_ps(char *buf, uint8_t length);
 void addTaskToSleep(task_struct *sleepTask);
 //task_struct* currentTask;
 
+int init_pipe(FD* readOut , FD* writeIn);
 #endif //OS_PROCESSM_H
 
 

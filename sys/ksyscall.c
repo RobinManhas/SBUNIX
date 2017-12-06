@@ -7,6 +7,7 @@
 #include <sys/pmm.h>
 #include <sys/kstring.h>
 #include <sys/kmalloc.h>
+#include <sys/tarfs.h>
 
 #define MSR_EFER 0xc0000080		/* extended feature register */
 #define MSR_STAR 0xc0000081		/* legacy mode SYSCALL target */
@@ -56,8 +57,8 @@ void syscalls_init() {
 
 uint64_t sread(uint64_t fdn, uint64_t addr,uint64_t len) {
     uint64_t read_length = -1;
-    if(fdn<MAX_FD)
-    read_length = CURRENT_TASK->fd[fdn]->fileOps->read_file(fdn,addr,len);
+    if(fdn<MAX_FD && CURRENT_TASK->fd[fdn] != NULL)
+        read_length = CURRENT_TASK->fd[fdn]->fileOps->read_file(fdn,addr,len);
     //read_length = read_file(fdn,addr,len);
     return read_length;
 }
@@ -69,7 +70,7 @@ uint64_t swrite(uint64_t fdn, uint64_t addr,uint64_t len){
 //    }
     uint64_t len_write = -1;
     if(fdn<MAX_FD)
-    len_write = CURRENT_TASK->fd[fdn]->fileOps->write_file((char *)addr,len);
+    len_write = CURRENT_TASK->fd[fdn]->fileOps->write_file(fdn,(char *)addr,len);
     return len_write;
 }
 
@@ -109,8 +110,13 @@ uint64_t sgetpid(){
 uint64_t sdup2(uint64_t oldfd , uint64_t newfd){
     if (newfd == oldfd)
         return newfd;
-    CURRENT_TASK->fd[newfd] = NULL;
+    FD* newp = CURRENT_TASK->fd[newfd];
+    if(newp){
+        newp->fileOps->close_file(newfd);
+    }
+//    CURRENT_TASK->fd[newfd] = NULL;
     CURRENT_TASK->fd[newfd] = CURRENT_TASK->fd[oldfd];
+    CURRENT_TASK->fd[newfd]->ref_count++;
     return newfd;
 }
 
@@ -284,6 +290,27 @@ uint64_t swaitpid(uint64_t p_pid, uint64_t status_p, uint64_t options) {
 
 }
 
+int spipe(uint64_t pipefd){
+    uint32_t *pipes = (uint32_t *)pipefd;
+    if(!pipes)
+        return -1;
+    uint32_t read_fd, write_fd;
+
+    for(read_fd = 0; read_fd < MAX_FD; read_fd++)
+        if(CURRENT_TASK->fd[read_fd] == NULL)
+            break;
+    for(write_fd = read_fd + 1; write_fd < MAX_FD; write_fd++)
+        if(CURRENT_TASK->fd[write_fd] == NULL)
+            break;
+    if(read_fd == MAX_FD || write_fd == MAX_FD)
+        return -1;
+    pipes[0] = read_fd;
+    pipes[1] = write_fd;
+    CURRENT_TASK->fd[read_fd] = (FD*)kmalloc();
+    CURRENT_TASK->fd[write_fd] = (FD*)kmalloc();
+    return init_pipe(CURRENT_TASK->fd[read_fd], CURRENT_TASK->fd[write_fd]);
+}
+
 
 int syscall_handler(struct regs* reg) {
     int value = -1;
@@ -345,6 +372,8 @@ int syscall_handler(struct regs* reg) {
         case SYSCALL_PS:
             value = sps(reg->rdi,reg->rsi);
             break;
+        case SYSCALL_PIPE:
+            value = spipe(reg->rdi);
         default:
 #ifdef DEBUG_LOGS_ENABLE
             kprintf("got a syscall : %d\n",syscallNo);

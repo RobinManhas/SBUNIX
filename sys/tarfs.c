@@ -30,7 +30,7 @@ file_table* new_file_table(char* name, char type,uint64_t size, uint64_t first ,
     return newFile;
 }
 uint64_t read_file(int fdNo, uint64_t buf,int size);
-uint64_t write_file(char* s,uint64_t write_len);
+uint64_t write_file(int fdNo,char* s,uint64_t write_len);
 int close_file(int fdNo);
 struct fileOps tarfsOps = {
     .read_file= read_file,
@@ -217,7 +217,7 @@ int close_file(int fdNo){
     return -1;
 }
 
-uint64_t write_file(char* s,uint64_t write_len){
+uint64_t write_file(int fdNo,char* s,uint64_t write_len){
     // currently not supported for tarfs
     return -1;
 }

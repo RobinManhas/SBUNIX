@@ -5,7 +5,7 @@
 #ifndef SBUNIX_TERMINAL_H
 #define SBUNIX_TERMINAL_H
 
-#include <sys/tarfs.h>
+#include <sys/procmgr.h>
 
 
 FD* create_terminal_IN();
