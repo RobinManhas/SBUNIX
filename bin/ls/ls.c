@@ -15,6 +15,7 @@ int main(int argc, char *argv[], char *envp[]){
   DIR *dir;
   dir = opendir(curDir);
   dp =readdir(dir);
+  if(!dp) return 0;
   while(dp != NULL){
     putVal(dp->d_name);
     putVal("    ");

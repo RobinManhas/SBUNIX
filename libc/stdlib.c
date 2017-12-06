@@ -45,7 +45,7 @@ char *getenv(const char *name){
       }
 
       if(keyExists){
-          puts(&environ[keys][keyLen+1]);
+          //puts(&environ[keys][keyLen+1]);
           return &environ[keys][keyLen+1];
       }
 

@@ -173,16 +173,15 @@ char* modifyPath(char* input, char* replace){
     return retVal;
 }
 
-int setPathVariable(char* str)
+int setPathVariable(char* trunk)
 {
-    if(strlen(str) < 14) // length of 'export PATH=:/'
+    if(strlen(trunk) < 14) // length of 'export PATH=:/'
     {
         puts("No path specified, returning");
         //if(isConsoleInput) printCommandPrompt();
         return -1;
     }
     char* oldPath = getenv("PATH");
-    char* trunk = strtok(str,"\n");
 
     strtok(trunk,"=");
     trunk = strtok(NULL,"=");
@@ -258,8 +257,7 @@ int processCommand(char* str, int isBackgroundProcess){
     if(strncmp(str,"cd",2) == 0)
     {
         //char curDir[MAX_READ_BYTES];
-        strtok(str," ");
-        str = strtok(NULL," ");
+        str = str +2;
         str = trimString(str);
         int result = chdir(str);
         if(result <0){
@@ -292,8 +290,7 @@ int processCommand(char* str, int isBackgroundProcess){
 
     }
     else{ // check for binary
-        char* trunk = strtok(str,"\n");
-        forkProcessing(prepareCharArray(trunk),NULL,0);
+        forkProcessing(prepareCharArray(str),NULL,0);
     }
 
     return 0;
@@ -441,14 +438,19 @@ char* findFileinPath(char* file){
 
 }
 
-char** prepareCharArray(char* cmd){
-    if(cmd == NULL) {
+char** prepareCharArray(char* str){
+
+
+    if(str == NULL) {
         return NULL;
     }
-    char* saveptr1;
-    char *token=strtok_r(cmd," ",&saveptr1);
+    char*cmd = malloc(100);
+    strcpy(cmd,str);
+    char *token=strtok(cmd," ");
 
     char * filePath;
+    //token = trimString(token);
+
     filePath = findFileinPath(token);
     if(filePath == NULL){
         puts("ERROR: File not found");
@@ -456,14 +458,24 @@ char** prepareCharArray(char* cmd){
     }
     cmd_array[0] = (char *)malloc(100);
     strcpy(cmd_array[0],filePath);
-    int i =1;
-    while(token!=NULL){
+
+
+    cmd_array[1] = (char *)malloc(MAX_READ_BYTES);
+    strcpy(cmd_array[1],token);
+    str = str+strlen(token);
+    int i =2;
+    while(*str !='\0' && str != 0){
+        str = trimString(str);
+        strcpy(cmd,str);
+        token = strtok(cmd," ");
         cmd_array[i] = (char *)malloc(MAX_READ_BYTES);
         strcpy(cmd_array[i],token);
-        token = strtok_r(NULL," ",&saveptr1);
+        str = str+strlen(token);
+
         i++;
     }
-    cmd_array[i]=(char *)malloc(1);
+    //cmd_array[i]=(char *)malloc(1);
     cmd_array[i] = NULL;
+
     return cmd_array;
 }
