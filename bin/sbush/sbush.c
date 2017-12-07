@@ -57,7 +57,7 @@ char* expandPS1(){
                 case 'd': strcpy(replacementString,"date");
                     break;
                 case 'w':
-                    getdir(replacementString, sizeof(replacementString));
+                    getcwd(replacementString, sizeof(replacementString));
                     break;
 
                 default: replacementString = "";
@@ -366,9 +366,9 @@ void executeFile(char* filename){
     char* token;
     int startOfFile = 1;
     char fileData[MAX_READ_BYTES];
-    getdir(fileData,MAX_READ_BYTES);
+    getcwd(fileData,MAX_READ_BYTES);
     strcat(fileData,filename);
-    file = fileOpen(fileData,O_RDONLY);
+    file = open(fileData,O_RDONLY);
     if(file<0){
         puts("Cannot open file");
         return;
@@ -411,7 +411,7 @@ char* findFileinPath(char* file){
     int fd;
     if(file[0] == '/'){
         strcpy(full_path,file+1);
-        fd = fileOpen(full_path, O_RDONLY);
+        fd = open(full_path, O_RDONLY);
         if(fd >= 0) {
             //file exists
             close(fd);
@@ -427,7 +427,7 @@ char* findFileinPath(char* file){
         strcpy(full_path,token+1);
         strcat(full_path,"/");
         strcat(full_path,file);
-        fd = fileOpen(full_path, O_RDONLY);
+        fd = open(full_path, O_RDONLY);
         if(fd >= 0) {
             //file exists
             close(fd);

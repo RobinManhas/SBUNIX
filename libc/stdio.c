@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <signal.h>
 
 
@@ -23,7 +24,7 @@ return syscall3(SYSCALL_READ, fd, (long)buf, count);
 }
 
 DIR *opendir(char *name){
-  int fd = fileOpen(name,O_RDONLY);
+  int fd = open(name,O_RDONLY);
   if(fd>0) {
     DIR *dir = (DIR *) malloc(sizeof(DIR));
     dir->filenode =fd;
@@ -104,13 +105,24 @@ int putVal(const char *s){
 
 
 int getdir(void* buf, int size){
-  long ret = syscall2((long)SYSCALL_GETCWD,(long)buf,(long)50);
-  return (int)ret;
+  long ret = syscall2((long)SYSCALL_GETCWD,(long)buf,(long)size);
+    return (int)ret;
+}
+
+char *getcwd(char *buf, size_t size){
+    if(syscall2((long)SYSCALL_GETCWD, (uint64_t)buf, (uint64_t)size) < 0)
+        return NULL;
+    return buf;
+}
+
+int open(const char *pathname, int flags){
+    long mode = 000777;
+    return syscall3(SYSCALL_OPEN,(long)pathname, flags , mode);
 }
 
 int fileOpen(void *filename, unsigned int flag){
-long mode = 000777;
-return syscall3(SYSCALL_OPEN,(long)filename, flag , mode);
+    long mode = 000777;
+    return syscall3(SYSCALL_OPEN,(long)filename, flag , mode);
 }
 
 int puts(const char *s)
@@ -233,6 +245,10 @@ int pipe(int pipefd[2]){
 
 int getpid(){
   return syscall0(SYSCALL_GETPID);
+}
+
+pid_t getppid(void){
+    return syscall0(SYSCALL_GETPPID);
 }
 
 pid_t wait(int *status){

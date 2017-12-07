@@ -219,6 +219,13 @@ int sclearscreen(){
     return 0;
 }
 
+pid_t sgetppid() {
+    if(!getCurrentTask()->parent)
+        return 1;
+    else
+        return getCurrentTask()->parent->pid;
+}
+
 int schdir(uint64_t path) {
     file_table* dir = find_file_using_relative_path((char*)path,getCurrentTask()->curr_dir);
    if(dir == NULL ||dir->type == FILE){
@@ -357,6 +364,9 @@ int syscall_handler(struct regs* reg) {
             break;
         case SYSCALL_GETPID:
             value = sgetpid();
+            break;
+        case SYSCALL_GETPPID:
+            value = sgetppid();
             break;
         case SYSCALL_FORK:
             value = sfork();

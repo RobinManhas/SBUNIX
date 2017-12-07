@@ -199,6 +199,8 @@ void keyboard_handler() {
             if(keyRecv=='C'){
                 //need to kill foregrnd process;
                 // and schedule another process;
+                kprintf("Received SIGKILL ^C, killing current process\n");
+               // killTask(getCurrentTask());
             }
             /*overwrite for ctrl i, j, m
             if(keyRecv == '\t')

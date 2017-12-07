@@ -17,6 +17,7 @@
 #define SYSCALL_DUP 32
 #define SYSCALL_DUP2 33
 #define SYSCALL_GETPID 39
+#define SYSCALL_GETPPID 40
 #define SYSCALL_FORK 57
 #define SYSCALL_EXECVE 59
 #define SYSCALL_EXIT 60
@@ -39,7 +40,6 @@ int open(const char *pathname, int flags);
 int close(int fd);
 size_t sys_read(int fd, const void *buf, size_t count);
 ssize_t sys_write(int fd, const void *buf, ssize_t count);
-int unlink(const char *pathname);
 
 int chdir(const char *path);
 char *getcwd(char *buf, size_t size);
@@ -57,6 +57,7 @@ pid_t getppid(void);
 // OPTIONAL: implement for ``on-disk r/w file system (+10 pts)''
 //off_t lseek(int fd, off_t offset, int whence);
 //int mkdir(const char *pathname, mode_t mode);
+//int unlink(const char *pathname);
 
 // OPTIONAL: implement for ``signals and pipes (+10 pts)''
 int pipe(int pipefd[2]);

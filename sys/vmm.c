@@ -155,18 +155,6 @@ void mapPhysicalRangeToVirtual(uint64_t max_phy, void *physfree, uint64_t flags)
     // update vmem top ptr
     virtualMemBase = vaddr;
 
-//    // RM: debug code for page table entries, **DO NOT DELETE**
-//    uint64_t viradd = (KERNBASE | ((uint64_t) pFreeList & ADDRESS_SCHEME));
-//    uint16_t pml4Off = ((viradd >> 39)&0x1ff);
-//    uint16_t pdpOff = ((viradd >> 30)&0x1ff);
-//    uint16_t pdOff = ((viradd >> 21)&0x1ff);
-//    uint16_t ptOff = ((viradd >> 12)&0x1ff);
-//    uint64_t *pdpval = (uint64_t*)(pml_table[pml4Off] & ADDRESS_SCHEME);
-//    uint64_t *pdval = (uint64_t*)(pdpval[pdpOff] & ADDRESS_SCHEME);
-//    uint64_t *ptval = (uint64_t*)(pdval[pdOff] & ADDRESS_SCHEME);
-//    kprintf("freelist pml:%x,pdp:%x,pp:%x,pt:%x\n",pml_table[pml4Off],pdpval[pdpOff],pdval[pdOff],ptval[ptOff]);
-
-
     // update pml global var
     pml_table = (uint64_t*)(KERNBASE | (uint64_t)pml_table);
 
@@ -344,25 +332,6 @@ uint64_t getPTEntry(uint64_t vaddr)
     // keep this code as an alternate to current self reference implementation
     uint64_t *pml=NULL,*pdp=NULL,*pd=NULL,*pt=NULL;
     uint64_t *pml_entry=NULL,*pdp_entry=NULL,*pd_entry=NULL,*pt_entry=NULL;
-
-//    uint16_t pml4Off = ((vaddr>>39)&0x1ff);
-//    uint16_t pdpOff = ((vaddr>>30)&0x1ff);
-//    uint16_t pdOff = ((vaddr>>21)&0x1ff);
-//    uint16_t ptOff = ((vaddr>>12)&0x1ff);
-//    pml = pml_ptr;
-//    if(pml4Off <= 256)
-//        pdp = (uint64_t*)((((((((pml4Off << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 12ull) | 0x000000000000ull);
-//    else
-//        pdp = (uint64_t*)((((((((pml4Off << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 12ull) | 0xFFFF000000000000ull);
-//
-//    if(pml4Off <= 256)
-//        pd = (uint64_t*)((((((((pml4Off << 9ull ) | pdpOff) << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 12ull) | 0x000000000000ull);
-//    else
-//        pd = (uint64_t*)((((((((pml4Off << 9ull ) | pdpOff) << 9ull ) | 0x1FEULL) << 9ull ) | 0x1FEULL) << 12ull) | 0xFFFF000000000000ull);
-//    if(pml4Off <= 256)
-//        pt = (uint64_t*)((((((((pml4Off << 9ull ) | pdpOff) << 9ull ) | pdOff) << 9ull ) | 0x1FEULL) << 12ull) | 0x000000000000ull);
-//    else
-//        pt = (uint64_t*)((((((((pml4Off << 9ull ) | pdpOff) << 9ull ) | pdOff) << 9ull ) | 0x1FEULL) << 12ull) | 0xFFFF000000000000ull);
 
     // Important checks before PTE access, DO NOT REMOVE.
     pml = (uint64_t*)M_PML4E(vaddr);
