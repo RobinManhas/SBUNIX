@@ -8,9 +8,15 @@ int catFile(char *file) {
 
     char fileData[BUF_SIZE];
 
-    getdir(fileData,MAX_READ_BYTES);
+
     //puts(fileData);
-    strcat(fileData,file);
+    if(file!=NULL && file[0]!='/'){
+        getdir(fileData,MAX_READ_BYTES);
+        strcat(fileData,file);
+    }else{
+        strcpy(fileData,file);
+    }
+
     fd = fileOpen(fileData, O_RDONLY);
     memset((void *)fileData,0,BUF_SIZE);
 

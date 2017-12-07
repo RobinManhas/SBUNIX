@@ -135,6 +135,9 @@ void init_tarfs(){
 int open_file(char* file, int flag){ // returns filedescriptor id
     FD* filedesc;
     task_struct* currentTask = getCurrentTask();
+    if(kstrlen(file)>1 && file[0]=='/'){
+        file = file+1;
+    }
     for(int i =0;i<FILES_MAX ; i++) {
         if (NULL == tarfs[i] || kstrlen(tarfs[i]->name) == 0)
             break;

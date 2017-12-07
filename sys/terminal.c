@@ -66,6 +66,7 @@ uint64_t read_terminal(int fdNo, uint64_t buf,int size){
 
     while(!full_flag) {
         task_assigned_to_terminal->state = TASK_STATE_BLOCKED;
+        removeTaskFromReadyList(task_assigned_to_terminal);
         schedule();
     }
 
@@ -159,6 +160,7 @@ void add_buffer(char c){
             buffer[buf_pointer++] = c;
 
             removeTaskFromBlocked(task_assigned_to_terminal);
+            task_assigned_to_terminal->next = NULL;
             task_assigned_to_terminal->state = TASK_STATE_RUNNING;
             addTaskToReady(task_assigned_to_terminal,0);
             task_assigned_to_terminal = NULL;

@@ -46,15 +46,16 @@ int write_close_pipe(int fdNo){
     if (pipe == NULL)
         return -1;
     pipe->write_closed = 1;
-    if (pipe->read_closed) {
-        //deallocatePage((uint64_t )pipe);
-    } else {
+//    if (pipe->read_closed) {
+//        //deallocatePage((uint64_t )pipe);
+//    } else {
         if(pipe->task_blocked){
             pipe->task_blocked->state = TASK_STATE_RUNNING;
             removeTaskFromBlocked(pipe->task_blocked);
+            pipe->task_blocked->next = NULL;
             addTaskToReady(pipe->task_blocked, 0);
             pipe->task_blocked = NULL;
-        }
+//        }
 
     }
     if(--getCurrentTask()->fd[fdNo]->ref_count<1)
@@ -104,16 +105,17 @@ int read_close_pipe(int fdNo){
     pipe_table *pipe = getCurrentTask()->fd[fdNo]->pipenode;
     if (pipe == NULL)
         return -1;
-    pipe->read_closed = 1;
-    if (pipe->write_closed) {
-        //deallocatePage((uint64_t )pipe);
-    } else {
+//    pipe->read_closed = 1;
+//    if (pipe->write_closed) {
+//        //deallocatePage((uint64_t )pipe);
+//    } else {
         if(pipe->task_blocked){
             pipe->task_blocked->state = TASK_STATE_RUNNING;
             removeTaskFromBlocked(pipe->task_blocked);
+            pipe->task_blocked->next = NULL;
             addTaskToReady(pipe->task_blocked, 0);
             pipe->task_blocked = NULL;
-        }
+//        }
 
     }
     if(--getCurrentTask()->fd[fdNo]->ref_count<1)

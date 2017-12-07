@@ -229,7 +229,7 @@ void handle_page_fault(struct regs* reg){
 #ifdef ERROR_LOGS_ENABLE
                 kprintf("ERROR: page fault address is out of bound");
 #endif
-                __asm__ __volatile__ ("hlt");
+               // __asm__ __volatile__ ("hlt");
                 killTask(current_task);
             }
             //allocate all pages to vma if file is present
@@ -241,7 +241,7 @@ void handle_page_fault(struct regs* reg){
 #ifdef ERROR_LOGS_ENABLE
             kprintf("ERROR: page fault\n");
 #endif
-            __asm__ __volatile__ ("hlt");
+           // __asm__ __volatile__ ("hlt");
             killTask(current_task);
         }
 

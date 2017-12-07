@@ -18,8 +18,9 @@ int main(int argc, char *argv[], char *envp[]){
         }
         if(ret == 0) {
             //ret = syscall1(SYSCALL_SLEEP, n);
-            ret = sleep(n);
             puts("I am sleeping\n");
+            ret = sleep(n);
+
         }
     }
     return ret;

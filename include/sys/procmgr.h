@@ -181,6 +181,7 @@ task_struct* getCurrentTask();
 void reduceSleepTime();
 uint8_t  get_ps(char *buf, uint8_t length);
 void addTaskToSleep(task_struct *sleepTask);
+void removeTaskFromReadyList(task_struct *task);
 //task_struct* currentTask;
 
 int init_pipe(FD* readOut , FD* writeIn);

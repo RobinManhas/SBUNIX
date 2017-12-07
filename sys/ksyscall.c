@@ -69,7 +69,7 @@ uint64_t swrite(uint64_t fdn, uint64_t addr,uint64_t len){
 //        return len;
 //    }
     uint64_t len_write = -1;
-    if(fdn<MAX_FD)
+    if(fdn<MAX_FD && CURRENT_TASK->fd[fdn] != NULL)
     len_write = CURRENT_TASK->fd[fdn]->fileOps->write_file(fdn,(char *)addr,len);
     return len_write;
 }
@@ -98,8 +98,10 @@ uint64_t sbrk(uint64_t pointer){
 }
 
 uint64_t sclose(uint64_t fdn){
-    if(fdn<MAX_FD)
+    if(fdn<MAX_FD && CURRENT_TASK->fd[fdn] != NULL) {
         CURRENT_TASK->fd[fdn]->fileOps->close_file(fdn);
+        CURRENT_TASK->fd[fdn] = NULL;
+    }
     return 1;
 }
 //
@@ -344,18 +346,12 @@ int syscall_handler(struct regs* reg) {
         case SYSCALL_OPEN:
             value = sopen(reg->rdi, reg->rsi);
             break;
-//        case SYSCALL_FSTAT:
-//            break;
-//        case SYSCALL_LSEEK:
-//            break;
         case SYSCALL_CLOSE:
             value = sclose(reg->rdi);
             break;
           case SYSCALL_BRK:
               value = sbrk(reg->rdi);
                 break;
-//        case SYSCALL_PIPE:
-//            break;
         case SYSCALL_DUP2:
             value = sdup2(reg->rdi, reg->rsi);
             break;
@@ -364,9 +360,6 @@ int syscall_handler(struct regs* reg) {
             break;
         case SYSCALL_GETPID:
             value = sgetpid();
-            break;
-        case SYSCALL_GETPPID:
-            value = sgetppid();
             break;
         case SYSCALL_FORK:
             value = sfork();
@@ -397,6 +390,7 @@ int syscall_handler(struct regs* reg) {
             break;
         case SYSCALL_PIPE:
             value = spipe(reg->rdi);
+            break;
         case SYSCALL_CLEARSCREEN:
             value = sclearscreen();
             break;

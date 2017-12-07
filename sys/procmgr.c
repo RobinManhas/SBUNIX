@@ -193,12 +193,12 @@ void addTaskToReady(task_struct *readyTask, uint8_t addToFront){
         }
         //RM: add to end of ready list
         task_struct *iter = gReadyList;
-        if(iter == readyTask){ // checks being added as a process got pushed to list multiple times
+        if(iter->pid == readyTask->pid){ // checks being added as a process got pushed to list multiple times
             //kprintf("Error: ready task already exists, returning\n");
             return;
         }
         while(iter->next != NULL){
-            if(iter == readyTask){
+            if(iter->pid == readyTask->pid){
                 //kprintf("Error: ready task already exists, returning\n");
                 return;
             }
@@ -644,6 +644,27 @@ void removeTaskFromRunList(task_struct *task){
     }
 }
 
+void removeTaskFromReadyList(task_struct *task){
+    if(task == NULL)
+        return;
+
+    // remove from active
+    task_struct *readyListPtr = gReadyList;
+    task_struct* prevptr = NULL;
+    while(readyListPtr){
+        if(readyListPtr->pid == task->pid)
+        {
+            if(prevptr == NULL)
+                gReadyList = readyListPtr->next;
+            else
+                prevptr->next = readyListPtr->next;
+            return;
+        }
+        prevptr = readyListPtr;
+        readyListPtr = readyListPtr->next;
+    }
+}
+
 // this function is used to remove a task from ready queue and blocked queue, and add it to zombie queue
 void moveTaskToZombie(task_struct *task){
     if(task == NULL)
@@ -834,10 +855,12 @@ void reduceSleepTime(){
         if(sleepListPtr->sleepTime == 0) {
             if(prevptr==NULL){
                 gSleepList = sleepListPtr->next;
+                sleepListPtr->state= TASK_STATE_RUNNING;
                 addTaskToReady(sleepListPtr,0);
                 sleepListPtr = gSleepList;
             }else{
                 prevptr->next = sleepListPtr->next;
+                sleepListPtr->state= TASK_STATE_RUNNING;
                 addTaskToReady(sleepListPtr,0);
                 sleepListPtr = prevptr->next;
             }
