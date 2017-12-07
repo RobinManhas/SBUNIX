@@ -177,6 +177,10 @@ int dup2(int fd, int newfd){
   return syscall2(SYSCALL_DUP2,fd,newfd);
 }
 
+int dup(int oldfd){
+  return syscall1(SYSCALL_DUP,oldfd);
+}
+
 int getch(){
   int c ;
   if(sys_read(0, &c, 1) > 0){

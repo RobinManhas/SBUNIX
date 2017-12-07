@@ -10,15 +10,18 @@ int main(int argc, char **argv, char **envp) {
     puts(" nn");
     putn(pipefd[0]);
     puts("ggg");
-    dup2(1, pipefd[1]);
+    int oldterminal = dup(1);
+    dup2(pipefd[1],1);
 
-    for (i = 0; i < 20; i++)
+    for (i = 0; i < 2; i++)
         sys_write(pipefd[1], "hello pipe", 10);
-    for (i = 0; i < 100; i++) {
+    dup2(oldterminal,1);
+    for (i = 0; i < 3; i++) {
         /* Continue reading from the pipe until it is empty */
         sys_read(pipefd[0], buffer, 1024);
         //buffer[err] = '\0';
         //putVal("harsh");
+
         puts(buffer);
         //printf("Read %d bytes: '%s'\n", err, buffer);
     }

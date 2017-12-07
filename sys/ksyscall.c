@@ -107,6 +107,7 @@ uint64_t sgetpid(){
     return CURRENT_TASK->pid;
 }
 
+
 uint64_t sdup2(uint64_t oldfd , uint64_t newfd){
     if (newfd == oldfd)
         return newfd;
@@ -120,6 +121,13 @@ uint64_t sdup2(uint64_t oldfd , uint64_t newfd){
     return newfd;
 }
 
+uint64_t sdup(uint64_t oldfd){
+    uint64_t newfd;
+    for(newfd = 0; newfd < MAX_FD; newfd++)
+        if(CURRENT_TASK->fd[newfd] == NULL)
+            break;
+    return sdup2(oldfd,newfd);
+}
 int s_exev(uint64_t binary_name, uint64_t argv,uint64_t envp){
     //clear exisiting mm
     //memset(getCurrentTask()->mm,0, sizeof(mm_struct));
@@ -341,6 +349,9 @@ int syscall_handler(struct regs* reg) {
 //            break;
         case SYSCALL_DUP2:
             value = sdup2(reg->rdi, reg->rsi);
+            break;
+        case SYSCALL_DUP:
+            value = sdup(reg->rdi);
             break;
         case SYSCALL_GETPID:
             value = sgetpid();

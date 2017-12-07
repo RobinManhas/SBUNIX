@@ -79,8 +79,8 @@ uint64_t read_pipe(int fdNo, uint64_t buf,int size){
     uint64_t isFull = pipe->full;
     uint64_t count = 0;
     while(count < size && pipe->start != pipe->end){
-        *char_buf = pipe->buf[pipe->start];
-        char_buf++;
+        char_buf[count] = pipe->buf[pipe->start];
+        //char_buf++;
         pipe->start = (pipe->start + 1) % MAX_BUFFER;
         pipe->full = 0;
         count++;
