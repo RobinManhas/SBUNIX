@@ -227,6 +227,42 @@ void kprintf(const char *fmt, ...)
                     break;
                 }
                 case 'p':
+                {
+                    char *replaceBufPtr;
+                    unsigned long long returnVal;
+                    returnVal = va_arg(arglist, unsigned long long);
+                    if(returnVal == 0)
+                    {
+                        intToCharLen = 0;
+                        intToCharOut[intToCharLen++] = returnVal + '0';
+                        intToCharOut[intToCharLen++] ='\0';
+                    }
+                    else
+                    {
+                        intToCharLen = 0;
+                        hextoChar(returnVal,16);
+                        intToCharOut[intToCharLen++] ='\0';
+                    }
+//                    *outputBufPtr = '0';
+//                    outputBufPtr += 2;
+//                    charsWritten += 2;
+//                    checkOverflow(&outputBufPtr);
+//                    *outputBufPtr = 'x';
+//                    outputBufPtr += 2;
+//                    charsWritten += 2;
+                    checkOverflow(&outputBufPtr);
+
+                    for(replaceBufPtr = (char*) intToCharOut;*replaceBufPtr;)
+                    {
+                        *outputBufPtr = *replaceBufPtr;
+                        charsWritten += 2;
+                        checkOverflow(&outputBufPtr);
+                        outputBufPtr +=2;
+                        replaceBufPtr +=1;
+                    }
+                    inputBufPtr+=2;
+                    break;
+                }
                 case 'x':
                 {
                     char *replaceBufPtr;
