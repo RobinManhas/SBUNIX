@@ -551,38 +551,59 @@ void removeChildFromParent(task_struct *parent, task_struct*child){
     }
 }
 
-// add all children of given parent task to init list
-void addChildrenToInitTask(task_struct *parentTask){
-    int childCount = 0;
+void attachAllChildrenToInit(task_struct *parentTask)
+{
     if(parentTask == NULL){
         return;
     }
 
-    task_struct* childListBegin = parentTask->child_list;
-    task_struct* childListEnd = parentTask->child_list;
-    task_struct* childListEndR = parentTask->child_list;
+    task_struct* childListIter = parentTask->child_list;
 
-    while(childListEndR != NULL)
+    while(childListIter != NULL)
     {
-        ++childCount;
-        childListEnd = childListEndR;
-        childListEndR = childListEndR->nextChild;
+        // update next
+        parentTask->child_list = childListIter->nextChild;
+
+        if(childListIter->state != TASK_STATE_KILLED){
+            childListIter->nextChild = NULL;
+            addChildrenToInitTask(childListIter);
+            parentTask->no_of_children -= 1;
+        }
+
+        // update iterator with next
+        childListIter = parentTask->child_list;
     }
 
-    if(childCount == 0)
+}
+
+// add all children of given parent task to init list
+void addChildrenToInitTask(task_struct *task){
+    if(task == NULL || task->state == TASK_STATE_KILLED){
         return;
-
-    if(tasks_list[INIT_TASK_ID]->child_list == NULL)
-        tasks_list[INIT_TASK_ID]->child_list = childListBegin;
-    else {
-        childListEnd->nextChild = tasks_list[INIT_TASK_ID]->child_list;
-        tasks_list[INIT_TASK_ID]->child_list = childListBegin;
     }
 
-    parentTask->child_list = NULL;
-    parentTask->no_of_children = 0;
-    tasks_list[INIT_TASK_ID]->no_of_children += childCount;
+    // add to front
+    if(tasks_list[INIT_TASK_ID]->child_list == NULL)
+    {
+        tasks_list[INIT_TASK_ID]->child_list = task;
+        tasks_list[INIT_TASK_ID]->no_of_children += 1;
+        return;
+    }
 
+    // first check if the task already exists in list
+    task_struct* childListIter = tasks_list[INIT_TASK_ID]->child_list;
+    task_struct* childListIterPre = childListIter;
+    while(childListIter != NULL)
+    {
+        if(childListIter->pid == task->pid){
+            return;
+        }
+        childListIterPre = childListIter;
+        childListIter = childListIter->nextChild;
+    }
+
+    childListIterPre->nextChild = task;
+    tasks_list[INIT_TASK_ID]->no_of_children += 1;
 }
 
 void removeTaskFromRunList(task_struct *task){
@@ -654,7 +675,7 @@ void destroy_task(task_struct *task){
 
     // if children, add them to init task
     if(task->child_list){
-        addChildrenToInitTask(task);
+        attachAllChildrenToInit(task);
     }
 
 #ifdef DEBUG_LOGS_ENABLE
@@ -685,8 +706,7 @@ void destroy_task(task_struct *task){
         setCR3((uint64_t*)tasks_list[INIT_TASK_ID]->cr3);
 
 //    deallocatePage(task->cr3);
-
-    //    kprintf("dealloc mm: %x\n",task->stack);
+//    kprintf("dealloc mm: %x\n",task->stack);
 //    deallocatePage((uint64_t)task->stack);
 }
 
@@ -734,8 +754,14 @@ int killPID(int pid, int signal){
         broadcast = 1;
     }
 
-    if(pid < -1 || pid == 1) // don't kill init task
+    if(pid < -1)
         return 0;
+
+    if(pid == 1) // don't kill init task
+    {
+        kprintf(">>> Cannot kill init task, returning.. \n");
+        return 0;
+    }
 
     if(pid > getMaxPID() - 1)
     {
@@ -759,16 +785,18 @@ int killPID(int pid, int signal){
                     kprintf(">>> killing blocked task: %s, pid: %d\n",task->name,task->pid);
                 else if(task->state == TASK_STATE_KILLED)
                     kprintf(">>> Ignoring already killed task: %s, pid: %d\n",task->name,task->pid);
+
                 killTask(task);
+
                 if(broadcast == 0)
                     break;
             }
         }
 
         task_struct *activetask = getCurrentTask();
-        // kill active task
-        if(activetask->pid == pid || broadcast){
-            kprintf(">>> killing current task: %s, pid: %d, state: %d\n",activetask->name,activetask->pid,activetask->state);
+        // kill current active kill process
+        if(activetask->state == TASK_STATE_RUNNING /*activetask->pid == pid || broadcast*/){
+            kprintf(">>> killing active kill task: %s, pid: %d\n",activetask->name,activetask->pid);
             killTask(activetask);
         }
     }

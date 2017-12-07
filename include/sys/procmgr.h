@@ -158,6 +158,8 @@ uint32_t getMaxPID();
 void killTask(task_struct *task);
 int killPID(int pid, int signal);
 void threadInit();
+void clearChildList(task_struct *parentTask);
+void addChildrenToInitTask(task_struct *task);
 void switch_to(task_struct *current, task_struct *next);
 void createUserProcess(task_struct *user_task);
 void createKernelInitProcess(task_struct *ktask, task_struct *startFuncTask);
