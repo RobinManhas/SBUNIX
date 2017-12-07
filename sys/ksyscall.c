@@ -249,7 +249,10 @@ int  sps(uint64_t buf, uint64_t length){
 
 
 
-uint64_t swaitpid(uint64_t p_pid, uint64_t status_p, uint64_t options) {
+uint64_t swaitpid(uint64_t pid, uint64_t status_p, uint64_t options) {
+    if(pid<0){
+        return -1;
+    }
     task_struct *cur_task = getCurrentTask();
     int *status = (int *) status_p;
 
@@ -259,12 +262,6 @@ uint64_t swaitpid(uint64_t p_pid, uint64_t status_p, uint64_t options) {
         return -1;
     }
 
-    //wait for any child
-    uint64_t pid = 0;
-    // If pid>0, wait for the specific child
-    if (pid > 0) {
-        pid = p_pid;
-    }
 
     while (1) {
         if (pid > 0) {
@@ -272,7 +269,7 @@ uint64_t swaitpid(uint64_t p_pid, uint64_t status_p, uint64_t options) {
             for (task_struct *task = cur_task->child_list; task != NULL; task = task->nextChild) {
                 if (task->pid == pid) {
                     childPresent = 1;
-                    if (/*task->state == TASK_STATE_KILLED && */task->state == TASK_STATE_ZOMBIE) {
+                    if (task->state == TASK_STATE_KILLED || task->state == TASK_STATE_ZOMBIE) {
                         //child to wait on is killed
                         if (status) *status = 0;
                         return pid;
