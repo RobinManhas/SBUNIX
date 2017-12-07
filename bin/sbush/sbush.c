@@ -77,70 +77,42 @@ char* expandPS1(){
     return expandedPrompt;
 }
 
-int handlePipe(char* str){
-    if(NULL == str){
+int handlePipe(char* str) {
+    if (NULL == str) {
         return -1;
     }
-    pid_t identity;
-    int fileDescriptor = 0; int pipes[2]; // RM: pipe[0] for read, 1: write
+    int pipes[2]; // RM: pipe[0] for read, 1: write
 
-    char* saveptr;
-    /*char* s = str; int count = 0;
-    char* args[] = (char*)malloc(sizeof());
-      for(int loop=0;s[loop]!='\0';loop++){
-        if(s[loop] == '|'){
-            count++;
-        }
-    }*/
-    //printf("found pipes: %d, str: %s\n", count,str);
-    char* firstBin = NULL, *secondBin = NULL;
-    firstBin = strtok_r(str,"|",&saveptr);
+    char *saveptr;
 
-    secondBin = strtok_r(NULL,"|",&saveptr);
-    secondBin=trimString(secondBin);
-    //printf("first: %s, second: %s\n",firstBin,secondBin);
-    while(firstBin != NULL || secondBin != NULL){
-        int piperet = pipe(pipes);
-        if(piperet != 0){
-            puts("Pipe creation failed, returning");
-            return -1;
-        }
+    char *firstBin = NULL, *secondBin = NULL;
+    firstBin = strtok_r(str, "|", &saveptr);
+    firstBin = trimString(firstBin);
 
-        identity = fork();
-        //printf("CP1: Fork returned: %d, first: %s, second: %s\n",identity, firstBin,secondBin);
-        switch(identity){
-            case -1:
-            {
-                //printf("identity invalid: first: %s, second: %s\n",firstBin,secondBin);
-                exit(1);
-                break;
-            }
-            case 0:
-            {
-                dup2(fileDescriptor,0);
-                if(secondBin != NULL){
-                    dup2(pipes[1],1); // RM: change the writing end to pipe
-                }
-                close(pipes[0]);
-                //printf("sending for prepare: %s\n",firstBin);
-                char** args = prepareCharArray(firstBin);
-                char** env = {NULL};
-                execve(args[0],args,env);
-                exit(1);
-                break;
-            }
-            default:{
-                //printf("waiting: first: %s, second: %s\n",firstBin,secondBin);
-                wait(NULL);
-                close(pipes[1]);
-                fileDescriptor = pipes[0];
-                firstBin = secondBin;
-                secondBin = strtok_r(NULL,"|",&saveptr);
-                secondBin=trimString(secondBin);
-                break;
-            }
-        }
+
+    int terminal_write_backup = dup(1);
+
+    secondBin = strtok_r(NULL, "|", &saveptr);
+    secondBin = trimString(secondBin);
+
+    char *buf = (char *) malloc(100);
+    char *buf2 = (char *) malloc(100);
+    int piperet = pipe(pipes);
+
+    if (piperet != 0) {
+        puts("Pipe creation failed, returning");
+        return -1;
     }
+
+    dup2(pipes[1],1);
+    forkProcessing(prepareCharArray(firstBin), NULL, 0);
+    dup2(terminal_write_backup, 1);
+    memset(buf, 0, 100);
+    sys_read(pipes[0], buf, 100);
+    strcpy(buf2, secondBin);
+    strcat(buf2, " ");
+    strcat(buf2, buf);
+    forkProcessing(prepareCharArray(buf2), NULL, 0);
     return 0;
 }
 
@@ -260,7 +232,7 @@ int processCommand(char* str, int isBackgroundProcess){
         str = trimString(str);
         int result = chdir(str);
         if(result <0){
-            puts("No such file or directory");
+            puts("No such directory");
         }
     }
     else if(strncmp(str,"export PATH=",11) == 0)
@@ -424,7 +396,10 @@ char* findFileinPath(char* file){
     char *token=strtok_r(paths,":",&saveptr1);
 
     while(token!=NULL){
-        strcpy(full_path,token+1);
+        if(token[0]=='/'){
+            token = token+1;
+        }
+        strcpy(full_path,token);
         strcat(full_path,"/");
         strcat(full_path,file);
         fd = open(full_path, O_RDONLY);
@@ -436,6 +411,7 @@ char* findFileinPath(char* file){
         }
         token = strtok_r(NULL,":",&saveptr1);
     }
+    printf("No such file:%s in PATH\n",file);
     return NULL;
 
 }
