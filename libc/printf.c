@@ -8,8 +8,6 @@
 char intToCharOut[100]; // RM: string could be 64 bit address space
 int intToCharLen = 0;
 
-char* arr = "abcdef";
-
 void intToChar(int n, int base){
     if(n==0){
         return;
@@ -190,23 +188,7 @@ int printf(const char *fmt, ...)
 
             }
         }
-//        else if(*inputBufPtr == '\n')
-//        {
-//            int forward = charsWritten%LINE_LENGTH;
-//            outputBufPtr += (LINE_LENGTH - forward);
-//            charsWritten += (LINE_LENGTH - forward);
-//            checkOverflow(&outputBufPtr);
-//            inputBufPtr += 1;
-//        }
-//        else if(*inputBufPtr == '\r')
-//        {
-//            int back = charsWritten%LINE_LENGTH;
-//            outputBufPtr -= back;
-//            charsWritten -= back;
-//            checkOverflow(&outputBufPtr);
-//            inputBufPtr += 1;
-//        }
-        else
+        else //handles \n and \r too
         {
             *outputBufPtr = *inputBufPtr;
             outputBufPtr+=1;
@@ -216,8 +198,6 @@ int printf(const char *fmt, ...)
         }
     }
 
-//    *outputBufPtr = '\0';
-//    charsWritten+=1;
     sys_write(1,charOutBuf,charsWritten);
     charsWritten = 0;
     intToCharLen = 0;
