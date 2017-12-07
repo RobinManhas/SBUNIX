@@ -47,12 +47,15 @@ int write_close_pipe(int fdNo){
         return -1;
     pipe->write_closed = 1;
     if (pipe->read_closed) {
-        deallocatePage((uint64_t )pipe);
+        //deallocatePage((uint64_t )pipe);
     } else {
-        pipe->task_blocked->state = TASK_STATE_RUNNING;
-        removeTaskFromBlocked(pipe->task_blocked);
-        addTaskToReady(pipe->task_blocked, 0);
-        pipe->task_blocked = NULL;
+        if(pipe->task_blocked){
+            pipe->task_blocked->state = TASK_STATE_RUNNING;
+            removeTaskFromBlocked(pipe->task_blocked);
+            addTaskToReady(pipe->task_blocked, 0);
+            pipe->task_blocked = NULL;
+        }
+
     }
     if(--getCurrentTask()->fd[fdNo]->ref_count<1)
         deallocatePage((uint64_t )getCurrentTask()->fd[fdNo]);
@@ -103,12 +106,15 @@ int read_close_pipe(int fdNo){
         return -1;
     pipe->read_closed = 1;
     if (pipe->write_closed) {
-        deallocatePage((uint64_t )pipe);
+        //deallocatePage((uint64_t )pipe);
     } else {
-        pipe->task_blocked->state = TASK_STATE_RUNNING;
-        removeTaskFromBlocked(pipe->task_blocked);
-        addTaskToReady(pipe->task_blocked, 0);
-        pipe->task_blocked = NULL;
+        if(pipe->task_blocked){
+            pipe->task_blocked->state = TASK_STATE_RUNNING;
+            removeTaskFromBlocked(pipe->task_blocked);
+            addTaskToReady(pipe->task_blocked, 0);
+            pipe->task_blocked = NULL;
+        }
+
     }
     if(--getCurrentTask()->fd[fdNo]->ref_count<1)
         deallocatePage((uint64_t )getCurrentTask()->fd[fdNo]);
