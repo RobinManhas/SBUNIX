@@ -172,10 +172,10 @@ int setenv(const char *envname, const char *envval, int overwrite){
 
 
 
-void* malloc(size_t size){
-  return sys_brk(size);
-}
-/*struct mem_block *addspace(struct mem_block* last_mem, size_t size) {
+//void* malloc(size_t size){
+//  return sys_brk(size);
+//}
+struct mem_block *addspace(struct mem_block* last_mem, size_t size) {
   struct mem_block *new_mem;
   new_mem = sys_brk(size + 20);
   if (last_mem) { 
@@ -230,11 +230,12 @@ void *malloc(size_t size) {
 
 void free(void *ptr) {
   if (ptr==NULL) {
+      puts("free: pointer was null");
     return;
   }
   struct mem_block* free_mem = (struct mem_block*)ptr - 1;
   free_mem->isfree = 1;
-}*/
+}
 
 void exit(int status){
    syscall1(SYSCALL_EXIT,status);

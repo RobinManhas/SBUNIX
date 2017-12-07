@@ -396,7 +396,7 @@ int extendVma(uint64_t flags,uint64_t len){
 }
 
 //to be used by kernel to create a new linear address interval
-uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags, struct file_table *file, uint64_t offset){
+vm_area_struct* do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags, struct file_table *file, uint64_t offset){
     //uint64_t start_addr ;
 
     if(addr == 0)
@@ -406,7 +406,7 @@ uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags,
     //if free slot found in middle;
     if(addr !=0){
         if(extendVma(flags,len)==1)
-            return addr;
+            return NULL;
 
         vm_area_struct *new_vm;
 
@@ -441,10 +441,10 @@ uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags,
 //        uint64_t* pml = (uint64_t*)task->cr3;
 //        allocate_pages_to_vma(new_vm,&pml);
 
-        return addr;
+        return new_vm;
 
     }else
-        return add_vma_at_last(task->mm,len, flags,file,offset,1)->vm_start;
+        return add_vma_at_last(task->mm,len, flags,file,offset,1);
 
 
 }

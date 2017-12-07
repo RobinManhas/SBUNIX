@@ -11,7 +11,7 @@
 
 
 
-uint64_t do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags, struct file_table *file, uint64_t offset);
+vm_area_struct* do_mmap(task_struct* task, uint64_t addr, uint64_t len, uint64_t flags, struct file_table *file, uint64_t offset);
 
 void allocate_single_page(task_struct* task, uint64_t addr);
 void allocate_pages_to_vma(vm_area_struct* vma,uint64_t** pml_ptr);

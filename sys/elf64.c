@@ -27,6 +27,8 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file,
 
     Elf64_Phdr* progHeader;
 
+    vm_area_struct* vma;
+    uint64_t * pml4_pointer = (uint64_t*)task->cr3;
     //for each entry in the program header table
     for(int i=0; i < elf_header->e_phnum ; i++){
 
@@ -36,7 +38,14 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file,
             is_exe=1;
             //ELF SECTIONS to be loaded in new virtual memory area
             //uint64_t * start_pointer =
-            do_mmap(task, progHeader->p_vaddr, progHeader->p_memsz, progHeader->p_flags, file,progHeader->p_offset);
+            vma = do_mmap(task, progHeader->p_vaddr, progHeader->p_memsz, progHeader->p_flags, file,progHeader->p_offset);
+            //.BSS memory handling
+            if(progHeader->p_filesz <progHeader->p_memsz && vma!=NULL){
+                    allocate_pages_to_vma(vma,&pml4_pointer);
+                    memset((void *)vma->vm_start + progHeader->p_filesz, 0, progHeader->p_memsz - progHeader->p_filesz);
+
+           }
+
 
         }
     }
@@ -54,7 +63,7 @@ int load_elf_binary(Elf64_Ehdr* elf_header, task_struct* task, file_table* file,
     allocate_stack(task,argv, envp);
 
     //allocate page for e_entry address
-    uint64_t * pml4_pointer = (uint64_t*)task->cr3;
+
     vm_area_struct* vm = find_vma(task->mm,task->user_rip);
     allocate_pages_to_vma(vm,&pml4_pointer);
 
