@@ -27,6 +27,7 @@
 #define SYSCALL_CHDIR 80
 #define SYSCALL_SLEEP 81
 #define SYSCALL_PS 90
+#define SYSCALL_CLEARSCREEN 91
 
 
 #define O_RDONLY 0x0000

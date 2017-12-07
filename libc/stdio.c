@@ -101,6 +101,8 @@ int putVal(const char *s){
   return 0;
 }
 
+
+
 int getdir(void* buf, int size){
   long ret = syscall2((long)SYSCALL_GETCWD,(long)buf,(long)50);
   return (int)ret;
@@ -246,3 +248,6 @@ unsigned int sleep(unsigned int seconds){
   return syscall1(SYSCALL_SLEEP, seconds);
 }
 
+void clearScr(){
+    syscall0(SYSCALL_CLEARSCREEN);
+}

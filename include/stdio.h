@@ -11,7 +11,7 @@ void putn(long n);
 int puts(const char *s);
 int printf(const char *format, ...);
 int putVal(const char *s);
-
+void clearScr();
 char *gets(char *s);
 int getch();
 
