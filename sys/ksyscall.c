@@ -214,6 +214,11 @@ pid_t sfork() {
     return child_pid;
 }
 
+int sclearscreen(){
+    clearScreen();
+    return 0;
+}
+
 int schdir(uint64_t path) {
     file_table* dir = find_file_using_relative_path((char*)path,getCurrentTask()->curr_dir);
    if(dir == NULL ||dir->type == FILE){
@@ -382,6 +387,9 @@ int syscall_handler(struct regs* reg) {
             break;
         case SYSCALL_PIPE:
             value = spipe(reg->rdi);
+        case SYSCALL_CLEARSCREEN:
+            value = sclearscreen();
+            break;
         default:
 #ifdef DEBUG_LOGS_ENABLE
             kprintf("got a syscall : %d\n",syscallNo);

@@ -3,15 +3,23 @@
 #include <sys/defs.h>
 #include <sys/util.h>
 
-#define LINE_LENGTH 160
-#define MAX_LINES 24 //3680,3840
-#define TIMER_LINE 25
+#define LINE_LENGTH 160U
+#define MAX_LINES 24U //3680,3840
+#define TIMER_LINE 25U
 #define SPACE_OFFSET 2
 uint64_t videoOutBufAdd = 0xb8000;
 char intToCharOut[100]; // RM: string could be 64 bit address space
 int intToCharLen = 0;
 static int charsWritten = 0;
 int keyboardOffset = 2;
+
+void move_csr() {
+    uint16_t temp = (uint16_t)(charsWritten/2);
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (uint8_t)(temp&0xFF));
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (uint8_t)((temp>>8)&0xFF));
+}
 
 void checkOverflow(char** outBuf)
 {
@@ -83,14 +91,16 @@ void hextoChar(unsigned long long n, int base){
 }
 
 void clearScreen(){
-    // clear the last line
+
     char* destPtr = (char*)videoOutBufAdd;
-    int lastLine = LINE_LENGTH*(MAX_LINES-1);
-    for(int i = 0;i<=lastLine;i++)
-    {
-        *destPtr = ' ';
-        destPtr+=2;
+    for(int i = 0; i < 160U * 25U; i+=2) {
+        destPtr[i] = ' ';
     }
+
+    charsWritten = 0;
+    intToCharLen = 0;
+    keyboardOffset = 2;
+    move_csr();
 }
 
 void updateTimeOnScreen(int time)
@@ -346,13 +356,7 @@ void kprintf(const char *fmt, ...)
     }
     va_end(arglist);
 }
-void move_csr(void) {
-    uint16_t temp = (uint16_t)(charsWritten/2);
-    outb(0x3D4, 0x0F);
-    outb(0x3D5, (uint8_t)(temp&0xFF));
-    outb(0x3D4, 0x0E);
-    outb(0x3D5, (uint8_t)((temp>>8)&0xFF));
-}
+
 void kputch(char c) {
     char *outputBufPtr = (char *) videoOutBufAdd + charsWritten;
 

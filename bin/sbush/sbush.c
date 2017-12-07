@@ -236,7 +236,6 @@ void forkProcessing(char * path[], char * env[], int isBackgroundProcess){
 
 }
 
-
 int processCommand(char* str, int isBackgroundProcess){
     // built-in: exit
     if(str[0]=='\0' ){
@@ -273,7 +272,9 @@ int processCommand(char* str, int isBackgroundProcess){
             executeFile(filename);
 
     }
-        //check for PS1
+    else if(strncmp(str,"clear",5) == 0){
+        clearScr();
+    }
     else if(strncmp(str,"export PS1",10) == 0 || strncmp(str,"PS1",3)==0){
         if(strlen(str) < 5){
             puts("Invalid input for PS1");
