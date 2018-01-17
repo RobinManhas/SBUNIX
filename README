@@ -1,11 +1,11 @@
-sbush: A 64-bit Preemptive multi-tasking OS
+SBUNIX: A 64-bit Preemptive multi-tasking OS
 Team members:
 Robin Manhas(111463105 rmanhas@cs.stonybrook.edu)
 Harsh Gupta(111470974 hagupta@cs.stonybrook.edu)
 Shweta Sahu(111481846 shsahu@cs.stonybrook.edu)
 
 Project type: Preemptive OS with support for Pipes and signals (70 point)
-Submission date:
+Submission date: 11 December 2018
 
 ========================================================================================================================
 Commands Supported:
